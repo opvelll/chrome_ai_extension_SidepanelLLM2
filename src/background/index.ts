@@ -197,7 +197,6 @@ chrome.runtime.onMessage.addListener((request: BackgroundRequest, _sender, sendR
               apiKey: parsed.payload.apiKey,
               modelId: parsed.payload.modelId ?? 'gpt-4.1-mini',
               systemPrompt: '',
-              baseUrl: parsed.payload.baseUrl ?? 'https://api.openai.com/v1/chat/completions',
             },
             userMessage,
             history: [],

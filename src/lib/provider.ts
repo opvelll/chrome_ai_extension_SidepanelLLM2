@@ -1,4 +1,8 @@
+import OpenAI from 'openai';
+import type { ChatCompletionContentPart, ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import type { ChatMessage, ContextAttachment, Settings, TokenUsage } from '../shared/models';
+
+const OPENAI_BASE_URL = 'https://api.openai.com/v1';
 
 type ProviderResult = {
   assistantMessage: ChatMessage;
@@ -16,6 +20,14 @@ function attachmentToText(attachment: ContextAttachment): string {
   }
 }
 
+function createClient(settings: Settings): OpenAI {
+  return new OpenAI({
+    apiKey: settings.apiKey,
+    baseURL: OPENAI_BASE_URL,
+    dangerouslyAllowBrowser: true,
+  });
+}
+
 export async function sendChatCompletion(input: {
   settings: Settings;
   userMessage: ChatMessage;
@@ -29,7 +41,8 @@ export async function sendChatCompletion(input: {
     throw new Error('API key is not configured.');
   }
 
-  const messages: Array<Record<string, unknown>> = [];
+  const client = createClient(settings);
+  const messages: ChatCompletionMessageParam[] = [];
 
   if (settings.systemPrompt.trim()) {
     messages.push({
@@ -45,7 +58,7 @@ export async function sendChatCompletion(input: {
     });
   }
 
-  const contentParts: Array<Record<string, unknown>> = [
+  const contentParts: ChatCompletionContentPart[] = [
     {
       type: 'text',
       text: userMessage.content,
@@ -55,15 +68,18 @@ export async function sendChatCompletion(input: {
   for (const attachment of attachments) {
     if (attachment.kind === 'screenshot') {
       contentParts.push({
-        type: 'input_image',
-        image_url: attachment.imageDataUrl,
+        type: 'image_url',
+        image_url: {
+          url: attachment.imageDataUrl,
+        },
       });
-    } else {
-      contentParts.push({
-        type: 'text',
-        text: attachmentToText(attachment),
-      });
+      continue;
     }
+
+    contentParts.push({
+      type: 'text',
+      text: attachmentToText(attachment),
+    });
   }
 
   messages.push({
@@ -71,35 +87,12 @@ export async function sendChatCompletion(input: {
     content: contentParts,
   });
 
-  const response = await fetch(settings.baseUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${settings.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: modelId || settings.modelId,
-      messages,
-    }),
+  const response = await client.chat.completions.create({
+    model: modelId || settings.modelId,
+    messages,
   });
 
-  const json = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string | Array<{ text?: string }> } }>;
-    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
-    error?: { message?: string };
-  };
-
-  if (!response.ok) {
-    throw new Error(json.error?.message ?? `Provider request failed with ${response.status}.`);
-  }
-
-  const rawContent = json.choices?.[0]?.message?.content;
-  const content =
-    typeof rawContent === 'string'
-      ? rawContent
-      : Array.isArray(rawContent)
-        ? rawContent.map((part) => part.text ?? '').join('\n').trim()
-        : '';
+  const content = response.choices[0]?.message?.content?.trim() ?? '';
 
   if (!content) {
     throw new Error('Provider returned an empty response.');
@@ -113,9 +106,9 @@ export async function sendChatCompletion(input: {
       createdAt: new Date().toISOString(),
     },
     usage: {
-      promptTokens: json.usage?.prompt_tokens,
-      completionTokens: json.usage?.completion_tokens,
-      totalTokens: json.usage?.total_tokens,
+      promptTokens: response.usage?.prompt_tokens,
+      completionTokens: response.usage?.completion_tokens,
+      totalTokens: response.usage?.total_tokens,
     },
   };
 }

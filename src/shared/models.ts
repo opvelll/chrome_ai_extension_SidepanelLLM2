@@ -47,7 +47,6 @@ export type Settings = {
   apiKey: string;
   modelId: string;
   systemPrompt: string;
-  baseUrl: string;
 };
 
 export type TokenUsage = {
@@ -60,5 +59,4 @@ export const DEFAULT_SETTINGS: Settings = {
   apiKey: '',
   modelId: 'gpt-4.1-mini',
   systemPrompt: '',
-  baseUrl: 'https://api.openai.com/v1/chat/completions',
 };

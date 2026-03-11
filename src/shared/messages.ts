@@ -88,7 +88,6 @@ export const settingsTestConnectionRequestSchema = z.object({
   payload: z.object({
     apiKey: z.string().min(1),
     modelId: z.string().optional(),
-    baseUrl: z.string().url().optional(),
   }),
 });
 

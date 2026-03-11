@@ -44,7 +44,6 @@ export function App() {
       payload: {
         apiKey: settings.apiKey,
         modelId: settings.modelId,
-        baseUrl: settings.baseUrl,
       },
     });
 
@@ -63,7 +62,7 @@ export function App() {
       <div className="options-card">
         <div className="eyebrow">Settings</div>
         <h1>Sidepanel LLM</h1>
-        <p className="options-copy">Configure the OpenAI-compatible endpoint used by the side panel.</p>
+        <p className="options-copy">Configure the OpenAI API used by the side panel.</p>
 
         <label className="field">
           <span>API key</span>
@@ -80,15 +79,6 @@ export function App() {
             type="text"
             value={settings.modelId}
             onChange={(event) => setSettings((current) => ({ ...current, modelId: event.target.value }))}
-          />
-        </label>
-
-        <label className="field">
-          <span>Chat completions URL</span>
-          <input
-            type="url"
-            value={settings.baseUrl}
-            onChange={(event) => setSettings((current) => ({ ...current, baseUrl: event.target.value }))}
           />
         </label>
 
