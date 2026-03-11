@@ -46,6 +46,19 @@ pnpm build
 pnpm typecheck
 ```
 
+## API Key の扱い
+
+- 開発時のみ、`.env` か `.env.local` に `VITE_DEV_OPENAI_API_KEY` を置くと設定画面の初期値として読み込まれます
+- 本番ビルドでは環境変数の API key は使わず、ユーザーに入力してもらう前提です
+- 保存された設定は `chrome.storage.local` に保存され、そのブラウザープロファイルのローカルにのみ残ります
+- 配布用ビルドに秘密鍵を埋め込む運用は避けてください
+
+`.env.local` の例:
+
+```bash
+cp .env.example .env.local
+```
+
 ## ディレクトリ構成
 
 ```text

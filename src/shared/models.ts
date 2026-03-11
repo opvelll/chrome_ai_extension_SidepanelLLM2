@@ -54,9 +54,3 @@ export type TokenUsage = {
   completionTokens?: number;
   totalTokens?: number;
 };
-
-export const DEFAULT_SETTINGS: Settings = {
-  apiKey: '',
-  modelId: 'gpt-4.1-mini',
-  systemPrompt: '',
-};

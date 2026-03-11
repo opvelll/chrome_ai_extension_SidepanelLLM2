@@ -1,4 +1,5 @@
-import { DEFAULT_SETTINGS, type ChatMessage, type ChatSession, type Settings } from '../shared/models';
+import { getDefaultSettings } from './defaultSettings';
+import type { ChatMessage, ChatSession, Settings } from '../shared/models';
 
 const STORAGE_KEYS = {
   settings: 'settings',
@@ -19,7 +20,7 @@ async function writeStorage<T>(key: string, value: T): Promise<void> {
 
 export async function getSettings(): Promise<Settings> {
   const settings = await readStorage<Partial<Settings>>(STORAGE_KEYS.settings, {});
-  return { ...DEFAULT_SETTINGS, ...settings };
+  return { ...getDefaultSettings(), ...settings };
 }
 
 export async function saveSettings(settings: Settings): Promise<Settings> {

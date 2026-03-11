@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import type { AsyncResponse } from '../shared/messages';
-import { DEFAULT_SETTINGS, type Settings } from '../shared/models';
+import { getDefaultSettings, hasDevDefaultApiKey } from '../lib/defaultSettings';
+import type { Settings } from '../shared/models';
 
 async function sendMessage<T>(payload: unknown): Promise<AsyncResponse<T>> {
   return chrome.runtime.sendMessage(payload) as Promise<AsyncResponse<T>>;
 }
 
 export function App() {
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<Settings>(getDefaultSettings());
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [testing, setTesting] = useState(false);
+  const devDefaultApiKey = hasDevDefaultApiKey();
 
   useEffect(() => {
     void (async () => {
@@ -63,6 +65,14 @@ export function App() {
         <div className="eyebrow">Settings</div>
         <h1>Sidepanel LLM</h1>
         <p className="options-copy">Configure the OpenAI API used by the side panel.</p>
+        <p className="storage-note">
+          Production builds require the user to enter an API key. Saved settings are stored in <code>chrome.storage.local</code> on this browser profile only.
+        </p>
+        {devDefaultApiKey ? (
+          <p className="storage-note">
+            Development mode detected: the API key field was prefilled from <code>.env</code>. Saving will persist the current value to local extension storage.
+          </p>
+        ) : null}
 
         <label className="field">
           <span>API key</span>
