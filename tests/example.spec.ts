@@ -15,6 +15,8 @@ async function launchExtension() {
     channel: 'chromium',
     headless: !!process.env.CI,
     args: [
+      '--disable-gpu',
+      '--use-angle=swiftshader',
       `--disable-extensions-except=${extensionPath}`,
       `--load-extension=${extensionPath}`,
     ],
@@ -72,6 +74,23 @@ async function clickButtonInBackground(page: Page, label: string) {
 
     button.click();
   }, label);
+}
+
+async function saveSettings(page: Page, settings?: { apiKey?: string; modelId?: string; systemPrompt?: string }) {
+  if (settings?.apiKey !== undefined) {
+    await page.getByLabel('API key').fill(settings.apiKey);
+  }
+
+  if (settings?.modelId !== undefined) {
+    await page.getByLabel('Model').fill(settings.modelId);
+  }
+
+  if (settings?.systemPrompt !== undefined) {
+    await page.getByLabel('System prompt').fill(settings.systemPrompt);
+  }
+
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByText('Saved.')).toBeVisible();
 }
 
 test.beforeAll(async () => {
@@ -138,12 +157,11 @@ test('loads the extension options page and saves settings', async () => {
     const page = await openExtensionPage(context, extensionId, 'options.html');
 
     await expect(page.getByRole('heading', { name: 'Sidepanel LLM' })).toBeVisible();
-    await page.getByLabel('API key').fill('test-api-key');
-    await page.getByLabel('Model').fill('gpt-4.1-mini');
-    await page.getByLabel('System prompt').fill('Be concise.');
-    await page.getByRole('button', { name: 'Save' }).click();
-
-    await expect(page.getByText('Saved.')).toBeVisible();
+    await saveSettings(page, {
+      apiKey: 'test-api-key',
+      modelId: 'gpt-4.1-mini',
+      systemPrompt: 'Be concise.',
+    });
 
     await page.reload();
     await expect(page.getByLabel('API key')).toHaveValue('test-api-key');
@@ -192,6 +210,84 @@ test('captures selection text and page text from the active tab', async () => {
     await fixturePage.bringToFront();
     await clickButtonInBackground(sidepanelPage, 'Capture page');
     await expect(sidepanelPage.getByText(/Page: Fixture Article/)).toBeVisible();
+  } finally {
+    await closeExtension(context, userDataDir);
+  }
+});
+
+test('captures a screenshot from the active tab and shows a preview', async () => {
+  const { context, extensionId, userDataDir } = await launchExtension();
+
+  try {
+    const fixturePage = await openFixturePage(context);
+    await fixturePage.setViewportSize({ width: 1200, height: 800 });
+    await fixturePage.bringToFront();
+
+    const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
+    await expect(sidepanelPage.getByRole('heading', { name: 'Sidepanel LLM' })).toBeVisible();
+
+    await fixturePage.bringToFront();
+    await clickButtonInBackground(sidepanelPage, 'Capture screenshot');
+
+    const screenshotChip = sidepanelPage.getByText(/Screenshot: Fixture Article/);
+    await expect(screenshotChip).toBeVisible();
+
+    const preview = sidepanelPage.getByAltText('Attached screenshot preview');
+    await expect(preview).toBeVisible();
+    await expect(preview).toHaveAttribute('src', /^data:image\/png;base64,/);
+  } finally {
+    await closeExtension(context, userDataDir);
+  }
+});
+
+test('sends a chat request with mocked provider response', async () => {
+  const { context, extensionId, userDataDir } = await launchExtension();
+
+  try {
+    await context.route('https://api.openai.com/v1/chat/completions', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'chatcmpl-test',
+          object: 'chat.completion',
+          created: 1735689600,
+          model: 'gpt-4.1-mini',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Mocked assistant reply.',
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: 12,
+            completion_tokens: 4,
+            total_tokens: 16,
+          },
+        }),
+      });
+    });
+
+    const optionsPage = await openExtensionPage(context, extensionId, 'options.html');
+    await saveSettings(optionsPage, {
+      apiKey: 'test-api-key',
+      modelId: 'gpt-4.1-mini',
+      systemPrompt: 'Test system prompt.',
+    });
+
+    const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
+    await expect(sidepanelPage.getByRole('heading', { name: 'Sidepanel LLM' })).toBeVisible();
+
+    await sidepanelPage.getByPlaceholder('Ask about the current page...').fill('Hello from Playwright');
+    await sidepanelPage.getByRole('button', { name: 'Send' }).click();
+
+    await expect(sidepanelPage.locator('.message.user')).toContainText('Hello from Playwright');
+    await expect(sidepanelPage.locator('.message.assistant')).toContainText('Mocked assistant reply.');
+    await expect(sidepanelPage.locator('.session-item').first()).toContainText('Hello from Playwright');
   } finally {
     await closeExtension(context, userDataDir);
   }
