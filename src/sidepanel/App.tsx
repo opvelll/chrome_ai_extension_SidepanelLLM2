@@ -11,7 +11,7 @@ import {
   Type,
   X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { attachmentLabel, formatTimestamp, getTranslations } from '../lib/i18n';
 import { sendRuntimeMessage } from '../lib/runtime';
 import type { ChatMessage, ChatSession, ContextAttachment, Settings } from '../shared/models';
@@ -44,6 +44,8 @@ export function App() {
   const [error, setError] = useState('');
   const [contextError, setContextError] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [autoAttachPage, setAutoAttachPage] = useState(false);
+  const didConsumePendingSelectionRef = useRef(false);
 
   const t = getTranslations(settings);
 
@@ -105,6 +107,46 @@ export function App() {
     }
   }, [activeSessionId]);
 
+  useEffect(() => {
+    if (didConsumePendingSelectionRef.current) {
+      return;
+    }
+
+    didConsumePendingSelectionRef.current = true;
+
+    void (async () => {
+      const response = await sendRuntimeMessage<{ attachment: ContextAttachment | null }>({
+        type: 'context.consumePendingSelection',
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      if (!response.data.attachment) {
+        return;
+      }
+
+      const pendingAttachment = response.data.attachment;
+
+      setAttachments((current) => {
+        if (
+          current.some(
+            (attachment) =>
+              attachment.kind === 'selectionText' &&
+              pendingAttachment.kind === 'selectionText' &&
+              attachment.text === pendingAttachment.text &&
+              attachment.source.url === pendingAttachment.source.url,
+          )
+        ) {
+          return current;
+        }
+
+        return [...current, pendingAttachment];
+      });
+    })();
+  }, []);
+
   async function ensureSession() {
     if (activeSessionId) {
       return activeSessionId;
@@ -136,6 +178,7 @@ export function App() {
     setAttachments([]);
     setDraft('');
     setHistoryOpen(false);
+    setAutoAttachPage(false);
     await loadSessions(true);
   }
 
@@ -158,7 +201,46 @@ export function App() {
       setAttachments([]);
       setDraft('');
       setActiveSessionId('');
+      setAutoAttachPage(false);
     }
+    await loadSessions();
+  }
+
+  async function deleteStoredMessage(messageId: string) {
+    if (!activeSessionId) {
+      return;
+    }
+
+    const response = await sendRuntimeMessage<{ messages: ChatMessage[] }>({
+      type: 'message.delete',
+      payload: { sessionId: activeSessionId, messageId },
+    });
+
+    if (!response.ok) {
+      setError(response.error.message);
+      return;
+    }
+
+    setMessages(response.data.messages);
+    await loadSessions();
+  }
+
+  async function deleteStoredAttachment(messageId: string, attachmentId: string) {
+    if (!activeSessionId) {
+      return;
+    }
+
+    const response = await sendRuntimeMessage<{ messages: ChatMessage[] }>({
+      type: 'message.attachmentDelete',
+      payload: { sessionId: activeSessionId, messageId, attachmentId },
+    });
+
+    if (!response.ok) {
+      setError(response.error.message);
+      return;
+    }
+
+    setMessages(response.data.messages);
     await loadSessions();
   }
 
@@ -183,9 +265,25 @@ export function App() {
 
     setLoading(true);
     setError('');
+    setContextError('');
 
     try {
       const sessionId = await ensureSession();
+      let nextAttachments = [...attachments];
+
+      if (autoAttachPage && messages.length === 0 && !nextAttachments.some((attachment) => attachment.kind === 'pageText')) {
+        const pageResponse = await sendRuntimeMessage<{ attachment: ContextAttachment }>({
+          type: 'context.capturePage',
+        });
+
+        if (!pageResponse.ok) {
+          setContextError(pageResponse.error.message);
+          return;
+        }
+
+        nextAttachments = [...nextAttachments, pageResponse.data.attachment];
+      }
+
       const response = await sendRuntimeMessage<{
         assistantMessage: ChatMessage;
       }>({
@@ -193,7 +291,7 @@ export function App() {
         payload: {
           sessionId,
           message: draft.trim(),
-          attachments,
+          attachments: nextAttachments,
         },
       });
 
@@ -204,6 +302,7 @@ export function App() {
 
       setDraft('');
       setAttachments([]);
+      setAutoAttachPage(false);
       await loadSessions();
       await loadSession(sessionId);
     } catch (submitError) {
@@ -330,16 +429,48 @@ export function App() {
                       : 'border border-slate-200 bg-slate-50 text-slate-900'
                   }`}
                 >
-                  <div className="whitespace-pre-wrap text-sm leading-5.5">{message.content}</div>
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1 whitespace-pre-wrap text-sm leading-5.5">{message.content}</div>
+                    <button
+                      className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition ${
+                        message.role === 'user'
+                          ? 'text-white/60 hover:bg-white/10 hover:text-white'
+                          : 'text-slate-400 hover:bg-white hover:text-rose-700'
+                      }`}
+                      onClick={() => void deleteStoredMessage(message.id)}
+                      aria-label={t.common.delete}
+                      title={t.common.delete}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                   {message.attachments?.length ? (
                     <div className="mt-2 flex flex-col gap-1.5">
                       {message.attachments.map((attachment) => (
                         <div
                           key={attachment.id}
-                          className="inline-flex items-center gap-2 self-start rounded-full border border-current/10 bg-black/5 px-2.5 py-1 text-xs"
+                          className={`self-start rounded-[16px] border px-2.5 py-2 text-xs ${
+                            message.role === 'user'
+                              ? 'border-white/10 bg-white/10'
+                              : 'border-slate-200 bg-white'
+                          }`}
                         >
-                          {attachmentIcon(attachment)}
-                          {attachmentLabel(attachment, settings)}
+                          <div className="flex items-start gap-2">
+                            <span className="mt-0.5">{attachmentIcon(attachment)}</span>
+                            <span className="min-w-0 flex-1">{attachmentLabel(attachment, settings)}</span>
+                            <button
+                              className={`inline-flex h-5 w-5 items-center justify-center rounded-full transition ${
+                                message.role === 'user'
+                                  ? 'text-white/60 hover:bg-white/10 hover:text-white'
+                                  : 'text-slate-400 hover:bg-slate-100 hover:text-rose-700'
+                              }`}
+                              onClick={() => void deleteStoredAttachment(message.id, attachment.id)}
+                              aria-label={t.common.delete}
+                              title={t.common.delete}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -351,8 +482,9 @@ export function App() {
 
         <section className="rounded-[24px] border border-slate-200/80 bg-white/86 p-2.5 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
           <div className="mb-2">
-            <div className="text-sm font-semibold text-slate-900">{t.sidepanel.contextLabel}</div>
-            <p className="mt-1 text-xs leading-5 text-slate-500">{t.sidepanel.contextHint}</p>
+            <div className="text-sm font-semibold text-slate-900" title={t.sidepanel.contextHint}>
+              {t.sidepanel.contextLabel}
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -382,6 +514,16 @@ export function App() {
                 </button>
           </div>
 
+          <label className="mt-2 flex cursor-pointer items-center gap-2 rounded-[16px] border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+              checked={autoAttachPage}
+              onChange={(event) => setAutoAttachPage(event.target.checked)}
+            />
+            <span>{t.sidepanel.autoAttachPage}</span>
+          </label>
+
           {contextError ? (
             <div className="mt-2 rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
               {contextError}
@@ -390,7 +532,7 @@ export function App() {
 
           <div className="mt-2 rounded-[20px] border border-slate-200 bg-slate-50/80">
             {attachments.length === 0 ? (
-              <div className="px-3 py-3 text-xs text-slate-500">{t.sidepanel.contextHint}</div>
+              <div className="px-3 py-3 text-xs text-slate-500">{t.sidepanel.attachedItems}</div>
             ) : (
               <div className="flex max-h-56 flex-col gap-2 overflow-y-auto p-2">
                 {attachments.map((attachment) => (

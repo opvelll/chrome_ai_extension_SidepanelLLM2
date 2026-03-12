@@ -1,5 +1,7 @@
 import {
   chatSendRequestSchema,
+  messageAttachmentDeleteRequestSchema,
+  messageDeleteRequestSchema,
   sessionCreateRequestSchema,
   sessionDeleteRequestSchema,
   sessionGetRequestSchema,
@@ -8,8 +10,14 @@ import {
   type ErrorResponse,
 } from '../shared/messages';
 import type { ChatMessage, ContextAttachment, TabSource } from '../shared/models';
-import { appendMessages, createSession, deleteSession, getSession, getSettings, listMessages, listSessions, saveSettings } from '../lib/storage';
+import { appendMessages, createSession, deleteMessage, deleteMessageAttachment, deleteSession, getSession, getSettings, listMessages, listSessions, saveSettings } from '../lib/storage';
 import { sendChatCompletion } from '../lib/provider';
+
+const SESSION_STORAGE_KEYS = {
+  pendingSelections: 'pendingSelections',
+} as const;
+
+type PendingSelectionStore = Record<string, { text: string; source: TabSource; updatedAt: string }>;
 
 type MessageResponse =
   | Awaited<ReturnType<typeof handleChatSend>>
@@ -17,7 +25,9 @@ type MessageResponse =
   | { ok: true; data: { sessions: Awaited<ReturnType<typeof listSessions>> } }
   | { ok: true; data: { session: NonNullable<Awaited<ReturnType<typeof getSession>>>; messages: Awaited<ReturnType<typeof listMessages>> } }
   | { ok: true; data: { sessionId: string } }
+  | { ok: true; data: { messages: ChatMessage[] } }
   | { ok: true; data: { attachment: ContextAttachment } }
+  | { ok: true; data: { attachment: ContextAttachment | null } }
   | { ok: true; data: { settings: Awaited<ReturnType<typeof getSettings>> } }
   | { ok: true; data: { message: string } }
   | ErrorResponse;
@@ -55,6 +65,79 @@ function getTabSource(tab: chrome.tabs.Tab): TabSource {
   };
 }
 
+async function readPendingSelections(): Promise<PendingSelectionStore> {
+  const result = await chrome.storage.session.get(SESSION_STORAGE_KEYS.pendingSelections);
+  return (result[SESSION_STORAGE_KEYS.pendingSelections] as PendingSelectionStore | undefined) ?? {};
+}
+
+async function writePendingSelections(store: PendingSelectionStore): Promise<void> {
+  await chrome.storage.session.set({ [SESSION_STORAGE_KEYS.pendingSelections]: store });
+}
+
+function installContentBridge() {
+  const globalState = window as Window & {
+    __sidepanelContextBridgeInstalled__?: boolean;
+    __sidepanelLastSelection__?: string;
+  };
+
+  if (globalState.__sidepanelContextBridgeInstalled__) {
+    return;
+  }
+
+  globalState.__sidepanelContextBridgeInstalled__ = true;
+
+  const normalizeText = (value: string) => value.replace(/\s+/g, ' ').trim();
+
+  const getPageText = () => {
+    const article = document.querySelector('main, article, [role="main"]');
+    const source = article?.textContent || document.body?.innerText || '';
+    return normalizeText(source).slice(0, 12000);
+  };
+
+  const publishSelectionSnapshot = async () => {
+    const nextSelection = normalizeText(window.getSelection()?.toString() ?? '');
+
+    if (nextSelection === globalState.__sidepanelLastSelection__) {
+      return;
+    }
+
+    globalState.__sidepanelLastSelection__ = nextSelection;
+
+    try {
+      await chrome.runtime.sendMessage({
+        type: 'context.selectionChanged',
+        payload: { text: nextSelection },
+      });
+    } catch {
+      // Ignore transient runtime disconnects.
+    }
+  };
+
+  document.addEventListener('selectionchange', () => {
+    void publishSelectionSnapshot();
+  });
+
+  document.addEventListener('mouseup', () => {
+    void publishSelectionSnapshot();
+  });
+
+  document.addEventListener('keyup', () => {
+    void publishSelectionSnapshot();
+  });
+
+  chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+    if (request?.type === 'content.getSelection') {
+      const selection = window.getSelection()?.toString() ?? '';
+      sendResponse({ text: normalizeText(selection) });
+      return;
+    }
+
+    if (request?.type === 'content.getPageText') {
+      sendResponse({ text: getPageText() });
+    }
+  });
+}
+
 async function sendContentRequest<T>(type: 'content.getSelection' | 'content.getPageText'): Promise<{ text: string; source: TabSource }> {
   const tab = await getActiveTab();
   const tabId = tab.id;
@@ -78,7 +161,7 @@ async function sendContentRequest<T>(type: 'content.getSelection' | 'content.get
 
     await chrome.scripting.executeScript({
       target: { tabId },
-      files: ['src/content/index.ts'],
+      func: installContentBridge,
     });
 
     result = (await chrome.tabs.sendMessage(tabId, { type })) as { text?: string };
@@ -198,6 +281,22 @@ async function handleSessionDelete(rawRequest: unknown): Promise<MessageResponse
   return { ok: true, data: { sessionId: parsed.payload.sessionId } };
 }
 
+async function handleMessageDelete(rawRequest: unknown): Promise<MessageResponse> {
+  const parsed = messageDeleteRequestSchema.parse(rawRequest);
+  const messages = await deleteMessage(parsed.payload.sessionId, parsed.payload.messageId);
+  return { ok: true, data: { messages } };
+}
+
+async function handleMessageAttachmentDelete(rawRequest: unknown): Promise<MessageResponse> {
+  const parsed = messageAttachmentDeleteRequestSchema.parse(rawRequest);
+  const messages = await deleteMessageAttachment(
+    parsed.payload.sessionId,
+    parsed.payload.messageId,
+    parsed.payload.attachmentId,
+  );
+  return { ok: true, data: { messages } };
+}
+
 async function handleContextCapture(type: 'context.captureSelection' | 'context.capturePage' | 'context.captureScreenshot'): Promise<MessageResponse> {
   const attachment =
     type === 'context.captureSelection'
@@ -207,6 +306,64 @@ async function handleContextCapture(type: 'context.captureSelection' | 'context.
         : await captureScreenshot();
 
   return { ok: true, data: { attachment } };
+}
+
+async function handlePendingSelectionChanged(
+  rawRequest: Extract<BackgroundRequest, { type: 'context.selectionChanged' }>,
+  sender: chrome.runtime.MessageSender,
+): Promise<MessageResponse> {
+  const tabId = sender.tab?.id;
+  if (tabId === undefined) {
+    return { ok: true, data: { attachment: null } };
+  }
+
+  const store = await readPendingSelections();
+  const nextStore = { ...store };
+  const text = rawRequest.payload.text.trim();
+
+  if (!text) {
+    delete nextStore[String(tabId)];
+  } else {
+    nextStore[String(tabId)] = {
+      text,
+      source: getTabSource(sender.tab!),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  await writePendingSelections(nextStore);
+  return { ok: true, data: { attachment: null } };
+}
+
+async function handleConsumePendingSelection(): Promise<MessageResponse> {
+  const tab = await getActiveTab();
+  const tabId = tab.id;
+  const store = await readPendingSelections();
+  const directMatch = tabId === undefined ? undefined : store[String(tabId)];
+  const pendingEntry = directMatch
+    ? [String(tabId), directMatch] as const
+    : Object.entries(store).sort(([, left], [, right]) => right.updatedAt.localeCompare(left.updatedAt))[0];
+
+  if (!pendingEntry?.[1]?.text) {
+    return { ok: true, data: { attachment: null } };
+  }
+
+  const [pendingKey, pending] = pendingEntry;
+  const nextStore = { ...store };
+  delete nextStore[pendingKey];
+  await writePendingSelections(nextStore);
+
+  return {
+    ok: true,
+    data: {
+      attachment: {
+        id: crypto.randomUUID(),
+        kind: 'selectionText',
+        text: pending.text,
+        source: pending.source,
+      },
+    },
+  };
 }
 
 async function handleSettingsGet(): Promise<MessageResponse> {
@@ -244,7 +401,10 @@ async function handleSettingsTestConnection(rawRequest: unknown): Promise<Messag
   return { ok: true, data: { message: result.assistantMessage.content } };
 }
 
-async function routeMessage(request: BackgroundRequest): Promise<MessageResponse> {
+async function routeMessage(
+  request: BackgroundRequest,
+  sender: chrome.runtime.MessageSender,
+): Promise<MessageResponse> {
   switch (request.type) {
     case 'session.create':
       return handleSessionCreate(request);
@@ -254,10 +414,18 @@ async function routeMessage(request: BackgroundRequest): Promise<MessageResponse
       return handleSessionGet(request);
     case 'session.delete':
       return handleSessionDelete(request);
+    case 'message.delete':
+      return handleMessageDelete(request);
+    case 'message.attachmentDelete':
+      return handleMessageAttachmentDelete(request);
     case 'context.captureSelection':
     case 'context.capturePage':
     case 'context.captureScreenshot':
       return handleContextCapture(request.type);
+    case 'context.consumePendingSelection':
+      return handleConsumePendingSelection();
+    case 'context.selectionChanged':
+      return handlePendingSelectionChanged(request, sender);
     case 'settings.get':
       return handleSettingsGet();
     case 'settings.save':
@@ -275,10 +443,10 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => undefined);
 });
 
-chrome.runtime.onMessage.addListener((request: BackgroundRequest, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request: BackgroundRequest, sender, sendResponse) => {
   (async () => {
     try {
-      sendResponse(await routeMessage(request));
+      sendResponse(await routeMessage(request, sender));
     } catch (error) {
       sendResponse(
         errorResponse(

@@ -95,6 +95,8 @@ async function selectText(page: Page, selector: string) {
     range.selectNodeContents(element);
     selection.removeAllRanges();
     selection.addRange(range);
+    document.dispatchEvent(new Event('selectionchange'));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
   });
 }
 
@@ -271,13 +273,12 @@ test('captures selection text and page text from the active tab', async () => {
     const fixturePage = await openFixturePage(context);
     await fixturePage.bringToFront();
     await selectText(fixturePage, '#lead');
+    await fixturePage.waitForTimeout(250);
 
     const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
 
     await waitForSidepanelReady(sidepanelPage);
 
-    await fixturePage.bringToFront();
-    await clickButtonInBackground(sidepanelPage, 'Capture selection');
     await expect(sidepanelPage.getByText(/Selection: Selected text for extension capture\./)).toBeVisible();
     await expect(sidepanelPage.getByText('Selected text for extension capture.', { exact: true })).toBeVisible();
 
@@ -321,9 +322,11 @@ test('captures a screenshot from the active tab and shows a preview', async () =
 
 test('sends a chat request with mocked provider response', async () => {
   const { context, extensionId, userDataDir } = await launchExtension();
+  let lastRequestBody = '';
 
   try {
     await context.route('https://api.openai.com/v1/chat/completions', async (route) => {
+      lastRequestBody = route.request().postData() ?? '';
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -351,6 +354,9 @@ test('sends a chat request with mocked provider response', async () => {
       });
     });
 
+    const fixturePage = await openFixturePage(context);
+    await fixturePage.bringToFront();
+
     const optionsPage = await openExtensionPage(context, extensionId, 'options.html');
     await saveSettings(optionsPage, {
       locale: 'en',
@@ -362,13 +368,20 @@ test('sends a chat request with mocked provider response', async () => {
     const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
     await waitForSidepanelReady(sidepanelPage);
 
+    await sidepanelPage.getByLabel('Auto attach full page on first message').check();
     await sidepanelPage.getByPlaceholder('Ask about the current page...').fill('Hello from Playwright');
-    await sidepanelPage.getByRole('button', { name: 'Send' }).click();
+    await fixturePage.bringToFront();
+    await clickButtonInBackground(sidepanelPage, 'Send');
 
     await expect(sidepanelPage.locator('.message.user')).toContainText('Hello from Playwright');
+    await expect(sidepanelPage.locator('.message.user')).toContainText('Page: Fixture Article');
     await expect(sidepanelPage.locator('.message.assistant')).toContainText('Mocked assistant reply.', {
       timeout: 10_000,
     });
+    expect(lastRequestBody).toContain('Page text from Fixture Article');
+
+    await sidepanelPage.locator('.message.user').getByRole('button', { name: 'Delete' }).first().click();
+    await expect(sidepanelPage.locator('.message.user')).toHaveCount(0);
     await sidepanelPage.getByRole('button', { name: 'Sessions', exact: true }).click();
     await expect(sidepanelPage.locator('.session-item').first()).toContainText('Hello from Playwright');
   } finally {

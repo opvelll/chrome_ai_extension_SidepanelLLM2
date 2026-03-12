@@ -32,6 +32,7 @@ type TranslationDictionary = {
     captureSelection: string;
     capturePage: string;
     captureScreenshot: string;
+    autoAttachPage: string;
     attachedItems: string;
     activeModel: string;
     messageCount: string;
@@ -95,6 +96,7 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       captureSelection: 'Capture selection',
       capturePage: 'Capture page',
       captureScreenshot: 'Capture screenshot',
+      autoAttachPage: 'Auto attach full page on first message',
       attachedItems: 'Attached items',
       activeModel: 'Active model',
       messageCount: 'Messages',
@@ -158,6 +160,7 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       captureSelection: '選択範囲を取得',
       capturePage: 'ページ全文を取得',
       captureScreenshot: 'スクリーンショットを取得',
+      autoAttachPage: '最初の送信時にページ全文を自動添付',
       attachedItems: '添付中の項目',
       activeModel: '使用モデル',
       messageCount: 'メッセージ',

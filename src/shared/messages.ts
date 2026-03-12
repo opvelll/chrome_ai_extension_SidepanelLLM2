@@ -74,6 +74,23 @@ export const sessionDeleteRequestSchema = z.object({
   }),
 });
 
+export const messageDeleteRequestSchema = z.object({
+  type: z.literal('message.delete'),
+  payload: z.object({
+    sessionId: z.string(),
+    messageId: z.string(),
+  }),
+});
+
+export const messageAttachmentDeleteRequestSchema = z.object({
+  type: z.literal('message.attachmentDelete'),
+  payload: z.object({
+    sessionId: z.string(),
+    messageId: z.string(),
+    attachmentId: z.string(),
+  }),
+});
+
 export const sessionCreateRequestSchema = z.object({
   type: z.literal('session.create'),
   payload: z
@@ -94,6 +111,8 @@ export const settingsTestConnectionRequestSchema = z.object({
 export type ChatSendRequest = z.infer<typeof chatSendRequestSchema>;
 export type SessionGetRequest = z.infer<typeof sessionGetRequestSchema>;
 export type SessionDeleteRequest = z.infer<typeof sessionDeleteRequestSchema>;
+export type MessageDeleteRequest = z.infer<typeof messageDeleteRequestSchema>;
+export type MessageAttachmentDeleteRequest = z.infer<typeof messageAttachmentDeleteRequestSchema>;
 export type SessionCreateRequest = z.infer<typeof sessionCreateRequestSchema>;
 export type SettingsTestConnectionRequest = z.infer<typeof settingsTestConnectionRequestSchema>;
 
@@ -113,6 +132,17 @@ export type ContextCaptureScreenshotRequest = {
   type: 'context.captureScreenshot';
 };
 
+export type ContextConsumePendingSelectionRequest = {
+  type: 'context.consumePendingSelection';
+};
+
+export type ContextSelectionChangedRequest = {
+  type: 'context.selectionChanged';
+  payload: {
+    text: string;
+  };
+};
+
 export type SettingsGetRequest = {
   type: 'settings.get';
 };
@@ -128,9 +158,13 @@ export type BackgroundRequest =
   | SessionListRequest
   | SessionGetRequest
   | SessionDeleteRequest
+  | MessageDeleteRequest
+  | MessageAttachmentDeleteRequest
   | ContextCaptureSelectionRequest
   | ContextCapturePageRequest
   | ContextCaptureScreenshotRequest
+  | ContextConsumePendingSelectionRequest
+  | ContextSelectionChangedRequest
   | SettingsGetRequest
   | SettingsSaveRequest
   | SettingsTestConnectionRequest;
@@ -155,6 +189,10 @@ export type SessionGetResponse = AsyncResponse<{
 
 export type ContextCaptureResponse = AsyncResponse<{
   attachment: ContextAttachment;
+}>;
+
+export type ContextConsumePendingSelectionResponse = AsyncResponse<{
+  attachment: ContextAttachment | null;
 }>;
 
 export type SettingsGetResponse = AsyncResponse<{

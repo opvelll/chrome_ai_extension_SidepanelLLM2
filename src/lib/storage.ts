@@ -1,5 +1,4 @@
 import { getDefaultSettings } from './defaultSettings';
-import { isDefaultSessionTitle } from './i18n';
 import type { ChatMessage, ChatSession, Settings } from '../shared/models';
 
 const STORAGE_KEYS = {
@@ -95,11 +94,73 @@ export async function appendMessages(sessionId: string, nextMessages: ChatMessag
   await writeStorage(STORAGE_KEYS.messages, updatedMessages);
 
   if (session) {
-    const titleSource = updatedMessages[sessionId][0]?.content?.trim();
+    const titleSource = updatedMessages[sessionId].find((message) => message.role === 'user')?.content?.trim();
     await updateSession({
       ...session,
-      title: isDefaultSessionTitle(session.title) && titleSource ? titleSource.slice(0, 40) : session.title,
+      title: titleSource ? titleSource.slice(0, 40) : session.title,
       updatedAt: new Date().toISOString(),
     });
   }
+}
+
+export async function deleteMessage(sessionId: string, messageId: string): Promise<ChatMessage[]> {
+  const [messages, session] = await Promise.all([
+    readStorage<MessageStore>(STORAGE_KEYS.messages, {}),
+    getSession(sessionId),
+  ]);
+
+  const nextSessionMessages = (messages[sessionId] ?? []).filter((message) => message.id !== messageId);
+  const nextMessages = {
+    ...messages,
+    [sessionId]: nextSessionMessages,
+  };
+
+  await writeStorage(STORAGE_KEYS.messages, nextMessages);
+
+  if (session) {
+    const titleSource = nextSessionMessages.find((message) => message.role === 'user')?.content?.trim();
+    await updateSession({
+      ...session,
+      title: titleSource ? titleSource.slice(0, 40) : session.title,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  return nextSessionMessages;
+}
+
+export async function deleteMessageAttachment(
+  sessionId: string,
+  messageId: string,
+  attachmentId: string,
+): Promise<ChatMessage[]> {
+  const [messages, session] = await Promise.all([
+    readStorage<MessageStore>(STORAGE_KEYS.messages, {}),
+    getSession(sessionId),
+  ]);
+
+  const nextSessionMessages = (messages[sessionId] ?? []).map((message) =>
+    message.id === messageId
+      ? {
+          ...message,
+          attachments: message.attachments?.filter((attachment) => attachment.id !== attachmentId) ?? [],
+        }
+      : message,
+  );
+
+  const nextMessages = {
+    ...messages,
+    [sessionId]: nextSessionMessages,
+  };
+
+  await writeStorage(STORAGE_KEYS.messages, nextMessages);
+
+  if (session) {
+    await updateSession({
+      ...session,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  return nextSessionMessages;
 }
