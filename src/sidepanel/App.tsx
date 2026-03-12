@@ -42,6 +42,7 @@ export function App() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [contextError, setContextError] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const t = getTranslations(settings);
@@ -123,6 +124,7 @@ export function App() {
 
   async function createNewSession() {
     setError('');
+    setContextError('');
     const response = await sendRuntimeMessage<{ session: ChatSession }>({
       type: 'session.create',
       payload: { title: t.sidepanel.defaultSessionTitle },
@@ -164,11 +166,13 @@ export function App() {
     type: 'context.captureSelection' | 'context.capturePage' | 'context.captureScreenshot',
   ) {
     setError('');
+    setContextError('');
     const response = await sendRuntimeMessage<{ attachment: ContextAttachment }>({ type });
     if (!response.ok) {
-      setError(response.error.message);
+      setContextError(response.error.message);
       return;
     }
+    setContextError('');
     setAttachments((current) => [...current, response.data.attachment]);
   }
 
@@ -346,6 +350,11 @@ export function App() {
         </section>
 
         <section className="rounded-[24px] border border-slate-200/80 bg-white/86 p-2.5 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
+          <div className="mb-2">
+            <div className="text-sm font-semibold text-slate-900">{t.sidepanel.contextLabel}</div>
+            <p className="mt-1 text-xs leading-5 text-slate-500">{t.sidepanel.contextHint}</p>
+          </div>
+
           <div className="flex flex-wrap items-center gap-2">
                 <button
                   className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
@@ -373,34 +382,51 @@ export function App() {
                 </button>
           </div>
 
-          <div className="mt-2 flex flex-col gap-2">
-            {attachments.length === 0 ? null : (
-              attachments.map((attachment) => (
-                <div
-                  key={attachment.id}
-                  className="rounded-[18px] border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-700"
-                >
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5">{attachmentIcon(attachment)}</span>
-                    <span className="min-w-0 flex-1">{attachmentLabel(attachment, settings)}</span>
-                    <button
-                      className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition hover:bg-white hover:text-slate-900"
-                      onClick={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}
-                      aria-label={t.common.delete}
-                      title={t.common.delete}
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+          {contextError ? (
+            <div className="mt-2 rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              {contextError}
+            </div>
+          ) : null}
+
+          <div className="mt-2 rounded-[20px] border border-slate-200 bg-slate-50/80">
+            {attachments.length === 0 ? (
+              <div className="px-3 py-3 text-xs text-slate-500">{t.sidepanel.contextHint}</div>
+            ) : (
+              <div className="flex max-h-56 flex-col gap-2 overflow-y-auto p-2">
+                {attachments.map((attachment) => (
+                  <div
+                    key={attachment.id}
+                    className="rounded-[18px] border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 shadow-sm"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5">{attachmentIcon(attachment)}</span>
+                      <span className="min-w-0 flex-1 font-medium">{attachmentLabel(attachment, settings)}</span>
+                      <button
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+                        onClick={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}
+                        aria-label={t.common.delete}
+                        title={t.common.delete}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {attachment.kind === 'screenshot' ? (
+                      <div className="mt-2 overflow-hidden rounded-[16px] border border-slate-200 bg-slate-100 p-2">
+                        <img
+                          className="max-h-32 w-auto max-w-full rounded-[12px] object-contain shadow-sm"
+                          src={attachment.imageDataUrl}
+                          alt={t.sidepanel.attachmentPreviewAlt}
+                        />
+                      </div>
+                    ) : (
+                      <div className="mt-2 max-h-28 overflow-y-auto whitespace-pre-wrap rounded-[14px] border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-600">
+                        {attachment.text}
+                      </div>
+                    )}
                   </div>
-                  {attachment.kind === 'screenshot' ? (
-                    <img
-                      className="mt-2 w-full rounded-[16px] border border-slate-200 object-cover shadow-sm"
-                      src={attachment.imageDataUrl}
-                      alt={t.sidepanel.attachmentPreviewAlt}
-                    />
-                  ) : null}
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         </section>

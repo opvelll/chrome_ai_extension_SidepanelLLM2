@@ -37,6 +37,16 @@ async function getActiveTab(): Promise<chrome.tabs.Tab> {
   return tab;
 }
 
+function canInjectContentScript(tab: chrome.tabs.Tab): boolean {
+  const url = tab.url ?? '';
+
+  if (!url) {
+    return false;
+  }
+
+  return /^https?:\/\//.test(url);
+}
+
 function getTabSource(tab: chrome.tabs.Tab): TabSource {
   return {
     tabId: tab.id,
@@ -47,7 +57,33 @@ function getTabSource(tab: chrome.tabs.Tab): TabSource {
 
 async function sendContentRequest<T>(type: 'content.getSelection' | 'content.getPageText'): Promise<{ text: string; source: TabSource }> {
   const tab = await getActiveTab();
-  const result = (await chrome.tabs.sendMessage(tab.id!, { type: type })) as { text?: string };
+  const tabId = tab.id;
+  if (tabId === undefined) {
+    throw new Error('No active tab found.');
+  }
+  let result: { text?: string } | undefined;
+
+  try {
+    result = (await chrome.tabs.sendMessage(tabId, { type })) as { text?: string };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+
+    if (!message.includes('Receiving end does not exist')) {
+      throw error;
+    }
+
+    if (!canInjectContentScript(tab)) {
+      throw new Error('This page does not allow context capture. Open a regular website tab and try again.');
+    }
+
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ['src/content/index.ts'],
+    });
+
+    result = (await chrome.tabs.sendMessage(tabId, { type })) as { text?: string };
+  }
+
   return {
     text: result?.text?.trim() ?? '',
     source: getTabSource(tab),

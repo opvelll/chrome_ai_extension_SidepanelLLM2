@@ -6,8 +6,7 @@ export default defineManifest({
   name: '__MSG_extName__',
   version: '0.1.0',
   description: '__MSG_extDescription__',
-  permissions: ['storage', 'activeTab', 'tabs', 'sidePanel']
-,
+  permissions: ['storage', 'activeTab', 'tabs', 'sidePanel', 'scripting'],
   host_permissions: ['<all_urls>'],
   background: {
     service_worker: 'src/background/index.ts',

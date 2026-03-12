@@ -279,10 +279,16 @@ test('captures selection text and page text from the active tab', async () => {
     await fixturePage.bringToFront();
     await clickButtonInBackground(sidepanelPage, 'Capture selection');
     await expect(sidepanelPage.getByText(/Selection: Selected text for extension capture\./)).toBeVisible();
+    await expect(sidepanelPage.getByText('Selected text for extension capture.', { exact: true })).toBeVisible();
 
     await fixturePage.bringToFront();
     await clickButtonInBackground(sidepanelPage, 'Capture page');
     await expect(sidepanelPage.getByText(/Page: Fixture Article/)).toBeVisible();
+    await expect(sidepanelPage.getByRole('button', { name: 'Delete' })).toHaveCount(2);
+
+    await sidepanelPage.getByRole('button', { name: 'Delete' }).first().click();
+    await expect(sidepanelPage.getByRole('button', { name: 'Delete' })).toHaveCount(1);
+    await expect(sidepanelPage.getByText(/Selection: Selected text for extension capture\./)).toHaveCount(0);
   } finally {
     await closeExtension(context, userDataDir);
   }
