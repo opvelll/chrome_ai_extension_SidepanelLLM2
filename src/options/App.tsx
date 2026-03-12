@@ -1,13 +1,9 @@
 import { CheckCircle2, Globe2, KeyRound, MessageSquareText, Server, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getTranslations } from '../lib/i18n';
-import type { AsyncResponse } from '../shared/messages';
 import { getDefaultSettings, hasDevDefaultApiKey } from '../lib/defaultSettings';
+import { sendRuntimeMessage } from '../lib/runtime';
 import type { Settings } from '../shared/models';
-
-async function sendMessage<T>(payload: unknown): Promise<AsyncResponse<T>> {
-  return chrome.runtime.sendMessage(payload) as Promise<AsyncResponse<T>>;
-}
 
 export function App() {
   const [settings, setSettings] = useState<Settings>(getDefaultSettings());
@@ -19,7 +15,7 @@ export function App() {
 
   useEffect(() => {
     void (async () => {
-      const response = await sendMessage<{ settings: Settings }>({ type: 'settings.get' });
+      const response = await sendRuntimeMessage<{ settings: Settings }>({ type: 'settings.get' });
       if (response.ok) {
         setSettings(response.data.settings);
       }
@@ -28,7 +24,7 @@ export function App() {
 
   async function save() {
     setError('');
-    const response = await sendMessage<{ settings: Settings }>({
+    const response = await sendRuntimeMessage<{ settings: Settings }>({
       type: 'settings.save',
       payload: settings,
     });
@@ -44,7 +40,7 @@ export function App() {
     setError('');
     setStatus('');
 
-    const response = await sendMessage<{ message: string }>({
+    const response = await sendRuntimeMessage<{ message: string }>({
       type: 'settings.testConnection',
       payload: {
         apiKey: settings.apiKey,

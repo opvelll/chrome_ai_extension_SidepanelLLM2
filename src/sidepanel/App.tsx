@@ -11,12 +11,8 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { attachmentLabel, formatTimestamp, getTranslations } from '../lib/i18n';
-import type { AsyncResponse } from '../shared/messages';
+import { sendRuntimeMessage } from '../lib/runtime';
 import type { ChatMessage, ChatSession, ContextAttachment, Settings } from '../shared/models';
-
-async function sendMessage<T>(payload: unknown): Promise<AsyncResponse<T>> {
-  return chrome.runtime.sendMessage(payload) as Promise<AsyncResponse<T>>;
-}
 
 function attachmentIcon(attachment: ContextAttachment) {
   switch (attachment.kind) {
@@ -48,14 +44,14 @@ export function App() {
   const t = getTranslations(settings);
 
   async function loadSettings() {
-    const response = await sendMessage<{ settings: Settings }>({ type: 'settings.get' });
+    const response = await sendRuntimeMessage<{ settings: Settings }>({ type: 'settings.get' });
     if (response.ok) {
       setSettings(response.data.settings);
     }
   }
 
   async function loadSessions(selectNewest = false) {
-    const response = await sendMessage<{ sessions: ChatSession[] }>({ type: 'session.list' });
+    const response = await sendRuntimeMessage<{ sessions: ChatSession[] }>({ type: 'session.list' });
     if (!response.ok) {
       setError(response.error.message);
       return;
@@ -79,7 +75,7 @@ export function App() {
   }
 
   async function loadSession(sessionId: string) {
-    const response = await sendMessage<{ session: ChatSession; messages: ChatMessage[] }>({
+    const response = await sendRuntimeMessage<{ session: ChatSession; messages: ChatMessage[] }>({
       type: 'session.get',
       payload: { sessionId },
     });
@@ -110,7 +106,7 @@ export function App() {
       return activeSessionId;
     }
 
-    const response = await sendMessage<{ session: ChatSession }>({
+    const response = await sendRuntimeMessage<{ session: ChatSession }>({
       type: 'session.create',
       payload: { title: t.sidepanel.defaultSessionTitle },
     });
@@ -124,7 +120,7 @@ export function App() {
 
   async function createNewSession() {
     setError('');
-    const response = await sendMessage<{ session: ChatSession }>({
+    const response = await sendRuntimeMessage<{ session: ChatSession }>({
       type: 'session.create',
       payload: { title: t.sidepanel.defaultSessionTitle },
     });
@@ -144,7 +140,7 @@ export function App() {
     if (!window.confirm(t.sidepanel.deleteConfirm)) {
       return;
     }
-    const response = await sendMessage<{ sessionId: string }>({
+    const response = await sendRuntimeMessage<{ sessionId: string }>({
       type: 'session.delete',
       payload: { sessionId: activeSessionId },
     });
@@ -162,7 +158,7 @@ export function App() {
     type: 'context.captureSelection' | 'context.capturePage' | 'context.captureScreenshot',
   ) {
     setError('');
-    const response = await sendMessage<{ attachment: ContextAttachment }>({ type });
+    const response = await sendRuntimeMessage<{ attachment: ContextAttachment }>({ type });
     if (!response.ok) {
       setError(response.error.message);
       return;
@@ -180,7 +176,7 @@ export function App() {
 
     try {
       const sessionId = await ensureSession();
-      const response = await sendMessage<{
+      const response = await sendRuntimeMessage<{
         assistantMessage: ChatMessage;
       }>({
         type: 'chat.send',

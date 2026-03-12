@@ -11,6 +11,17 @@ import type { ChatMessage, ContextAttachment, TabSource } from '../shared/models
 import { appendMessages, createSession, deleteSession, getSession, getSettings, listMessages, listSessions, saveSettings } from '../lib/storage';
 import { sendChatCompletion } from '../lib/provider';
 
+type MessageResponse =
+  | Awaited<ReturnType<typeof handleChatSend>>
+  | { ok: true; data: { session: Awaited<ReturnType<typeof createSession>> } }
+  | { ok: true; data: { sessions: Awaited<ReturnType<typeof listSessions>> } }
+  | { ok: true; data: { session: NonNullable<Awaited<ReturnType<typeof getSession>>>; messages: Awaited<ReturnType<typeof listMessages>> } }
+  | { ok: true; data: { sessionId: string } }
+  | { ok: true; data: { attachment: ContextAttachment } }
+  | { ok: true; data: { settings: Awaited<ReturnType<typeof getSettings>> } }
+  | { ok: true; data: { message: string } }
+  | ErrorResponse;
+
 function errorResponse(message: string, code = 'unknown_error', retryable = false): ErrorResponse {
   return {
     ok: false,
@@ -123,6 +134,107 @@ async function handleChatSend(rawRequest: unknown) {
   }
 }
 
+async function handleSessionCreate(rawRequest: unknown): Promise<MessageResponse> {
+  const parsed = sessionCreateRequestSchema.parse(rawRequest);
+  const session = await createSession(parsed.payload?.title);
+  return { ok: true, data: { session } };
+}
+
+async function handleSessionList(): Promise<MessageResponse> {
+  const sessions = await listSessions();
+  return { ok: true, data: { sessions } };
+}
+
+async function handleSessionGet(rawRequest: unknown): Promise<MessageResponse> {
+  const parsed = sessionGetRequestSchema.parse(rawRequest);
+  const session = await getSession(parsed.payload.sessionId);
+  if (!session) {
+    return errorResponse('Session not found.', 'session_not_found');
+  }
+
+  const messages = await listMessages(parsed.payload.sessionId);
+  return { ok: true, data: { session, messages } };
+}
+
+async function handleSessionDelete(rawRequest: unknown): Promise<MessageResponse> {
+  const parsed = sessionDeleteRequestSchema.parse(rawRequest);
+  await deleteSession(parsed.payload.sessionId);
+  return { ok: true, data: { sessionId: parsed.payload.sessionId } };
+}
+
+async function handleContextCapture(type: 'context.captureSelection' | 'context.capturePage' | 'context.captureScreenshot'): Promise<MessageResponse> {
+  const attachment =
+    type === 'context.captureSelection'
+      ? await captureSelection()
+      : type === 'context.capturePage'
+        ? await capturePage()
+        : await captureScreenshot();
+
+  return { ok: true, data: { attachment } };
+}
+
+async function handleSettingsGet(): Promise<MessageResponse> {
+  const settings = await getSettings();
+  return { ok: true, data: { settings } };
+}
+
+async function handleSettingsSave(
+  rawRequest: Extract<BackgroundRequest, { type: 'settings.save' }>,
+): Promise<MessageResponse> {
+  const settings = await saveSettings(rawRequest.payload);
+  return { ok: true, data: { settings } };
+}
+
+async function handleSettingsTestConnection(rawRequest: unknown): Promise<MessageResponse> {
+  const parsed = settingsTestConnectionRequestSchema.parse(rawRequest);
+  const userMessage: ChatMessage = {
+    id: crypto.randomUUID(),
+    role: 'user',
+    content: 'Reply with the word "ok".',
+    createdAt: new Date().toISOString(),
+  };
+  const result = await sendChatCompletion({
+    settings: {
+      apiKey: parsed.payload.apiKey,
+      modelId: parsed.payload.modelId ?? 'gpt-4.1-mini',
+      systemPrompt: '',
+      locale: 'auto',
+    },
+    userMessage,
+    history: [],
+    attachments: [],
+  });
+
+  return { ok: true, data: { message: result.assistantMessage.content } };
+}
+
+async function routeMessage(request: BackgroundRequest): Promise<MessageResponse> {
+  switch (request.type) {
+    case 'session.create':
+      return handleSessionCreate(request);
+    case 'session.list':
+      return handleSessionList();
+    case 'session.get':
+      return handleSessionGet(request);
+    case 'session.delete':
+      return handleSessionDelete(request);
+    case 'context.captureSelection':
+    case 'context.capturePage':
+    case 'context.captureScreenshot':
+      return handleContextCapture(request.type);
+    case 'settings.get':
+      return handleSettingsGet();
+    case 'settings.save':
+      return handleSettingsSave(request);
+    case 'settings.testConnection':
+      return handleSettingsTestConnection(request);
+    case 'chat.send':
+      return handleChatSend(request);
+    default:
+      return errorResponse('Unsupported message type.', 'unsupported_message');
+  }
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => undefined);
 });
@@ -130,91 +242,7 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onMessage.addListener((request: BackgroundRequest, _sender, sendResponse) => {
   (async () => {
     try {
-      switch (request.type) {
-        case 'session.create': {
-          const parsed = sessionCreateRequestSchema.parse(request);
-          const session = await createSession(parsed.payload?.title);
-          sendResponse({ ok: true, data: { session } });
-          return;
-        }
-        case 'session.list': {
-          const sessions = await listSessions();
-          sendResponse({ ok: true, data: { sessions } });
-          return;
-        }
-        case 'session.get': {
-          const parsed = sessionGetRequestSchema.parse(request);
-          const session = await getSession(parsed.payload.sessionId);
-          if (!session) {
-            sendResponse(errorResponse('Session not found.', 'session_not_found'));
-            return;
-          }
-          const messages = await listMessages(parsed.payload.sessionId);
-          sendResponse({ ok: true, data: { session, messages } });
-          return;
-        }
-        case 'session.delete': {
-          const parsed = sessionDeleteRequestSchema.parse(request);
-          await deleteSession(parsed.payload.sessionId);
-          sendResponse({ ok: true, data: { sessionId: parsed.payload.sessionId } });
-          return;
-        }
-        case 'context.captureSelection': {
-          const attachment = await captureSelection();
-          sendResponse({ ok: true, data: { attachment } });
-          return;
-        }
-        case 'context.capturePage': {
-          const attachment = await capturePage();
-          sendResponse({ ok: true, data: { attachment } });
-          return;
-        }
-        case 'context.captureScreenshot': {
-          const attachment = await captureScreenshot();
-          sendResponse({ ok: true, data: { attachment } });
-          return;
-        }
-        case 'settings.get': {
-          const settings = await getSettings();
-          sendResponse({ ok: true, data: { settings } });
-          return;
-        }
-        case 'settings.save': {
-          const settings = await saveSettings(request.payload);
-          sendResponse({ ok: true, data: { settings } });
-          return;
-        }
-        case 'settings.testConnection': {
-          const parsed = settingsTestConnectionRequestSchema.parse(request);
-          const userMessage: ChatMessage = {
-            id: crypto.randomUUID(),
-            role: 'user',
-            content: 'Reply with the word "ok".',
-            createdAt: new Date().toISOString(),
-          };
-          const result = await sendChatCompletion({
-            settings: {
-              apiKey: parsed.payload.apiKey,
-              modelId: parsed.payload.modelId ?? 'gpt-4.1-mini',
-              systemPrompt: '',
-              locale: 'auto',
-            },
-            userMessage,
-            history: [],
-            attachments: [],
-          });
-          sendResponse({ ok: true, data: { message: result.assistantMessage.content } });
-          return;
-        }
-        case 'chat.send': {
-          const response = await handleChatSend(request);
-          sendResponse(response);
-          return;
-        }
-        default: {
-          sendResponse(errorResponse('Unsupported message type.', 'unsupported_message'));
-        }
-      }
+      sendResponse(await routeMessage(request));
     } catch (error) {
       sendResponse(
         errorResponse(
