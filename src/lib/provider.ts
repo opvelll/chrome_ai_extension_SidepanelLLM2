@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { ChatCompletionContentPart, ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import type { EasyInputMessage, Response, ResponseInputContent, Tool } from 'openai/resources/responses/responses';
 import { attachmentPromptText } from './attachments';
 import type { ChatMessage, ContextAttachment, Settings, TokenUsage } from '../shared/models';
 
@@ -30,6 +30,7 @@ export async function listAvailableModels(apiKey: string): Promise<string[]> {
   const client = createClient({
     apiKey,
     modelId: '',
+    responseTool: 'web_search',
     systemPrompt: '',
     locale: 'auto',
     autoAttachPage: false,
@@ -54,25 +55,15 @@ export async function sendChatCompletion(input: {
   assertApiKey(settings.apiKey);
 
   const client = createClient(settings);
-  const messages: ChatCompletionMessageParam[] = [];
+  const messages: EasyInputMessage[] = history.map((message) => ({
+    type: 'message',
+    role: message.role,
+    content: message.content,
+  }));
 
-  if (settings.systemPrompt.trim()) {
-    messages.push({
-      role: 'system',
-      content: settings.systemPrompt,
-    });
-  }
-
-  for (const message of history) {
-    messages.push({
-      role: message.role,
-      content: message.content,
-    });
-  }
-
-  const contentParts: ChatCompletionContentPart[] = [
+  const contentParts: ResponseInputContent[] = [
     {
-      type: 'text',
+      type: 'input_text',
       text: userMessage.content,
     },
   ];
@@ -80,31 +71,32 @@ export async function sendChatCompletion(input: {
   for (const attachment of attachments) {
     if (attachment.kind === 'screenshot') {
       contentParts.push({
-        type: 'image_url',
-        image_url: {
-          url: attachment.imageDataUrl,
-        },
+        type: 'input_image',
+        detail: 'auto',
+        image_url: attachment.imageDataUrl,
       });
       continue;
     }
 
     contentParts.push({
-      type: 'text',
+      type: 'input_text',
       text: attachmentPromptText(attachment),
     });
   }
 
   messages.push({
+    type: 'message',
     role: 'user',
     content: contentParts,
   });
 
-  const response = await client.chat.completions.create({
+  const response = await client.responses.create({
     model: modelId || settings.modelId,
-    messages,
+    input: messages,
+    instructions: settings.systemPrompt.trim() || undefined,
+    tools: getResponseTools(settings),
   });
-
-  const content = response.choices[0]?.message?.content?.trim() ?? '';
+  const content = extractResponseText(response);
 
   if (!content) {
     throw new Error('Provider returned an empty response.');
@@ -118,9 +110,31 @@ export async function sendChatCompletion(input: {
       createdAt: new Date().toISOString(),
     },
     usage: {
-      promptTokens: response.usage?.prompt_tokens,
-      completionTokens: response.usage?.completion_tokens,
+      promptTokens: response.usage?.input_tokens,
+      completionTokens: response.usage?.output_tokens,
       totalTokens: response.usage?.total_tokens,
     },
   };
+}
+
+function getResponseTools(settings: Settings): Tool[] | undefined {
+  if (settings.responseTool !== 'web_search') {
+    return undefined;
+  }
+
+  return [{ type: 'web_search_preview' }];
+}
+
+function extractResponseText(response: Response): string {
+  const directText = response.output_text.trim();
+  if (directText) {
+    return directText;
+  }
+
+  return response.output
+    .flatMap((item) => (item.type === 'message' ? item.content : []))
+    .filter((item) => item.type === 'output_text')
+    .map((item) => item.text)
+    .join('\n')
+    .trim();
 }

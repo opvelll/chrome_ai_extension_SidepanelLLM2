@@ -55,6 +55,10 @@ type TranslationDictionary = {
     model: string;
     modelHelp: string;
     modelCompatibilityNote: string;
+    tool: string;
+    toolHelp: string;
+    toolNone: string;
+    toolWebSearch: string;
     refreshModels: string;
     refreshingModels: string;
     modelManualEntry: string;
@@ -134,7 +138,11 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       apiKey: 'API key',
       model: 'Model',
       modelHelp: 'Load the latest model list from the API, or enter a model ID manually if needed.',
-      modelCompatibilityNote: 'The API may return models that do not support chat completions. Choose a chat-capable model if requests fail.',
+      modelCompatibilityNote: 'The API may return models that do not support the Responses API or the selected tool. Choose a compatible model if requests fail.',
+      tool: 'Tool',
+      toolHelp: 'Choose the built-in Responses API tool to allow during generation.',
+      toolNone: 'None',
+      toolWebSearch: 'Web search',
       refreshModels: 'Refresh models',
       refreshingModels: 'Refreshing models...',
       modelManualEntry: 'Manual model ID entry',
@@ -212,7 +220,11 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       apiKey: 'API キー',
       model: 'モデル',
       modelHelp: 'API から最新のモデル一覧を取得します。必要なら手入力にも切り替えられます。',
-      modelCompatibilityNote: 'API の一覧にはチャット補完に対応していないモデルが含まれる場合があります。送信に失敗する場合はチャット対応モデルを選んでください。',
+      modelCompatibilityNote: 'API の一覧には Responses API や選択した tool に未対応のモデルが含まれる場合があります。送信に失敗する場合は対応モデルを選んでください。',
+      tool: 'Tool',
+      toolHelp: 'Responses API で利用を許可する組み込み tool を選びます。',
+      toolNone: 'なし',
+      toolWebSearch: 'Web 検索',
       refreshModels: 'モデル一覧を更新',
       refreshingModels: 'モデル一覧を更新中...',
       modelManualEntry: 'モデル ID を手入力',

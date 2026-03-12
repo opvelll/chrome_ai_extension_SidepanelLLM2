@@ -49,6 +49,7 @@ export type ChatSession = {
 export type Settings = {
   apiKey: string;
   modelId: string;
+  responseTool: 'none' | 'web_search';
   systemPrompt: string;
   locale: 'auto' | 'en' | 'ja';
   autoAttachPage: boolean;

@@ -79,10 +79,11 @@ async function waitForOptionsReady(page: Page) {
 
 function optionsFields(page: Page) {
   return {
-    locale: page.locator('select').first(),
+    locale: page.getByRole('combobox', { name: /^(Language|表示言語)$/ }),
     apiKey: page.locator('input[type="password"]'),
-    modelSelect: page.locator('select').nth(1),
+    modelSelect: page.getByRole('combobox', { name: /^(Model|モデル)$/ }),
     modelId: page.getByLabel(/^(Manual model ID entry|モデル ID を手入力)$/),
+    responseTool: page.locator('select').nth(2),
     refreshModels: page.getByRole('button', { name: /^(Refresh models|モデル一覧を更新)$/ }),
     systemPrompt: page.locator('textarea'),
     autoAttachPage: page.getByLabel(/^(Auto attach full page on first message|最初の送信時にページ全文を自動添付)$/),
@@ -127,6 +128,7 @@ async function saveSettings(
   settings?: {
     apiKey?: string;
     modelId?: string;
+    responseTool?: 'none' | 'web_search';
     systemPrompt?: string;
     locale?: 'auto' | 'en' | 'ja';
     autoAttachPage?: boolean;
@@ -140,6 +142,11 @@ async function saveSettings(
 
   if (settings?.modelId !== undefined) {
     await fields.modelId.fill(settings.modelId);
+  }
+
+  if (settings?.responseTool !== undefined) {
+    await fields.responseTool.selectOption(settings.responseTool);
+    await expect(fields.responseTool).toHaveValue(settings.responseTool);
   }
 
   if (settings?.systemPrompt !== undefined) {
@@ -232,6 +239,7 @@ test('loads the extension options page and saves settings', async () => {
     await saveSettings(page, {
       apiKey: 'test-api-key',
       modelId: 'gpt-4.1-mini',
+      responseTool: 'web_search',
       systemPrompt: 'Be concise.',
       autoAttachPage: true,
     });
@@ -244,6 +252,7 @@ test('loads the extension options page and saves settings', async () => {
     await expect(fields.locale).toHaveValue('auto');
     await expect(fields.apiKey).toHaveValue('test-api-key');
     await expect(fields.modelId).toHaveValue('gpt-4.1-mini');
+    await expect(fields.responseTool).toHaveValue('web_search');
     await expect(fields.systemPrompt).toHaveValue('Be concise.');
     await expect(fields.autoAttachPage).toBeChecked();
   } finally {
@@ -402,29 +411,48 @@ test('sends a chat request with mocked provider response', async () => {
   let lastRequestBody = '';
 
   try {
-    await context.route('https://api.openai.com/v1/chat/completions', async (route) => {
+    await context.route('https://api.openai.com/v1/responses', async (route) => {
       lastRequestBody = route.request().postData() ?? '';
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          id: 'chatcmpl-test',
-          object: 'chat.completion',
-          created: 1735689600,
+          id: 'resp_test',
+          object: 'response',
+          created_at: 1735689600,
           model: 'gpt-4.1-mini',
-          choices: [
+          output_text: 'Mocked assistant reply.',
+          error: null,
+          incomplete_details: null,
+          instructions: null,
+          metadata: {},
+          output: [
             {
-              index: 0,
-              message: {
-                role: 'assistant',
-                content: 'Mocked assistant reply.',
-              },
-              finish_reason: 'stop',
+              id: 'msg_123',
+              type: 'message',
+              role: 'assistant',
+              status: 'completed',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Mocked assistant reply.',
+                  annotations: [],
+                },
+              ],
             },
           ],
+          parallel_tool_calls: false,
+          temperature: 1,
+          tool_choice: 'auto',
+          tools: [{ type: 'web_search_preview' }],
+          top_p: 1,
+          max_output_tokens: null,
+          previous_response_id: null,
+          reasoning: null,
+          status: 'completed',
           usage: {
-            prompt_tokens: 12,
-            completion_tokens: 4,
+            input_tokens: 12,
+            output_tokens: 4,
             total_tokens: 16,
           },
         }),
@@ -439,6 +467,7 @@ test('sends a chat request with mocked provider response', async () => {
       locale: 'en',
       apiKey: 'test-api-key',
       modelId: 'gpt-4.1-mini',
+      responseTool: 'web_search',
       systemPrompt: 'Test system prompt.',
       autoAttachPage: true,
     });
@@ -459,6 +488,7 @@ test('sends a chat request with mocked provider response', async () => {
     expect(lastRequestBody).toContain('Attachment type: Page text');
     expect(lastRequestBody).toContain('Source details:');
     expect(lastRequestBody).toContain('URL: http://127.0.0.1');
+    expect(lastRequestBody).toContain('"type":"web_search_preview"');
 
     await sidepanelPage.getByRole('button', { name: /Open attachment: Page: Fixture Article/ }).click();
     const dialog = sidepanelPage.getByRole('dialog', { name: 'Page: Fixture Article' });
