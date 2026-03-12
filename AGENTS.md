@@ -3,6 +3,7 @@
 ## Commands to Run After Changes
 
 - Run `pnpm typecheck` after code changes.
+- Run `pnpm test:unit` after code changes.
 - Run `pnpm build` after code changes that affect the extension bundle.
 - Run `pnpm exec playwright test` after UI, extension flow, or test-related changes.
 
