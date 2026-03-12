@@ -1,7 +1,9 @@
 import {
   Camera,
   FileText,
+  History,
   Image as ImageIcon,
+  LoaderCircle,
   MessageSquarePlus,
   Send,
   Settings as SettingsIcon,
@@ -17,19 +19,19 @@ import type { ChatMessage, ChatSession, ContextAttachment, Settings } from '../s
 function attachmentIcon(attachment: ContextAttachment) {
   switch (attachment.kind) {
     case 'selectionText':
-      return <Type className="h-3.5 w-3.5" />;
+      return <Type className="h-4.5 w-4.5" />;
     case 'pageText':
-      return <FileText className="h-3.5 w-3.5" />;
+      return <FileText className="h-4.5 w-4.5" />;
     case 'screenshot':
-      return <ImageIcon className="h-3.5 w-3.5" />;
+      return <ImageIcon className="h-4.5 w-4.5" />;
   }
 }
 
 const subtleButtonClassName =
-  'inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50';
 
 const primaryButtonClassName =
-  'inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-900/15 transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-900/15 transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50';
 
 export function App() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -40,6 +42,7 @@ export function App() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const t = getTranslations(settings);
 
@@ -130,11 +133,12 @@ export function App() {
     }
     setAttachments([]);
     setDraft('');
+    setHistoryOpen(false);
     await loadSessions(true);
   }
 
-  async function deleteCurrentSession() {
-    if (!activeSessionId) {
+  async function deleteSessionById(sessionId: string) {
+    if (!sessionId) {
       return;
     }
     if (!window.confirm(t.sidepanel.deleteConfirm)) {
@@ -142,15 +146,17 @@ export function App() {
     }
     const response = await sendRuntimeMessage<{ sessionId: string }>({
       type: 'session.delete',
-      payload: { sessionId: activeSessionId },
+      payload: { sessionId },
     });
     if (!response.ok) {
       setError(response.error.message);
       return;
     }
-    setAttachments([]);
-    setDraft('');
-    setActiveSessionId('');
+    if (sessionId === activeSessionId) {
+      setAttachments([]);
+      setDraft('');
+      setActiveSessionId('');
+    }
     await loadSessions();
   }
 
@@ -204,121 +210,129 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-900">
-      <div className="grid min-h-screen grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[290px_minmax(0,1fr)] lg:grid-rows-1">
-        <aside className="border-b border-white/50 bg-slate-950 px-4 py-4 text-slate-50 lg:border-r lg:border-b-0 lg:px-5 lg:py-5">
-          <div className="rounded-[28px] border border-white/10 bg-white/6 p-4 shadow-2xl shadow-black/20">
-            <div className="flex flex-col gap-4">
-              <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200/80">
-                  {t.sidepanel.sessionsLabel}
-                </div>
-                <h1 className="mt-2 text-2xl font-semibold tracking-tight">{t.common.appName}</h1>
-                <p className="mt-2 text-sm leading-6 text-slate-300">
-                  {t.sidepanel.workspaceLabel}
-                </p>
-              </div>
-              <button className={`${primaryButtonClassName} w-full whitespace-nowrap`} onClick={() => void createNewSession()}>
-                <MessageSquarePlus className="h-4 w-4" />
-                {t.sidepanel.newChat}
-              </button>
-            </div>
-
-            <div className="mt-1 grid grid-cols-2 gap-2">
-              <div className="rounded-2xl border border-white/10 bg-white/7 px-3 py-3">
-                <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400">
-                  {t.sidepanel.messageCount}
-                </div>
-                <div className="mt-1 text-lg font-semibold">{messages.length}</div>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/7 px-3 py-3">
-                <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400">
-                  {t.sidepanel.attachmentsCount}
-                </div>
-                <div className="mt-1 text-lg font-semibold">{attachments.length}</div>
-              </div>
-              <div className="col-span-2 rounded-2xl border border-white/10 bg-white/7 px-3 py-3">
-                <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400">
-                  {t.sidepanel.activeModel}
-                </div>
-                <div className="mt-1 line-clamp-1 text-sm font-semibold">
-                  {settings?.modelId ?? t.sidepanel.modelNotConfigured}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 flex max-h-[42vh] flex-col gap-2 overflow-y-auto pr-1 lg:max-h-[calc(100vh-240px)]">
-            {sessions.map((session) => (
+    <div className="relative min-h-screen overflow-hidden bg-transparent text-slate-900">
+      {historyOpen ? (
+        <div className="absolute inset-0 z-20 flex">
+          <button
+            className="flex-1 bg-slate-950/24 backdrop-blur-[2px]"
+            aria-label={t.sidepanel.sessionsLabel}
+            title={t.sidepanel.sessionsLabel}
+            onClick={() => setHistoryOpen(false)}
+          />
+          <aside className="w-[min(88vw,320px)] border-l border-slate-200/80 bg-white/96 p-2.5 shadow-2xl shadow-slate-900/20 backdrop-blur-xl">
+            <div className="mb-2 flex items-center justify-between gap-2">
               <button
-                key={session.id}
-                className={`session-item rounded-[26px] border px-4 py-3 text-left transition ${
-                  session.id === activeSessionId
-                    ? 'border-cyan-300/40 bg-cyan-400/18 shadow-lg shadow-cyan-900/10'
-                    : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/8'
-                }`}
-                onClick={() => setActiveSessionId(session.id)}
+                className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+                onClick={() => void createNewSession()}
+                aria-label={t.sidepanel.newChat}
+                title={t.sidepanel.newChat}
               >
-                <div className="line-clamp-2 text-sm font-medium text-white">{session.title}</div>
-                <div className="mt-2 text-xs text-slate-300">{formatTimestamp(session.updatedAt, settings)}</div>
+                <MessageSquarePlus className="h-5 w-5" />
               </button>
-            ))}
-            {sessions.length === 0 && (
-              <p className="rounded-[26px] border border-dashed border-white/15 bg-white/4 px-4 py-5 text-sm leading-6 text-slate-300">
-                {t.sidepanel.emptySessions}
-              </p>
-            )}
-          </div>
-        </aside>
-
-        <main className="grid min-h-[calc(100vh-96px)] grid-rows-[auto_minmax(0,1fr)_auto] gap-4 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(232,242,247,0.92))] p-4 lg:min-h-screen lg:p-5">
-          <header className="rounded-[30px] border border-slate-200/80 bg-white/86 p-4 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-700/80">
-                  {t.sidepanel.modelLabel}
-                </div>
-                <strong className="mt-2 block text-lg font-semibold text-slate-900">
-                  {settings?.modelId ?? t.sidepanel.modelNotConfigured}
-                </strong>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                  {t.sidepanel.contextHint}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button className={subtleButtonClassName} onClick={() => chrome.runtime.openOptionsPage()}>
-                  <SettingsIcon className="h-4 w-4" />
-                  {t.common.settings}
-                </button>
-                <button className={subtleButtonClassName} onClick={() => void deleteCurrentSession()}>
-                  <Trash2 className="h-4 w-4 text-rose-600" />
-                  <span className="text-rose-700">{t.common.delete}</span>
-                </button>
-              </div>
+              <button
+                className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+                onClick={() => setHistoryOpen(false)}
+                aria-label={t.sidepanel.sessionsLabel}
+                title={t.sidepanel.sessionsLabel}
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
-          </header>
 
-          <section className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
-            <div className="flex min-h-0 flex-col gap-3 overflow-y-auto rounded-[32px] border border-white/70 bg-white/72 p-3 shadow-inner shadow-white/70 backdrop-blur-sm lg:p-4">
+            <div className="flex max-h-[calc(100vh-96px)] flex-col gap-1.5 overflow-y-auto pr-0.5">
+              {sessions.map((session) => (
+                <div
+                  key={session.id}
+                  className={`rounded-[18px] border p-1.5 transition ${
+                    session.id === activeSessionId
+                      ? 'border-cyan-300 bg-cyan-50 shadow-sm shadow-cyan-900/5'
+                      : 'border-slate-200 bg-white'
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <button
+                      className="session-item min-w-0 flex-1 rounded-[14px] px-2 py-1.5 text-left hover:bg-white/70"
+                      onClick={() => {
+                        setActiveSessionId(session.id);
+                        setHistoryOpen(false);
+                      }}
+                    >
+                      <div className="line-clamp-2 text-sm font-medium text-slate-900">{session.title}</div>
+                      <div className="mt-1 text-xs text-slate-500">{formatTimestamp(session.updatedAt, settings)}</div>
+                    </button>
+                    <button
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-white hover:text-rose-700"
+                      onClick={() => void deleteSessionById(session.id)}
+                      aria-label={t.common.delete}
+                      title={t.common.delete}
+                    >
+                      <Trash2 className="h-4.5 w-4.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {sessions.length === 0 ? (
+                <p className="rounded-[22px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm leading-6 text-slate-500">
+                  {t.sidepanel.emptySessions}
+                </p>
+              ) : null}
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      <main className="grid min-h-screen grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-2 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(232,242,247,0.92))] p-2.5 sm:p-3">
+        <header className="rounded-[22px] border border-slate-200/80 bg-white/88 p-2.5 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 rounded-xl bg-slate-100 px-2.5 py-1.5 text-sm font-medium text-slate-600">
+              <span className="line-clamp-1">{settings?.modelId ?? t.sidepanel.modelNotConfigured}</span>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              <button
+                className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+                onClick={() => setHistoryOpen(true)}
+                aria-label={t.sidepanel.sessionsLabel}
+                title={t.sidepanel.sessionsLabel}
+              >
+                <History className="h-5 w-5" />
+              </button>
+              <button
+                className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+                onClick={() => void createNewSession()}
+                aria-label={t.sidepanel.newChat}
+                title={t.sidepanel.newChat}
+              >
+                <MessageSquarePlus className="h-5 w-5" />
+              </button>
+              <button
+                className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+                onClick={() => chrome.runtime.openOptionsPage()}
+                aria-label={t.common.settings}
+                title={t.common.settings}
+              >
+                <SettingsIcon className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <section className="flex min-h-0 flex-col gap-2 overflow-y-auto rounded-[24px] border border-white/70 bg-white/72 p-2.5 shadow-inner shadow-white/70 backdrop-blur-sm">
               {messages.map((message) => (
                 <article
                   key={message.id}
-                  className={`message ${message.role} max-w-[94%] rounded-[28px] px-4 py-3 shadow-sm ${
+                  className={`message ${message.role} max-w-[95%] rounded-[22px] px-3 py-2.5 shadow-sm ${
                     message.role === 'user'
                       ? 'self-end bg-slate-900 text-white shadow-slate-900/15'
                       : 'border border-slate-200 bg-slate-50 text-slate-900'
                   }`}
                 >
-                  <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] opacity-70">
-                    {message.role === 'user' ? t.sidepanel.userRole : t.sidepanel.assistantRole}
-                  </div>
-                  <div className="whitespace-pre-wrap text-sm leading-6">{message.content}</div>
+                  <div className="whitespace-pre-wrap text-sm leading-5.5">{message.content}</div>
                   {message.attachments?.length ? (
-                    <div className="mt-3 flex flex-col gap-2">
+                    <div className="mt-2 flex flex-col gap-1.5">
                       {message.attachments.map((attachment) => (
                         <div
                           key={attachment.id}
-                          className="inline-flex items-center gap-2 self-start rounded-full border border-current/10 bg-black/5 px-3 py-1.5 text-xs"
+                          className="inline-flex items-center gap-2 self-start rounded-full border border-current/10 bg-black/5 px-2.5 py-1 text-xs"
                         >
                           {attachmentIcon(attachment)}
                           {attachmentLabel(attachment, settings)}
@@ -328,90 +342,91 @@ export function App() {
                   ) : null}
                 </article>
               ))}
-              {messages.length === 0 && (
-                <p className="m-auto max-w-md text-center text-sm leading-7 text-slate-500">
-                  {t.sidepanel.emptyMessages}
-                </p>
-              )}
-            </div>
+              {messages.length === 0 ? <div className="m-auto h-full min-h-24" /> : null}
+        </section>
 
-            <aside className="rounded-[32px] border border-slate-200/80 bg-white/86 p-4 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-700/80">
-                {t.sidepanel.contextLabel}
-              </div>
-              <div className="mt-3 flex flex-col gap-2">
-                <button className={subtleButtonClassName} onClick={() => void captureAttachment('context.captureSelection')}>
-                  <Type className="h-4 w-4" />
-                  {t.sidepanel.captureSelection}
+        <section className="rounded-[24px] border border-slate-200/80 bg-white/86 p-2.5 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
+          <div className="flex flex-wrap items-center gap-2">
+                <button
+                  className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+                  onClick={() => void captureAttachment('context.captureSelection')}
+                  aria-label={t.sidepanel.captureSelection}
+                  title={t.sidepanel.captureSelection}
+                >
+                  <Type className="h-5 w-5" />
                 </button>
-                <button className={subtleButtonClassName} onClick={() => void captureAttachment('context.capturePage')}>
-                  <FileText className="h-4 w-4" />
-                  {t.sidepanel.capturePage}
+                <button
+                  className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+                  onClick={() => void captureAttachment('context.capturePage')}
+                  aria-label={t.sidepanel.capturePage}
+                  title={t.sidepanel.capturePage}
+                >
+                  <FileText className="h-5 w-5" />
                 </button>
-                <button className={subtleButtonClassName} onClick={() => void captureAttachment('context.captureScreenshot')}>
-                  <Camera className="h-4 w-4" />
-                  {t.sidepanel.captureScreenshot}
+                <button
+                  className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+                  onClick={() => void captureAttachment('context.captureScreenshot')}
+                  aria-label={t.sidepanel.captureScreenshot}
+                  title={t.sidepanel.captureScreenshot}
+                >
+                  <Camera className="h-5 w-5" />
                 </button>
-              </div>
+          </div>
 
-              <div className="mt-5">
-                <div className="text-sm font-medium text-slate-800">{t.sidepanel.attachedItems}</div>
-                <div className="mt-3 flex flex-col gap-2.5">
-                  {attachments.length === 0 ? (
-                    <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-500">
-                      {t.sidepanel.contextHint}
-                    </div>
-                  ) : (
-                    attachments.map((attachment) => (
-                      <div
-                        key={attachment.id}
-                        className="rounded-[24px] border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-700"
-                      >
-                        <div className="flex items-start gap-2">
-                          <span className="mt-0.5">{attachmentIcon(attachment)}</span>
-                          <span className="min-w-0 flex-1">{attachmentLabel(attachment, settings)}</span>
-                          <button
-                            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition hover:bg-white hover:text-slate-900"
-                            onClick={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                        {attachment.kind === 'screenshot' ? (
-                          <img
-                            className="mt-3 w-full rounded-[20px] border border-slate-200 object-cover shadow-sm"
-                            src={attachment.imageDataUrl}
-                            alt={t.sidepanel.attachmentPreviewAlt}
-                          />
-                        ) : null}
-                      </div>
-                    ))
-                  )}
+          <div className="mt-2 flex flex-col gap-2">
+            {attachments.length === 0 ? null : (
+              attachments.map((attachment) => (
+                <div
+                  key={attachment.id}
+                  className="rounded-[18px] border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-700"
+                >
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5">{attachmentIcon(attachment)}</span>
+                    <span className="min-w-0 flex-1">{attachmentLabel(attachment, settings)}</span>
+                    <button
+                      className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition hover:bg-white hover:text-slate-900"
+                      onClick={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}
+                      aria-label={t.common.delete}
+                      title={t.common.delete}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {attachment.kind === 'screenshot' ? (
+                    <img
+                      className="mt-2 w-full rounded-[16px] border border-slate-200 object-cover shadow-sm"
+                      src={attachment.imageDataUrl}
+                      alt={t.sidepanel.attachmentPreviewAlt}
+                    />
+                  ) : null}
                 </div>
-              </div>
-            </aside>
-          </section>
+              ))
+            )}
+          </div>
+        </section>
 
-          <section className="rounded-[32px] border border-slate-200/80 bg-white/88 p-4 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
+        <section className="rounded-[24px] border border-slate-200/80 bg-white/88 p-2.5 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
+          <div className="flex items-end gap-2">
             <textarea
-              className="min-h-[120px] w-full rounded-[28px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:bg-white"
+              className="min-h-[92px] flex-1 rounded-[20px] border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm leading-5.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:bg-white"
               placeholder={t.sidepanel.composerPlaceholder}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
             />
+            <button
+              className={`${primaryButtonClassName} h-10 w-10 shrink-0 rounded-xl px-0`}
+              disabled={loading || !draft.trim()}
+              onClick={() => void submit()}
+              aria-label={t.sidepanel.send}
+              title={t.sidepanel.send}
+            >
+              {loading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+            </button>
+          </div>
 
-            {error && <div className="mt-3 text-sm text-rose-700">{error}</div>}
-
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <span className="text-sm text-slate-500">{loading ? t.common.waiting : t.common.ready}</span>
-              <button className={primaryButtonClassName} disabled={loading || !draft.trim()} onClick={() => void submit()}>
-                <Send className="h-4 w-4" />
-                {t.sidepanel.send}
-              </button>
-            </div>
-          </section>
-        </main>
-      </div>
+          {error && <div className="mt-2 text-sm text-rose-700">{error}</div>}
+        </section>
+      </main>
     </div>
   );
 }

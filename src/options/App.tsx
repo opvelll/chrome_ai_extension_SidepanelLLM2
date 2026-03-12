@@ -10,6 +10,7 @@ export function App() {
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [testing, setTesting] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const devDefaultApiKey = hasDevDefaultApiKey();
   const t = getTranslations(settings);
 
@@ -19,6 +20,7 @@ export function App() {
       if (response.ok) {
         setSettings(response.data.settings);
       }
+      setHydrated(true);
     })();
   }, []);
 
@@ -100,6 +102,7 @@ export function App() {
               </span>
               <select
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50 outline-none transition focus:border-cyan-300 focus:bg-white"
+                disabled={!hydrated}
                 value={settings.locale}
                 onChange={(event) =>
                   setSettings((current) => ({
@@ -122,6 +125,7 @@ export function App() {
               <input
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50 outline-none transition focus:border-cyan-300 focus:bg-white"
                 type="password"
+                disabled={!hydrated}
                 value={settings.apiKey}
                 onChange={(event) => setSettings((current) => ({ ...current, apiKey: event.target.value }))}
               />
@@ -135,6 +139,7 @@ export function App() {
               <input
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50 outline-none transition focus:border-cyan-300 focus:bg-white"
                 type="text"
+                disabled={!hydrated}
                 value={settings.modelId}
                 onChange={(event) => setSettings((current) => ({ ...current, modelId: event.target.value }))}
               />
@@ -148,6 +153,7 @@ export function App() {
               <textarea
                 className="min-h-[160px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 shadow-inner shadow-white/50 outline-none transition focus:border-cyan-300 focus:bg-white"
                 rows={6}
+                disabled={!hydrated}
                 value={settings.systemPrompt}
                 onChange={(event) => setSettings((current) => ({ ...current, systemPrompt: event.target.value }))}
               />
@@ -162,11 +168,11 @@ export function App() {
             )}
 
             <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
-              <button className={subtleButtonClassName} disabled={testing} onClick={() => void testConnection()}>
+              <button className={subtleButtonClassName} disabled={testing || !hydrated} onClick={() => void testConnection()}>
                 <Server className="h-4 w-4" />
                 {testing ? t.options.testingConnection : t.options.testConnection}
               </button>
-              <button className={primaryButtonClassName} onClick={() => void save()}>
+              <button className={primaryButtonClassName} disabled={!hydrated} onClick={() => void save()}>
                 <CheckCircle2 className="h-4 w-4" />
                 {t.common.save}
               </button>

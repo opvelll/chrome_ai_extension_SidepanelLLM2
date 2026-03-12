@@ -64,7 +64,7 @@ async function openFixturePage(context: BrowserContext) {
 }
 
 async function waitForSidepanelReady(page: Page) {
-  await expect(page.getByRole('heading', { name: 'Sidepanel LLM' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^(Settings|設定)$/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /^(New chat|新しいチャット)$/ })).toBeVisible({
     timeout: 10_000,
   });
@@ -72,7 +72,7 @@ async function waitForSidepanelReady(page: Page) {
 
 async function waitForOptionsReady(page: Page) {
   await expect(page.getByRole('heading', { name: 'Sidepanel LLM' })).toBeVisible();
-  await expect(page.locator('select')).toBeVisible();
+  await expect(page.locator('select')).toBeEnabled();
 }
 
 function optionsFields(page: Page) {
@@ -101,7 +101,10 @@ async function selectText(page: Page, selector: string) {
 async function clickButtonInBackground(page: Page, label: string) {
   await page.evaluate((buttonLabel) => {
     const button = Array.from(document.querySelectorAll('button')).find(
-      (element) => element.textContent?.trim() === buttonLabel,
+      (element) =>
+        element.textContent?.trim() === buttonLabel ||
+        element.getAttribute('aria-label') === buttonLabel ||
+        element.getAttribute('title') === buttonLabel,
     );
 
     if (!(button instanceof HTMLButtonElement)) {
@@ -230,10 +233,10 @@ test('loads the sidepanel UI and can create a new empty session', async () => {
     const page = await openExtensionPage(context, extensionId, 'sidepanel.html');
 
     await waitForSidepanelReady(page);
-    await expect(page.getByText('No sessions yet.')).toBeVisible();
-    await expect(page.getByText('Start a chat, then attach page context if needed.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sessions', exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: 'New chat' }).click();
+    await page.getByRole('button', { name: 'Sessions', exact: true }).click();
 
     await expect(page.locator('.session-item')).toHaveCount(1);
     await expect(page.locator('.session-item').first()).toContainText('New chat');
@@ -253,8 +256,9 @@ test('applies Japanese UI copy when the saved locale is set to ja', async () => 
     const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
     await waitForSidepanelReady(sidepanelPage);
     await expect(sidepanelPage.getByRole('button', { name: '新しいチャット' })).toBeVisible();
-    await expect(sidepanelPage.getByText('まだセッションはありません。')).toBeVisible();
-    await expect(sidepanelPage.getByText('コンテキスト取得')).toBeVisible();
+    await sidepanelPage.getByRole('button', { name: 'セッション', exact: true }).click();
+    await expect(sidepanelPage.locator('.session-item')).toHaveCount(0);
+    await expect(sidepanelPage.getByRole('paragraph').filter({ hasText: 'まだセッションはありません。' })).toBeVisible();
   } finally {
     await closeExtension(context, userDataDir);
   }
@@ -359,6 +363,7 @@ test('sends a chat request with mocked provider response', async () => {
     await expect(sidepanelPage.locator('.message.assistant')).toContainText('Mocked assistant reply.', {
       timeout: 10_000,
     });
+    await sidepanelPage.getByRole('button', { name: 'Sessions', exact: true }).click();
     await expect(sidepanelPage.locator('.session-item').first()).toContainText('Hello from Playwright');
   } finally {
     await closeExtension(context, userDataDir);
