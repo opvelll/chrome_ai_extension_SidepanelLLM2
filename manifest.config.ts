@@ -5,7 +5,8 @@ export default defineManifest({
   name: 'Sidepanel LLM',
   version: '0.1.0',
   description: 'Side panel chat extension with browser context capture.',
-  permissions: ['storage', 'activeTab', 'tabs'],
+  permissions: ['storage', 'activeTab', 'tabs', 'sidePanel']
+,
   host_permissions: ['<all_urls>'],
   background: {
     service_worker: 'src/background/index.ts',
