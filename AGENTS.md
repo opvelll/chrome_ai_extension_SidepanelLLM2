@@ -10,3 +10,9 @@
 
 - Use `playwright-interactive` when verifying the extension UI, Chrome extension flows, or Playwright-based debugging.
 
+## Design Policy
+
+- Optimize the sidepanel for narrow widths first.
+- Prefer a compact layout with minimal explanatory text.
+- Keep primary actions icon-based; expose meaning with hover text and accessible labels.
+- Favor tight vertical spacing and larger icons over decorative padding.
