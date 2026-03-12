@@ -28,10 +28,10 @@ function attachmentIcon(attachment: ContextAttachment) {
 }
 
 const subtleButtonClassName =
-  'inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex items-center justify-center gap-2 rounded-xl border border-stone-200 bg-white px-2.5 py-1.5 text-sm font-medium text-stone-700 shadow-sm transition hover:border-stone-300 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50';
 
 const primaryButtonClassName =
-  'inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-900/15 transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-teal-900/20 transition hover:bg-teal-700 active:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50';
 
 export function App() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -337,7 +337,7 @@ export function App() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-transparent text-slate-900">
+    <div className="relative min-h-screen overflow-hidden bg-transparent text-stone-900">
       {historyOpen ? (
         <div className="absolute inset-0 z-20 flex">
           <button
@@ -346,7 +346,7 @@ export function App() {
             title={t.sidepanel.sessionsLabel}
             onClick={() => setHistoryOpen(false)}
           />
-          <aside className="w-[min(88vw,320px)] border-l border-slate-200/80 bg-white/96 p-2.5 shadow-2xl shadow-slate-900/20 backdrop-blur-xl">
+          <aside className="w-[min(88vw,320px)] border-l border-stone-200/70 bg-white/96 p-2.5 shadow-2xl shadow-stone-900/15 backdrop-blur-xl">
             <div className="mb-2 flex items-center justify-between gap-2">
               <button
                 className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
@@ -371,8 +371,8 @@ export function App() {
                 <div
                   key={session.id}
                   className={`rounded-[18px] border p-1.5 transition ${session.id === activeSessionId
-                    ? 'border-cyan-300 bg-cyan-50 shadow-sm shadow-cyan-900/5'
-                    : 'border-slate-200 bg-white'
+                    ? 'border-teal-200 bg-teal-50 shadow-sm shadow-teal-900/8'
+                    : 'border-stone-200 bg-white'
                     }`}
                 >
                   <div className="flex items-start gap-2">
@@ -383,11 +383,11 @@ export function App() {
                         setHistoryOpen(false);
                       }}
                     >
-                      <div className="line-clamp-2 text-sm font-medium text-slate-900">{session.title}</div>
-                      <div className="mt-1 text-xs text-slate-500">{formatTimestamp(session.updatedAt, settings)}</div>
+                      <div className="line-clamp-2 text-sm font-medium text-stone-900">{session.title}</div>
+                      <div className="mt-1 text-xs text-stone-500">{formatTimestamp(session.updatedAt, settings)}</div>
                     </button>
                     <button
-                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-white hover:text-rose-700"
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-stone-400 transition hover:bg-white hover:text-rose-600"
                       onClick={() => void deleteSessionById(session.id)}
                       aria-label={t.common.delete}
                       title={t.common.delete}
@@ -398,7 +398,7 @@ export function App() {
                 </div>
               ))}
               {sessions.length === 0 ? (
-                <p className="rounded-[22px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm leading-6 text-slate-500">
+                <p className="rounded-[22px] border border-dashed border-stone-200 bg-stone-50 px-4 py-5 text-sm leading-6 text-stone-500">
                   {t.sidepanel.emptySessions}
                 </p>
               ) : null}
@@ -407,10 +407,10 @@ export function App() {
         </div>
       ) : null}
 
-      <main className="grid min-h-screen grid-rows-[auto_minmax(0,1fr)_auto] gap-2 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(232,242,247,0.92))] p-2.5 sm:p-3">
-        <header className="rounded-[22px] border border-slate-200/80 bg-white/88 p-2.5 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
+      <main className="grid min-h-screen grid-rows-[auto_minmax(0,1fr)_auto] gap-2 bg-[linear-gradient(180deg,rgba(247,243,237,0.72),rgba(232,242,246,0.60))] p-2.5 sm:p-3">
+        <header className="rounded-[22px] border border-stone-200/70 bg-white/90 p-2.5 shadow-md shadow-stone-900/6 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 rounded-xl bg-slate-100 px-2.5 py-1.5 text-sm font-medium text-slate-600">
+            <div className="min-w-0 rounded-xl bg-stone-100 px-2.5 py-1.5 text-sm font-medium text-stone-600">
               <span className="line-clamp-1">{settings?.modelId ?? t.sidepanel.modelNotConfigured}</span>
             </div>
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
@@ -442,13 +442,13 @@ export function App() {
           </div>
         </header>
 
-        <section className="flex min-h-0 min-w-0 flex-col gap-2 overflow-x-hidden overflow-y-auto rounded-[24px] border border-white/70 bg-white/72 p-2.5 shadow-inner shadow-white/70 backdrop-blur-sm">
+        <section className="flex min-h-0 min-w-0 flex-col gap-2 overflow-x-hidden overflow-y-auto rounded-[24px] border border-stone-200/50 bg-white/78 p-2.5 shadow-inner shadow-stone-900/4 backdrop-blur-sm">
           {messages.map((message) => (
             <article
               key={message.id}
               className={`message group ${message.role} max-w-[95%] rounded-[22px] px-3 py-2.5 shadow-sm ${message.role === 'user'
-                ? 'self-end bg-slate-900 text-white shadow-slate-900/15'
-                : 'border border-slate-200 bg-slate-50 text-slate-900'
+                ? 'self-end bg-teal-700 text-white shadow-teal-900/20'
+                : 'border border-stone-200 bg-white text-stone-900 shadow-stone-900/5'
                 }`}
             >
               <div className="mb-0.5 flex items-start justify-between gap-2">
@@ -456,7 +456,7 @@ export function App() {
                 <button
                   className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 ${message.role === 'user'
                     ? 'text-white/60 hover:bg-white/10 hover:text-white focus:opacity-100'
-                    : 'text-slate-400 hover:bg-white hover:text-rose-700 focus:opacity-100'
+                    : 'text-stone-400 hover:bg-stone-100 hover:text-rose-600 focus:opacity-100'
                     }`}
                   onClick={() => void deleteStoredMessage(message.id)}
                   aria-label={t.common.delete}
@@ -471,8 +471,8 @@ export function App() {
                     <div
                       key={attachment.id}
                       className={`max-w-full self-start rounded-[16px] border px-2.5 py-2 text-xs ${message.role === 'user'
-                        ? 'border-white/10 bg-white/10'
-                        : 'border-slate-200 bg-white'
+                        ? 'border-white/15 bg-white/12'
+                        : 'border-stone-200 bg-stone-50'
                         }`}
                     >
                       <div className="flex items-start gap-2">
@@ -481,7 +481,7 @@ export function App() {
                         <button
                           className={`inline-flex h-5 w-5 items-center justify-center rounded-full transition ${message.role === 'user'
                             ? 'text-white/60 hover:bg-white/10 hover:text-white'
-                            : 'text-slate-400 hover:bg-slate-100 hover:text-rose-700'
+                            : 'text-stone-400 hover:bg-stone-200 hover:text-rose-600'
                             }`}
                           onClick={() => void deleteStoredAttachment(message.id, attachment.id)}
                           aria-label={t.common.delete}
@@ -499,7 +499,7 @@ export function App() {
           {messages.length === 0 ? <div className="m-auto h-full min-h-24" /> : null}
         </section>
 
-        <section className="rounded-[24px] border border-slate-200/80 bg-white/88 p-2.5 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
+        <section className="rounded-[24px] border border-stone-200/70 bg-white/92 p-2.5 shadow-md shadow-stone-900/6 backdrop-blur-xl">
           <div className="flex flex-col gap-2.5">
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -528,13 +528,13 @@ export function App() {
                   <Camera className="h-5 w-5" />
                 </button>
                 <label
-                  className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-medium text-slate-700"
+                  className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-stone-200 bg-stone-50 px-2.5 text-[11px] font-medium text-stone-700 transition hover:border-teal-200 hover:bg-teal-50/50"
                   aria-label={t.sidepanel.autoAttachPage}
                   title={t.sidepanel.autoAttachPage}
                 >
                   <input
                     type="checkbox"
-                    className="h-3.5 w-3.5 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                    className="h-3.5 w-3.5 rounded border-stone-300 text-teal-600 focus:ring-teal-500"
                     checked={autoAttachPage}
                     onChange={(event) => void updateAutoAttachPage(event.target.checked)}
                   />
@@ -543,26 +543,26 @@ export function App() {
               </div>
 
               {contextError ? (
-                <div className="mt-2 rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                <div className="mt-2 rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
                   {contextError}
                 </div>
               ) : null}
 
-              <div className="mt-2 min-w-0 rounded-[20px] border border-slate-200 bg-slate-50/80">
+              <div className="mt-2 min-w-0 rounded-[20px] border border-stone-200 bg-stone-50/70">
                 {attachments.length === 0 ? (
-                  <div className="px-3 py-3 text-xs text-slate-500">{t.sidepanel.attachedItems}</div>
+                  <div className="px-3 py-3 text-xs text-stone-500">{t.sidepanel.attachedItems}</div>
                 ) : (
                   <div className="flex max-h-56 min-w-0 flex-col gap-2 overflow-x-hidden overflow-y-auto p-2">
                     {attachments.map((attachment) => (
                       <div
                         key={attachment.id}
-                        className="min-w-0 w-full max-w-full rounded-[18px] border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 shadow-sm"
+                        className="min-w-0 w-full max-w-full rounded-[18px] border border-stone-200 bg-white px-3 py-2.5 text-xs text-stone-700 shadow-sm"
                       >
                         <div className="flex items-start gap-2">
                           <span className="mt-0.5">{attachmentIcon(attachment)}</span>
                           <span className="min-w-0 flex-1 [overflow-wrap:anywhere] font-medium">{attachmentLabel(attachment, settings)}</span>
                           <button
-                            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+                            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-stone-400 transition hover:bg-stone-100 hover:text-stone-800"
                             onClick={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}
                             aria-label={t.common.delete}
                             title={t.common.delete}
@@ -572,7 +572,7 @@ export function App() {
                         </div>
 
                         {attachment.kind === 'screenshot' ? (
-                          <div className="mt-2 overflow-hidden rounded-[16px] border border-slate-200 bg-slate-100 p-2">
+                          <div className="mt-2 overflow-hidden rounded-[16px] border border-stone-200 bg-stone-100 p-2">
                             <img
                               className="max-h-32 w-auto max-w-full rounded-[12px] object-contain shadow-sm"
                               src={attachment.imageDataUrl}
@@ -580,7 +580,7 @@ export function App() {
                             />
                           </div>
                         ) : (
-                          <div className="mt-2 max-h-28 min-w-0 w-full max-w-full overflow-x-hidden overflow-y-auto whitespace-pre-wrap rounded-[14px] border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-600 [overflow-wrap:anywhere]">
+                          <div className="mt-2 max-h-28 min-w-0 w-full max-w-full overflow-x-hidden overflow-y-auto whitespace-pre-wrap rounded-[14px] border border-stone-200 bg-stone-50 px-2.5 py-2 text-xs leading-5 text-stone-600 [overflow-wrap:anywhere]">
                             {attachment.text}
                           </div>
                         )}
@@ -591,10 +591,10 @@ export function App() {
               </div>
             </div>
 
-            <div className="border-t border-slate-200/80 pt-2.5">
+            <div className="border-t border-stone-200/70 pt-2.5">
               <div className="flex items-end gap-2">
                 <textarea
-                  className="max-h-36 min-h-[92px] flex-1 resize-none overflow-y-auto rounded-[20px] border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm leading-5.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:bg-white"
+                  className="max-h-36 min-h-[92px] flex-1 resize-none overflow-y-auto rounded-[20px] border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm leading-5.5 text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-teal-300 focus:bg-white"
                   placeholder={composerPlaceholder}
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
@@ -612,7 +612,7 @@ export function App() {
             </div>
           </div>
 
-          {error && <div className="mt-2 text-sm text-rose-700">{error}</div>}
+          {error && <div className="mt-2 text-sm text-rose-600">{error}</div>}
         </section>
       </main>
     </div>
