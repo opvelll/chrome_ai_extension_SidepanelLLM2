@@ -24,6 +24,7 @@ type TranslationDictionary = {
     contextLabel: string;
     contextHint: string;
     composerPlaceholder: string;
+    composerPlaceholderAuto: string;
     send: string;
     attachmentPreviewAlt: string;
     userRole: string;
@@ -88,7 +89,8 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       modelNotConfigured: 'Not configured',
       contextLabel: 'Context tools',
       contextHint: 'Bring the current page into the conversation before sending.',
-      composerPlaceholder: 'Ask about the current page...',
+      composerPlaceholder: 'Type a message...',
+      composerPlaceholderAuto: 'Ask about the current page...',
       send: 'Send',
       attachmentPreviewAlt: 'Attached screenshot preview',
       userRole: 'You',
@@ -153,7 +155,8 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       modelNotConfigured: '未設定',
       contextLabel: 'コンテキスト取得',
       contextHint: '送信前に現在のページ情報を会話に取り込みます。',
-      composerPlaceholder: '現在のページについて質問してください...',
+      composerPlaceholder: 'メッセージを入力...',
+      composerPlaceholderAuto: '現在のページについて質問してください...',
       send: '送信',
       attachmentPreviewAlt: '添付したスクリーンショットのプレビュー',
       userRole: 'あなた',

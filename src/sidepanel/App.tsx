@@ -48,6 +48,9 @@ export function App() {
   const didConsumePendingSelectionRef = useRef(false);
 
   const t = getTranslations(settings);
+  const composerPlaceholder = autoAttachPage
+    ? t.sidepanel.composerPlaceholderAuto
+    : t.sidepanel.composerPlaceholder;
 
   async function loadSettings() {
     const response = await sendRuntimeMessage<{ settings: Settings }>({ type: 'settings.get' });
@@ -580,7 +583,7 @@ export function App() {
           <div className="flex items-end gap-2">
             <textarea
               className="min-h-[92px] flex-1 rounded-[20px] border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm leading-5.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:bg-white"
-              placeholder={t.sidepanel.composerPlaceholder}
+              placeholder={composerPlaceholder}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
             />
