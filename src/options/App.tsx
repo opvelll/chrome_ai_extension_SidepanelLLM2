@@ -16,6 +16,7 @@ export function App() {
   const [testing, setTesting] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const devDefaultApiKey = hasDevDefaultApiKey();
+  const showDevelopmentNotes = import.meta.env.DEV;
   const t = getTranslations(settings);
 
   useEffect(() => {
@@ -128,16 +129,18 @@ export function App() {
               </div>
             </div>
 
-            <div className="mt-6 space-y-3 text-sm leading-6 text-slate-300">
-              <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
-                {t.options.storageNote}
-              </div>
-              {devDefaultApiKey ? (
-                <div className="rounded-[24px] border border-teal-400/20 bg-teal-400/10 px-4 py-4">
-                  {t.options.devNote}
+            {showDevelopmentNotes ? (
+              <div className="mt-6 space-y-3 text-sm leading-6 text-slate-300">
+                <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
+                  {t.options.storageNote}
                 </div>
-              ) : null}
-            </div>
+                {devDefaultApiKey ? (
+                  <div className="rounded-[24px] border border-teal-400/20 bg-teal-400/10 px-4 py-4">
+                    {t.options.devNote}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </section>
 
           <section className="px-6 py-7">
