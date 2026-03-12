@@ -1,4 +1,5 @@
 import { getDefaultSettings } from './defaultSettings';
+import { isDefaultSessionTitle } from './i18n';
 import type { ChatMessage, ChatSession, Settings } from '../shared/models';
 
 const STORAGE_KEYS = {
@@ -97,7 +98,7 @@ export async function appendMessages(sessionId: string, nextMessages: ChatMessag
     const titleSource = updatedMessages[sessionId][0]?.content?.trim();
     await updateSession({
       ...session,
-      title: session.title === 'New chat' && titleSource ? titleSource.slice(0, 40) : session.title,
+      title: isDefaultSessionTitle(session.title) && titleSource ? titleSource.slice(0, 40) : session.title,
       updatedAt: new Date().toISOString(),
     });
   }

@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "Sidepanel LLM"
+  },
+  "extDescription": {
+    "message": "ブラウザーコンテキスト取得に対応したサイドパネルチャット拡張機能。"
+  },
+  "extActionTitle": {
+    "message": "Sidepanel LLM を開く"
+  }
+}

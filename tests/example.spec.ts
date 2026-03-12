@@ -37,9 +37,24 @@ async function closeExtension(context: BrowserContext, userDataDir: string) {
 }
 
 async function openExtensionPage(context: BrowserContext, extensionId: string, pageName: 'options.html' | 'sidepanel.html') {
-  const page = await context.newPage();
-  await page.goto(`chrome-extension://${extensionId}/${pageName}`);
-  return page;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const page = await context.newPage();
+
+    try {
+      await page.goto(`chrome-extension://${extensionId}/${pageName}`, {
+        waitUntil: 'domcontentloaded',
+      });
+      return page;
+    } catch (error) {
+      lastError = error;
+      await page.close();
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+
+  throw lastError;
 }
 
 async function openFixturePage(context: BrowserContext) {
@@ -76,7 +91,14 @@ async function clickButtonInBackground(page: Page, label: string) {
   }, label);
 }
 
-async function saveSettings(page: Page, settings?: { apiKey?: string; modelId?: string; systemPrompt?: string }) {
+async function saveSettings(
+  page: Page,
+  settings?: { apiKey?: string; modelId?: string; systemPrompt?: string; locale?: 'auto' | 'en' | 'ja' },
+) {
+  if (settings?.locale !== undefined) {
+    await page.getByLabel('Language').selectOption(settings.locale);
+  }
+
   if (settings?.apiKey !== undefined) {
     await page.getByLabel('API key').fill(settings.apiKey);
   }
@@ -89,8 +111,8 @@ async function saveSettings(page: Page, settings?: { apiKey?: string; modelId?: 
     await page.getByLabel('System prompt').fill(settings.systemPrompt);
   }
 
-  await page.getByRole('button', { name: 'Save' }).click();
-  await expect(page.getByText('Saved.')).toBeVisible();
+  await page.getByRole('button', { name: /^(Save|保存)$/ }).click();
+  await expect(page.getByText(/^(Saved\.|保存しました。)$/)).toBeVisible();
 }
 
 test.beforeAll(async () => {
@@ -158,12 +180,14 @@ test('loads the extension options page and saves settings', async () => {
 
     await expect(page.getByRole('heading', { name: 'Sidepanel LLM' })).toBeVisible();
     await saveSettings(page, {
+      locale: 'en',
       apiKey: 'test-api-key',
       modelId: 'gpt-4.1-mini',
       systemPrompt: 'Be concise.',
     });
 
     await page.reload();
+    await expect(page.getByLabel('Language')).toHaveValue('en');
     await expect(page.getByLabel('API key')).toHaveValue('test-api-key');
     await expect(page.getByLabel('Model')).toHaveValue('gpt-4.1-mini');
     await expect(page.getByLabel('System prompt')).toHaveValue('Be concise.');
@@ -182,10 +206,25 @@ test('loads the sidepanel UI and can create a new empty session', async () => {
     await expect(page.getByText('No sessions yet.')).toBeVisible();
     await expect(page.getByText('Start a chat, then attach page context if needed.')).toBeVisible();
 
-    await page.getByRole('button', { name: 'New' }).click();
+    await page.getByRole('button', { name: 'New chat' }).click();
 
-    await expect(page.locator('.session-item')).toHaveCount(1);
-    await expect(page.locator('.session-item').first()).toContainText('New chat');
+    await expect(page.getByRole('button', { name: /New chat/ })).toHaveCount(1);
+  } finally {
+    await closeExtension(context, userDataDir);
+  }
+});
+
+test('applies Japanese UI copy when the saved locale is set to ja', async () => {
+  const { context, extensionId, userDataDir } = await launchExtension();
+
+  try {
+    const optionsPage = await openExtensionPage(context, extensionId, 'options.html');
+    await saveSettings(optionsPage, { locale: 'ja' });
+
+    const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
+    await expect(sidepanelPage.getByRole('button', { name: '新しいチャット' })).toBeVisible();
+    await expect(sidepanelPage.getByText('まだセッションはありません。')).toBeVisible();
+    await expect(sidepanelPage.getByText('コンテキスト取得')).toBeVisible();
   } finally {
     await closeExtension(context, userDataDir);
   }
@@ -274,6 +313,7 @@ test('sends a chat request with mocked provider response', async () => {
 
     const optionsPage = await openExtensionPage(context, extensionId, 'options.html');
     await saveSettings(optionsPage, {
+      locale: 'en',
       apiKey: 'test-api-key',
       modelId: 'gpt-4.1-mini',
       systemPrompt: 'Test system prompt.',

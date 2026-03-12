@@ -47,6 +47,7 @@ export type Settings = {
   apiKey: string;
   modelId: string;
   systemPrompt: string;
+  locale: 'auto' | 'en' | 'ja';
 };
 
 export type TokenUsage = {

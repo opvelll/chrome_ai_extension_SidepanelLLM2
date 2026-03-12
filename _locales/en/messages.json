@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "Sidepanel LLM"
+  },
+  "extDescription": {
+    "message": "Side panel chat extension with browser context capture."
+  },
+  "extActionTitle": {
+    "message": "Open Sidepanel LLM"
+  }
+}

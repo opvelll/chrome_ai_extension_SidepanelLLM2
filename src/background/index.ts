@@ -197,6 +197,7 @@ chrome.runtime.onMessage.addListener((request: BackgroundRequest, _sender, sendR
               apiKey: parsed.payload.apiKey,
               modelId: parsed.payload.modelId ?? 'gpt-4.1-mini',
               systemPrompt: '',
+              locale: 'auto',
             },
             userMessage,
             history: [],

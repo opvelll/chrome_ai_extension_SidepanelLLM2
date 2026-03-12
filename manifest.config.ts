@@ -2,9 +2,10 @@ import { defineManifest } from '@crxjs/vite-plugin';
 
 export default defineManifest({
   manifest_version: 3,
-  name: 'Sidepanel LLM',
+  default_locale: 'en',
+  name: '__MSG_extName__',
   version: '0.1.0',
-  description: 'Side panel chat extension with browser context capture.',
+  description: '__MSG_extDescription__',
   permissions: ['storage', 'activeTab', 'tabs', 'sidePanel']
 ,
   host_permissions: ['<all_urls>'],
@@ -17,7 +18,7 @@ export default defineManifest({
   },
   options_page: 'options.html',
   action: {
-    default_title: 'Open Sidepanel LLM',
+    default_title: '__MSG_extActionTitle__',
   },
   content_scripts: [
     {
