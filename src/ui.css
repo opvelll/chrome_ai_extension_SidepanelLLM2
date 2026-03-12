@@ -24,9 +24,7 @@
     color-scheme: light;
     font-family: var(--font-sans);
     color: var(--color-ink-900);
-    background:
-      radial-gradient(circle at top left, rgba(247, 242, 232, 0.95), transparent 38%),
-      linear-gradient(180deg, #f7f2e8 0%, #ebf2f6 100%);
+    background: var(--color-sand-100);
   }
 
   html,

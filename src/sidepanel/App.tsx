@@ -31,7 +31,7 @@ export function App() {
         onUpdateScale={sidepanel.updatePreviewScale}
       />
 
-      <main className="grid min-h-screen grid-rows-[auto_minmax(0,1fr)_auto] gap-2 bg-[linear-gradient(180deg,rgba(247,243,237,0.72),rgba(232,242,246,0.60))] p-2.5 sm:p-3">
+      <main className="grid min-h-screen grid-rows-[auto_minmax(0,1fr)_auto] gap-2 bg-sand-100 p-2.5 sm:p-3">
         <SidepanelHeader
           settings={sidepanel.settings}
           translations={sidepanel.t}
