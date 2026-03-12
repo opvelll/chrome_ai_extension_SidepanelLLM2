@@ -10,7 +10,7 @@ export function App() {
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsError, setModelsError] = useState('');
-  const [manualModelEntry, setManualModelEntry] = useState(false);
+  const [modelInputMode, setModelInputMode] = useState<'list' | 'manual'>('manual');
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [testing, setTesting] = useState(false);
@@ -24,7 +24,7 @@ export function App() {
       const response = await sendRuntimeMessage<{ settings: Settings }>({ type: 'settings.get' });
       if (response.ok) {
         setSettings(response.data.settings);
-        setManualModelEntry(false);
+        setModelInputMode('manual');
         void loadModels(response.data.settings.apiKey, response.data.settings.modelId);
       }
       setHydrated(true);
@@ -51,16 +51,16 @@ export function App() {
     if (!response.ok) {
       setAvailableModels([]);
       setModelsError(response.error.message);
-      setManualModelEntry(true);
+      setModelInputMode('manual');
       return;
     }
 
     setAvailableModels(response.data.models);
     setModelsError('');
     if (!response.data.models.includes(currentModelId)) {
-      setManualModelEntry((current) => current || currentModelId.trim().length > 0);
+      setModelInputMode(currentModelId.trim().length > 0 ? 'manual' : 'list');
     } else {
-      setManualModelEntry(false);
+      setModelInputMode('list');
     }
   }
 
@@ -113,7 +113,7 @@ export function App() {
   const primaryButtonClassName =
     'inline-flex items-center justify-center gap-2 rounded-2xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-900/20 transition hover:bg-teal-700 active:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50';
 
-  const modelSelectEnabled = hydrated && !manualModelEntry && availableModels.length > 0;
+  const modelSelectEnabled = hydrated && modelInputMode === 'list' && availableModels.length > 0;
 
   return (
     <div className="grid min-h-screen place-items-center bg-transparent px-6 py-8 text-slate-900">
@@ -153,6 +153,7 @@ export function App() {
               </span>
               <select
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50 outline-none transition focus:border-teal-300 focus:bg-white"
+                aria-label={t.options.language}
                 disabled={!hydrated}
                 value={settings.locale}
                 onChange={(event) =>
@@ -182,54 +183,74 @@ export function App() {
               />
             </label>
 
-            <label className="mt-4 flex flex-col gap-2.5">
+            <div className="mt-4 flex flex-col gap-2.5">
               <span className="inline-flex items-center gap-2 text-sm font-medium">
                 <Server className="h-4 w-4 text-teal-600" />
                 {t.options.model}
               </span>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <select
-                  className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50 outline-none transition focus:border-teal-300 focus:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                  aria-label={t.options.model}
-                  disabled={!modelSelectEnabled}
-                  value={modelSelectEnabled ? settings.modelId : ''}
-                  onChange={(event) => {
-                    const nextModelId = event.target.value;
-                    const nextSettings = { ...settings, modelId: nextModelId };
-                    setSettings(nextSettings);
-                    setManualModelEntry(false);
-                    void persistSettings(nextSettings);
-                  }}
-                >
-                  {!modelSelectEnabled ? <option value="">{modelsLoading ? t.options.refreshingModels : t.options.modelManualEntry}</option> : null}
-                  {availableModels.map((modelId) => (
-                    <option key={modelId} value={modelId}>
-                      {modelId}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t.options.modelInputMethod}>
                 <button
-                  className={subtleButtonClassName}
-                  disabled={!hydrated || modelsLoading || !settings.apiKey.trim()}
-                  onClick={() => void loadModels(settings.apiKey)}
-                  title={t.options.refreshModels}
-                >
-                  <RefreshCcw className={`h-4 w-4 ${modelsLoading ? 'animate-spin' : ''}`} />
-                  {modelsLoading ? t.options.refreshingModels : t.options.refreshModels}
-                </button>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                <span>{t.options.modelHelp}</span>
-                <button
-                  className="font-medium text-teal-700 transition hover:text-teal-800"
+                  type="button"
+                  className={`rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+                    modelInputMode === 'list'
+                      ? 'border-teal-500 bg-teal-50 text-teal-900'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                  role="radio"
+                  aria-checked={modelInputMode === 'list'}
                   disabled={!hydrated}
-                  onClick={() => setManualModelEntry((current) => !current)}
+                  onClick={() => setModelInputMode('list')}
                 >
-                  {t.options.modelManualEntry}
+                  {t.options.modelInputList}
+                </button>
+                <button
+                  type="button"
+                  className={`rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+                    modelInputMode === 'manual'
+                      ? 'border-teal-500 bg-teal-50 text-teal-900'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                  role="radio"
+                  aria-checked={modelInputMode === 'manual'}
+                  disabled={!hydrated}
+                  onClick={() => setModelInputMode('manual')}
+                >
+                  {t.options.modelInputManual}
                 </button>
               </div>
-              <div className="text-xs leading-5 text-amber-700">{t.options.modelCompatibilityNote}</div>
-              {manualModelEntry || availableModels.length === 0 ? (
+              {modelInputMode === 'list' ? (
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <select
+                    className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50 outline-none transition focus:border-teal-300 focus:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                    aria-label={t.options.model}
+                    disabled={!modelSelectEnabled}
+                    value={modelSelectEnabled ? settings.modelId : ''}
+                    onChange={(event) => {
+                      const nextModelId = event.target.value;
+                      const nextSettings = { ...settings, modelId: nextModelId };
+                      setSettings(nextSettings);
+                      setModelInputMode('list');
+                      void persistSettings(nextSettings);
+                    }}
+                  >
+                    {!modelSelectEnabled ? <option value="">{modelsLoading ? t.options.refreshingModels : t.options.modelInputList}</option> : null}
+                    {availableModels.map((modelId) => (
+                      <option key={modelId} value={modelId}>
+                        {modelId}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className={subtleButtonClassName}
+                    disabled={!hydrated || modelsLoading || !settings.apiKey.trim()}
+                    onClick={() => void loadModels(settings.apiKey)}
+                    title={t.options.refreshModels}
+                  >
+                    <RefreshCcw className={`h-4 w-4 ${modelsLoading ? 'animate-spin' : ''}`} />
+                    {modelsLoading ? t.options.refreshingModels : t.options.refreshModels}
+                  </button>
+                </div>
+              ) : (
                 <input
                   className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50 outline-none transition focus:border-teal-300 focus:bg-white"
                   type="text"
@@ -238,9 +259,11 @@ export function App() {
                   value={settings.modelId}
                   onChange={(event) => setSettings((current) => ({ ...current, modelId: event.target.value }))}
                 />
-              ) : null}
+              )}
+              <div className="text-xs leading-5 text-slate-500">{t.options.modelHelp}</div>
+              <div className="text-xs leading-5 text-amber-700">{t.options.modelCompatibilityNote}</div>
               {modelsError ? <div className="text-xs text-amber-700">{t.options.modelListUnavailable} {modelsError}</div> : null}
-            </label>
+            </div>
 
             <label className="mt-4 flex flex-col gap-2.5">
               <span className="inline-flex items-center gap-2 text-sm font-medium">
@@ -249,6 +272,7 @@ export function App() {
               </span>
               <select
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50 outline-none transition focus:border-teal-300 focus:bg-white"
+                aria-label={t.options.tool}
                 disabled={!hydrated}
                 value={settings.responseTool}
                 onChange={(event) => {
@@ -273,6 +297,7 @@ export function App() {
               </span>
               <select
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50 outline-none transition focus:border-teal-300 focus:bg-white"
+                aria-label={t.options.reasoning}
                 disabled={!hydrated}
                 value={settings.reasoningEffort}
                 onChange={(event) => {

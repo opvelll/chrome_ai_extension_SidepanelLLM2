@@ -81,10 +81,12 @@ function optionsFields(page: Page) {
   return {
     locale: page.getByRole('combobox', { name: /^(Language|表示言語)$/ }),
     apiKey: page.locator('input[type="password"]'),
+    modelInputList: page.getByRole('radio', { name: /^(Choose from list|リストから選択)$/ }),
+    modelInputManual: page.getByRole('radio', { name: /^(Enter manually|手入力)$/ }),
     modelSelect: page.getByRole('combobox', { name: /^(Model|モデル)$/ }),
     modelId: page.getByLabel(/^(Manual model ID entry|モデル ID を手入力)$/),
-    responseTool: page.locator('select').nth(2),
-    reasoningEffort: page.locator('select').nth(3),
+    responseTool: page.getByRole('combobox', { name: /^Tool$/ }),
+    reasoningEffort: page.getByRole('combobox', { name: /^Reasoning$/ }),
     refreshModels: page.getByRole('button', { name: /^(Refresh models|モデル一覧を更新)$/ }),
     systemPrompt: page.locator('textarea'),
     autoAttachPage: page.getByLabel(/^(Auto attach full page on first message|最初の送信時にページ全文を自動添付)$/),
@@ -143,6 +145,7 @@ async function saveSettings(
   }
 
   if (settings?.modelId !== undefined) {
+    await fields.modelInputManual.click();
     await fields.modelId.fill(settings.modelId);
   }
 
@@ -306,8 +309,10 @@ test('loads the latest model list from the API and lets the user select one', as
 
     const fields = optionsFields(page);
     await fields.apiKey.fill('test-api-key');
+    await fields.modelInputList.click();
     await fields.refreshModels.click();
 
+    await expect(fields.modelInputList).toHaveAttribute('aria-checked', 'true');
     await expect(fields.modelSelect).toBeEnabled();
     await fields.modelSelect.selectOption('gpt-4.1');
     await expect(fields.modelSelect).toHaveValue('gpt-4.1');
@@ -317,6 +322,7 @@ test('loads the latest model list from the API and lets the user select one', as
 
     const reloadedPage = await openExtensionPage(context, extensionId, 'options.html');
     await waitForOptionsReady(reloadedPage);
+    await expect(optionsFields(reloadedPage).modelInputList).toHaveAttribute('aria-checked', 'true');
     await expect(optionsFields(reloadedPage).modelSelect).toHaveValue('gpt-4.1');
   } finally {
     await closeExtension(context, userDataDir);

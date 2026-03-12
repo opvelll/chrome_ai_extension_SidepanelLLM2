@@ -73,6 +73,9 @@ type TranslationDictionary = {
     reasoningXHigh: string;
     refreshModels: string;
     refreshingModels: string;
+    modelInputMethod: string;
+    modelInputList: string;
+    modelInputManual: string;
     modelManualEntry: string;
     modelListUnavailable: string;
     systemPrompt: string;
@@ -169,6 +172,9 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       reasoningXHigh: 'X-High',
       refreshModels: 'Refresh models',
       refreshingModels: 'Refreshing models...',
+      modelInputMethod: 'Model input method',
+      modelInputList: 'Choose from list',
+      modelInputManual: 'Enter manually',
       modelManualEntry: 'Manual model ID entry',
       modelListUnavailable: 'Model list could not be loaded. Enter the model ID manually.',
       systemPrompt: 'System prompt',
@@ -263,6 +269,9 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       reasoningXHigh: 'X-High',
       refreshModels: 'モデル一覧を更新',
       refreshingModels: 'モデル一覧を更新中...',
+      modelInputMethod: 'モデルの入力方法',
+      modelInputList: 'リストから選択',
+      modelInputManual: '手入力',
       modelManualEntry: 'モデル ID を手入力',
       modelListUnavailable: 'モデル一覧を取得できませんでした。モデル ID を手入力してください。',
       systemPrompt: 'システムプロンプト',
