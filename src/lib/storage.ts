@@ -9,6 +9,15 @@ const STORAGE_KEYS = {
 
 type MessageStore = Record<string, ChatMessage[]>;
 
+function getNowIso() {
+  return new Date().toISOString();
+}
+
+function getSessionTitle(messages: ChatMessage[], fallbackTitle: string) {
+  const titleSource = messages.find((message) => message.role === 'user')?.content?.trim();
+  return titleSource ? titleSource.slice(0, 40) : fallbackTitle;
+}
+
 async function readStorage<T>(key: string, fallback: T): Promise<T> {
   const result = await chrome.storage.local.get(key);
   return (result[key] as T | undefined) ?? fallback;
@@ -39,7 +48,7 @@ export async function getSession(sessionId: string): Promise<ChatSession | undef
 }
 
 export async function createSession(title?: string): Promise<ChatSession> {
-  const now = new Date().toISOString();
+  const now = getNowIso();
   const session: ChatSession = {
     id: crypto.randomUUID(),
     title: title?.trim() || 'New chat',
@@ -57,6 +66,22 @@ export async function updateSession(updatedSession: ChatSession): Promise<void> 
   const sessions = await listSessions();
   const next = sessions.map((session) => (session.id === updatedSession.id ? updatedSession : session));
   await writeStorage(STORAGE_KEYS.sessions, next);
+}
+
+async function syncSessionAfterMessageChange(
+  session: ChatSession | undefined,
+  nextSessionMessages: ChatMessage[],
+  options?: { refreshTitle?: boolean },
+): Promise<void> {
+  if (!session) {
+    return;
+  }
+
+  await updateSession({
+    ...session,
+    title: options?.refreshTitle ? getSessionTitle(nextSessionMessages, session.title) : session.title,
+    updatedAt: getNowIso(),
+  });
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
@@ -92,15 +117,7 @@ export async function appendMessages(sessionId: string, nextMessages: ChatMessag
   };
 
   await writeStorage(STORAGE_KEYS.messages, updatedMessages);
-
-  if (session) {
-    const titleSource = updatedMessages[sessionId].find((message) => message.role === 'user')?.content?.trim();
-    await updateSession({
-      ...session,
-      title: titleSource ? titleSource.slice(0, 40) : session.title,
-      updatedAt: new Date().toISOString(),
-    });
-  }
+  await syncSessionAfterMessageChange(session, updatedMessages[sessionId], { refreshTitle: true });
 }
 
 export async function deleteMessage(sessionId: string, messageId: string): Promise<ChatMessage[]> {
@@ -116,15 +133,7 @@ export async function deleteMessage(sessionId: string, messageId: string): Promi
   };
 
   await writeStorage(STORAGE_KEYS.messages, nextMessages);
-
-  if (session) {
-    const titleSource = nextSessionMessages.find((message) => message.role === 'user')?.content?.trim();
-    await updateSession({
-      ...session,
-      title: titleSource ? titleSource.slice(0, 40) : session.title,
-      updatedAt: new Date().toISOString(),
-    });
-  }
+  await syncSessionAfterMessageChange(session, nextSessionMessages, { refreshTitle: true });
 
   return nextSessionMessages;
 }
@@ -154,13 +163,7 @@ export async function deleteMessageAttachment(
   };
 
   await writeStorage(STORAGE_KEYS.messages, nextMessages);
-
-  if (session) {
-    await updateSession({
-      ...session,
-      updatedAt: new Date().toISOString(),
-    });
-  }
+  await syncSessionAfterMessageChange(session, nextSessionMessages);
 
   return nextSessionMessages;
 }
