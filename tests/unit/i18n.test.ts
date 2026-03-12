@@ -21,6 +21,16 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function createSource() {
+  return {
+    title: 'Fixture Article',
+    url: 'https://example.com/articles/fixture',
+    hostname: 'example.com',
+    pathname: '/articles/fixture',
+    capturedAt: '2026-03-13T00:00:00.000Z',
+  };
+}
+
 describe('resolveLocale', () => {
   it('uses explicit locale when configured', () => {
     setChromeLanguage('en-US');
@@ -51,19 +61,19 @@ describe('attachmentLabel', () => {
       id: '1',
       kind: 'selectionText',
       text: 'Selected content for the current page',
-      source: { title: 'Fixture Article' },
+      source: createSource(),
     };
     const pageText: ContextAttachment = {
       id: '2',
       kind: 'pageText',
       text: 'Page body',
-      source: { title: 'Fixture Article' },
+      source: createSource(),
     };
     const screenshot: ContextAttachment = {
       id: '3',
       kind: 'screenshot',
       imageDataUrl: 'data:image/png;base64,abc',
-      source: { title: 'Fixture Article' },
+      source: createSource(),
     };
 
     expect(attachmentLabel(selection, { locale: 'en' })).toContain('Selection:');

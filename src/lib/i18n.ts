@@ -1,4 +1,5 @@
 import type { ContextAttachment, Settings } from '../shared/models';
+import { attachmentSourceSummary } from './attachments';
 
 export type SupportedLocale = 'en' | 'ja';
 export type LocalePreference = Settings['locale'];
@@ -8,6 +9,10 @@ type TranslationDictionary = {
     appName: string;
     settings: string;
     delete: string;
+    close: string;
+    zoomIn: string;
+    zoomOut: string;
+    reset: string;
     save: string;
     ready: string;
     waiting: string;
@@ -36,6 +41,7 @@ type TranslationDictionary = {
     autoAttachPage: string;
     autoAttachPageShort: string;
     attachedItems: string;
+    attachmentOpen: string;
     activeModel: string;
     messageCount: string;
     attachmentsCount: string;
@@ -75,6 +81,10 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       appName: 'Sidepanel LLM',
       settings: 'Settings',
       delete: 'Delete',
+      close: 'Close',
+      zoomIn: 'Zoom in',
+      zoomOut: 'Zoom out',
+      reset: 'Reset',
       save: 'Save',
       ready: 'Ready',
       waiting: 'Waiting for response...',
@@ -103,6 +113,7 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       autoAttachPage: 'Auto attach full page on first message',
       autoAttachPageShort: 'Auto',
       attachedItems: 'Attached items',
+      attachmentOpen: 'Open attachment',
       activeModel: 'Active model',
       messageCount: 'Messages',
       attachmentsCount: 'Attachments',
@@ -142,6 +153,10 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       appName: 'Sidepanel LLM',
       settings: '設定',
       delete: '削除',
+      close: '閉じる',
+      zoomIn: '拡大',
+      zoomOut: '縮小',
+      reset: 'リセット',
       save: '保存',
       ready: '準備完了',
       waiting: '応答を待機中...',
@@ -170,6 +185,7 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       autoAttachPage: '最初の送信時にページ全文を自動添付',
       autoAttachPageShort: 'auto',
       attachedItems: '添付中の項目',
+      attachmentOpen: '添付を開く',
       activeModel: '使用モデル',
       messageCount: 'メッセージ',
       attachmentsCount: '添付',
@@ -241,9 +257,9 @@ export function attachmentLabel(
     case 'selectionText':
       return `${t.attachments.selection}: ${attachment.text.slice(0, 48)}`;
     case 'pageText':
-      return `${t.attachments.page}: ${attachment.source.title ?? attachment.source.url ?? t.attachments.currentPage}`;
+      return `${t.attachments.page}: ${attachmentSourceSummary(attachment.source) || t.attachments.currentPage}`;
     case 'screenshot':
-      return `${t.attachments.screenshot}: ${attachment.source.title ?? attachment.source.url ?? t.attachments.currentPage}`;
+      return `${t.attachments.screenshot}: ${attachmentSourceSummary(attachment.source) || t.attachments.currentPage}`;
   }
 }
 

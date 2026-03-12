@@ -3,8 +3,8 @@ import type { ChatMessage, ChatSession, Settings } from '../shared/models';
 
 const STORAGE_KEYS = {
   settings: 'settings',
-  sessions: 'sessions',
-  messages: 'messages',
+  sessions: 'sessions_v2',
+  messages: 'messages_v2',
 } as const;
 
 type MessageStore = Record<string, ChatMessage[]>;

@@ -3,8 +3,11 @@ import {
   FileText,
   History,
   Image as ImageIcon,
+  Minus,
   LoaderCircle,
   MessageSquarePlus,
+  Plus,
+  RotateCcw,
   Send,
   Settings as SettingsIcon,
   Trash2,
@@ -12,6 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { attachmentSourceDetails, attachmentSourceSummary } from '../lib/attachments';
 import { attachmentLabel, formatTimestamp, getTranslations } from '../lib/i18n';
 import { sendRuntimeMessage } from '../lib/runtime';
 import type { ChatMessage, ChatSession, ContextAttachment, Settings } from '../shared/models';
@@ -33,6 +37,14 @@ const subtleButtonClassName =
 const primaryButtonClassName =
   'inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-teal-900/20 transition hover:bg-teal-700 active:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50';
 
+function attachmentBody(attachment: ContextAttachment) {
+  return attachment.kind === 'screenshot' ? '' : attachment.text;
+}
+
+function isAttachmentActivationKey(key: string) {
+  return key === 'Enter' || key === ' ';
+}
+
 export function App() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>('');
@@ -45,6 +57,8 @@ export function App() {
   const [contextError, setContextError] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [autoAttachPage, setAutoAttachPage] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<ContextAttachment | null>(null);
+  const [previewScale, setPreviewScale] = useState(1);
   const didConsumePendingSelectionRef = useRef(false);
 
   const t = getTranslations(settings);
@@ -173,6 +187,29 @@ export function App() {
       });
     })();
   }, []);
+
+  useEffect(() => {
+    if (!previewAttachment) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setPreviewAttachment(null);
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewAttachment]);
+
+  useEffect(() => {
+    setPreviewScale(1);
+  }, [previewAttachment]);
+
+  function updatePreviewScale(nextScale: number) {
+    setPreviewScale(Math.min(3, Math.max(0.5, Number(nextScale.toFixed(2)))));
+  }
 
   async function ensureSession() {
     if (activeSessionId) {
@@ -407,6 +444,96 @@ export function App() {
         </div>
       ) : null}
 
+      {previewAttachment ? (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-stone-950/50 p-2 backdrop-blur-[2px]">
+          <button
+            className="absolute inset-0"
+            aria-label={t.common.close}
+            title={t.common.close}
+            onClick={() => setPreviewAttachment(null)}
+          />
+          <section
+            className="relative z-10 flex max-h-[88vh] w-full max-w-[22rem] flex-col overflow-hidden rounded-[24px] border border-stone-200 bg-white shadow-2xl shadow-stone-950/20"
+            role="dialog"
+            aria-modal="true"
+            aria-label={attachmentLabel(previewAttachment, settings)}
+          >
+            <header className="flex items-start justify-between gap-3 border-b border-stone-200 px-3 py-3">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-stone-900">{attachmentLabel(previewAttachment, settings)}</div>
+                <div className="mt-1 line-clamp-2 text-[11px] text-stone-500">
+                  {attachmentSourceSummary(previewAttachment.source)}
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                {previewAttachment.kind === 'screenshot' ? (
+                  <>
+                    <button
+                      type="button"
+                      className={`${subtleButtonClassName} h-8 w-8 rounded-xl px-0`}
+                      onClick={() => updatePreviewScale(previewScale - 0.25)}
+                      aria-label={t.common.zoomOut}
+                      title={t.common.zoomOut}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className={`${subtleButtonClassName} h-8 w-8 rounded-xl px-0`}
+                      onClick={() => updatePreviewScale(1)}
+                      aria-label={t.common.reset}
+                      title={t.common.reset}
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className={`${subtleButtonClassName} h-8 w-8 rounded-xl px-0`}
+                      onClick={() => updatePreviewScale(previewScale + 0.25)}
+                      aria-label={t.common.zoomIn}
+                      title={t.common.zoomIn}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </>
+                ) : null}
+                <button
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-stone-500 transition hover:bg-stone-100 hover:text-stone-900"
+                  onClick={() => setPreviewAttachment(null)}
+                  aria-label={t.common.close}
+                  title={t.common.close}
+                >
+                  <X className="h-4.5 w-4.5" />
+                </button>
+              </div>
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+              <div className="mb-3 whitespace-pre-wrap rounded-[16px] border border-stone-200 bg-stone-50 px-3 py-2 text-[11px] leading-5 text-stone-600 [overflow-wrap:anywhere]">
+                {attachmentSourceDetails(previewAttachment.source).join('\n')}
+              </div>
+              {previewAttachment.kind === 'screenshot' ? (
+                <div className="overflow-auto rounded-[18px] border border-stone-200 bg-stone-100 p-2">
+                  <img
+                    className="max-h-none max-w-none rounded-[12px] object-contain"
+                    src={previewAttachment.imageDataUrl}
+                    alt={t.sidepanel.attachmentPreviewAlt}
+                    style={{
+                      width: `${previewScale * 100}%`,
+                      minWidth: `${previewScale * 100}%`,
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="whitespace-pre-wrap rounded-[18px] border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm leading-6 text-stone-700 [overflow-wrap:anywhere]">
+                  {attachmentBody(previewAttachment)}
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      ) : null}
+
       <main className="grid min-h-screen grid-rows-[auto_minmax(0,1fr)_auto] gap-2 bg-[linear-gradient(180deg,rgba(247,243,237,0.72),rgba(232,242,246,0.60))] p-2.5 sm:p-3">
         <header className="rounded-[22px] border border-stone-200/70 bg-white/90 p-2.5 shadow-md shadow-stone-900/6 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
@@ -470,20 +597,41 @@ export function App() {
                   {message.attachments.map((attachment) => (
                     <div
                       key={attachment.id}
-                      className={`max-w-full self-start rounded-[16px] border px-2.5 py-2 text-xs ${message.role === 'user'
+                      className={`max-w-full cursor-pointer self-start rounded-[16px] border px-2.5 py-2 text-left text-xs transition ${message.role === 'user'
                         ? 'border-white/15 bg-white/12'
-                        : 'border-stone-200 bg-stone-50'
+                        : 'border-stone-200 bg-stone-50 hover:bg-stone-100'
                         }`}
+                      onClick={() => setPreviewAttachment(attachment)}
+                      onKeyDown={(event) => {
+                        if (!isAttachmentActivationKey(event.key)) {
+                          return;
+                        }
+                        event.preventDefault();
+                        setPreviewAttachment(attachment);
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${t.sidepanel.attachmentOpen}: ${attachmentLabel(attachment, settings)}`}
+                      title={t.sidepanel.attachmentOpen}
                     >
-                      <div className="flex items-start gap-2">
-                        <span className="mt-0.5">{attachmentIcon(attachment)}</span>
-                        <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{attachmentLabel(attachment, settings)}</span>
-                        <button
+                        <div className="flex items-start gap-2">
+                          <span className="mt-0.5">{attachmentIcon(attachment)}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="[overflow-wrap:anywhere]">{attachmentLabel(attachment, settings)}</div>
+                            <div className={`mt-1 text-[10px] leading-4 [overflow-wrap:anywhere] ${message.role === 'user' ? 'text-white/70' : 'text-stone-500'}`}>
+                              {attachmentSourceDetails(attachment.source).join(' / ')}
+                            </div>
+                          </div>
+                          <button
+                          type="button"
                           className={`inline-flex h-5 w-5 items-center justify-center rounded-full transition ${message.role === 'user'
                             ? 'text-white/60 hover:bg-white/10 hover:text-white'
                             : 'text-stone-400 hover:bg-stone-200 hover:text-rose-600'
                             }`}
-                          onClick={() => void deleteStoredAttachment(message.id, attachment.id)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void deleteStoredAttachment(message.id, attachment.id);
+                          }}
                           aria-label={t.common.delete}
                           title={t.common.delete}
                         >
@@ -556,14 +704,35 @@ export function App() {
                     {attachments.map((attachment) => (
                       <div
                         key={attachment.id}
-                        className="min-w-0 w-full max-w-full rounded-[18px] border border-stone-200 bg-white px-3 py-2.5 text-xs text-stone-700 shadow-sm"
+                        className="min-w-0 w-full max-w-full cursor-pointer rounded-[18px] border border-stone-200 bg-white px-3 py-2.5 text-left text-xs text-stone-700 shadow-sm transition hover:bg-stone-50"
+                        onClick={() => setPreviewAttachment(attachment)}
+                        onKeyDown={(event) => {
+                          if (!isAttachmentActivationKey(event.key)) {
+                            return;
+                          }
+                          event.preventDefault();
+                          setPreviewAttachment(attachment);
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${t.sidepanel.attachmentOpen}: ${attachmentLabel(attachment, settings)}`}
+                        title={t.sidepanel.attachmentOpen}
                       >
                         <div className="flex items-start gap-2">
                           <span className="mt-0.5">{attachmentIcon(attachment)}</span>
-                          <span className="min-w-0 flex-1 [overflow-wrap:anywhere] font-medium">{attachmentLabel(attachment, settings)}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium [overflow-wrap:anywhere]">{attachmentLabel(attachment, settings)}</div>
+                            <div className="mt-1 text-[10px] leading-4 text-stone-500 [overflow-wrap:anywhere]">
+                              {attachmentSourceDetails(attachment.source).join(' / ')}
+                            </div>
+                          </div>
                           <button
+                            type="button"
                             className="inline-flex h-6 w-6 items-center justify-center rounded-full text-stone-400 transition hover:bg-stone-100 hover:text-stone-800"
-                            onClick={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setAttachments((current) => current.filter((item) => item.id !== attachment.id));
+                            }}
                             aria-label={t.common.delete}
                             title={t.common.delete}
                           >
@@ -574,14 +743,14 @@ export function App() {
                         {attachment.kind === 'screenshot' ? (
                           <div className="mt-2 overflow-hidden rounded-[16px] border border-stone-200 bg-stone-100 p-2">
                             <img
-                              className="max-h-32 w-auto max-w-full rounded-[12px] object-contain shadow-sm"
+                              className="max-h-24 w-auto max-w-full rounded-[12px] object-contain shadow-sm"
                               src={attachment.imageDataUrl}
                               alt={t.sidepanel.attachmentPreviewAlt}
                             />
                           </div>
                         ) : (
-                          <div className="mt-2 max-h-28 min-w-0 w-full max-w-full overflow-x-hidden overflow-y-auto whitespace-pre-wrap rounded-[14px] border border-stone-200 bg-stone-50 px-2.5 py-2 text-xs leading-5 text-stone-600 [overflow-wrap:anywhere]">
-                            {attachment.text}
+                          <div className="mt-2 line-clamp-3 min-w-0 w-full max-w-full whitespace-pre-wrap rounded-[14px] border border-stone-200 bg-stone-50 px-2.5 py-2 text-xs leading-5 text-stone-600 [overflow-wrap:anywhere]">
+                            {attachmentBody(attachment)}
                           </div>
                         )}
                       </div>

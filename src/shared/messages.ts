@@ -23,9 +23,12 @@ const contextAttachmentSchema = z.discriminatedUnion('kind', [
     kind: z.literal('selectionText'),
     text: z.string(),
     source: z.object({
+      title: z.string(),
+      url: z.string(),
+      hostname: z.string(),
+      pathname: z.string(),
+      capturedAt: z.string(),
       tabId: z.number().optional(),
-      url: z.string().optional(),
-      title: z.string().optional(),
     }),
   }),
   z.object({
@@ -33,9 +36,12 @@ const contextAttachmentSchema = z.discriminatedUnion('kind', [
     kind: z.literal('pageText'),
     text: z.string(),
     source: z.object({
+      title: z.string(),
+      url: z.string(),
+      hostname: z.string(),
+      pathname: z.string(),
+      capturedAt: z.string(),
       tabId: z.number().optional(),
-      url: z.string().optional(),
-      title: z.string().optional(),
     }),
   }),
   z.object({
@@ -43,9 +49,12 @@ const contextAttachmentSchema = z.discriminatedUnion('kind', [
     kind: z.literal('screenshot'),
     imageDataUrl: z.string(),
     source: z.object({
+      title: z.string(),
+      url: z.string(),
+      hostname: z.string(),
+      pathname: z.string(),
+      capturedAt: z.string(),
       tabId: z.number().optional(),
-      url: z.string().optional(),
-      title: z.string().optional(),
     }),
   }),
 ]);

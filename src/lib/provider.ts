@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import type { ChatCompletionContentPart, ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import { attachmentPromptText } from './attachments';
 import type { ChatMessage, ContextAttachment, Settings, TokenUsage } from '../shared/models';
 
 const OPENAI_BASE_URL = 'https://api.openai.com/v1';
@@ -8,17 +9,6 @@ type ProviderResult = {
   assistantMessage: ChatMessage;
   usage?: TokenUsage;
 };
-
-function attachmentToText(attachment: ContextAttachment): string {
-  switch (attachment.kind) {
-    case 'selectionText':
-      return `Selected text from ${attachment.source.title ?? attachment.source.url ?? 'page'}:\n${attachment.text}`;
-    case 'pageText':
-      return `Page text from ${attachment.source.title ?? attachment.source.url ?? 'page'}:\n${attachment.text}`;
-    case 'screenshot':
-      return `Screenshot attached from ${attachment.source.title ?? attachment.source.url ?? 'page'}.`;
-  }
-}
 
 function createClient(settings: Settings): OpenAI {
   return new OpenAI({
@@ -78,7 +68,7 @@ export async function sendChatCompletion(input: {
 
     contentParts.push({
       type: 'text',
-      text: attachmentToText(attachment),
+      text: attachmentPromptText(attachment),
     });
   }
 

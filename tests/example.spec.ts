@@ -277,6 +277,7 @@ test('applies Japanese UI copy when the saved locale is set to ja', async () => 
     await saveSettings(optionsPage, { locale: 'ja' });
 
     const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
+    await sidepanelPage.setViewportSize({ width: 420, height: 900 });
     await waitForSidepanelReady(sidepanelPage);
     await expect(sidepanelPage.getByRole('button', { name: '新しいチャット' })).toBeVisible();
     await sidepanelPage.getByRole('button', { name: 'セッション', exact: true }).click();
@@ -333,9 +334,22 @@ test('captures a screenshot from the active tab and shows a preview', async () =
     const screenshotChip = sidepanelPage.getByText(/Screenshot: Fixture Article/);
     await expect(screenshotChip).toBeVisible();
 
-    const preview = sidepanelPage.getByAltText('Attached screenshot preview');
+    const preview = sidepanelPage.getByAltText('Attached screenshot preview').first();
     await expect(preview).toBeVisible();
     await expect(preview).toHaveAttribute('src', /^data:image\/png;base64,/);
+
+    await sidepanelPage.getByRole('button', { name: /Open attachment: Screenshot: Fixture Article/ }).click();
+    const dialog = sidepanelPage.getByRole('dialog', { name: 'Screenshot: Fixture Article' });
+    await expect(dialog).toBeVisible();
+    const dialogPreview = dialog.getByAltText('Attached screenshot preview');
+    await expect(dialogPreview).toHaveAttribute('src', /^data:image\/png;base64,/);
+    await expect(dialogPreview).toHaveAttribute('style', /width: 100%/);
+    await dialog.getByRole('button', { name: 'Zoom in' }).click();
+    await expect(dialogPreview).toHaveAttribute('style', /width: 125%/);
+    const dialogBox = await dialog.boundingBox();
+    expect(dialogBox?.width).toBeLessThanOrEqual(420);
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await expect(dialog).toHaveCount(0);
   } finally {
     await closeExtension(context, userDataDir);
   }
@@ -400,7 +414,18 @@ test('sends a chat request with mocked provider response', async () => {
     await expect(sidepanelPage.locator('.message.assistant')).toContainText('Mocked assistant reply.', {
       timeout: 10_000,
     });
-    expect(lastRequestBody).toContain('Page text from Fixture Article');
+    expect(lastRequestBody).toContain('Attachment type: Page text');
+    expect(lastRequestBody).toContain('Source details:');
+    expect(lastRequestBody).toContain('URL: http://127.0.0.1');
+
+    await sidepanelPage.getByRole('button', { name: /Open attachment: Page: Fixture Article/ }).click();
+    const dialog = sidepanelPage.getByRole('dialog', { name: 'Page: Fixture Article' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('URL: http://127.0.0.1');
+    await expect(sidepanelPage.locator('.message.user')).toContainText('Hostname: 127.0.0.1');
+    await expect(dialog).toContainText('This page exists to verify that the content script can read page text');
+    await sidepanelPage.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
 
     await sidepanelPage.locator('.message.user').getByRole('button', { name: 'Delete' }).first().click();
     await expect(sidepanelPage.locator('.message.user')).toHaveCount(0);

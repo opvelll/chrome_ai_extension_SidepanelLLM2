@@ -1,9 +1,12 @@
 export type AttachmentKind = 'selectionText' | 'pageText' | 'screenshot';
 
 export type TabSource = {
+  title: string;
+  url: string;
+  hostname: string;
+  pathname: string;
+  capturedAt: string;
   tabId?: number;
-  url?: string;
-  title?: string;
 };
 
 export type ContextAttachment =

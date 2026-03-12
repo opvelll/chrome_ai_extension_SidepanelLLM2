@@ -58,10 +58,21 @@ function canInjectContentScript(tab: chrome.tabs.Tab): boolean {
 }
 
 function getTabSource(tab: chrome.tabs.Tab): TabSource {
+  const parsedUrl = (() => {
+    try {
+      return new URL(tab.url ?? 'about:blank');
+    } catch {
+      return new URL('about:blank');
+    }
+  })();
+
   return {
+    title: tab.title ?? '',
+    url: tab.url ?? '',
+    hostname: parsedUrl.hostname,
+    pathname: parsedUrl.pathname || '/',
+    capturedAt: new Date().toISOString(),
     tabId: tab.id,
-    url: tab.url,
-    title: tab.title,
   };
 }
 
