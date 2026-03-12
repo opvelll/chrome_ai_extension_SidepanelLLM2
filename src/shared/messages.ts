@@ -117,6 +117,13 @@ export const settingsTestConnectionRequestSchema = z.object({
   }),
 });
 
+export const settingsListModelsRequestSchema = z.object({
+  type: z.literal('settings.listModels'),
+  payload: z.object({
+    apiKey: z.string().min(1),
+  }),
+});
+
 export type ChatSendRequest = z.infer<typeof chatSendRequestSchema>;
 export type SessionGetRequest = z.infer<typeof sessionGetRequestSchema>;
 export type SessionDeleteRequest = z.infer<typeof sessionDeleteRequestSchema>;
@@ -124,6 +131,7 @@ export type MessageDeleteRequest = z.infer<typeof messageDeleteRequestSchema>;
 export type MessageAttachmentDeleteRequest = z.infer<typeof messageAttachmentDeleteRequestSchema>;
 export type SessionCreateRequest = z.infer<typeof sessionCreateRequestSchema>;
 export type SettingsTestConnectionRequest = z.infer<typeof settingsTestConnectionRequestSchema>;
+export type SettingsListModelsRequest = z.infer<typeof settingsListModelsRequestSchema>;
 
 export type SessionListRequest = {
   type: 'session.list';
@@ -161,6 +169,10 @@ export type SettingsSaveRequest = {
   payload: Settings;
 };
 
+export type SettingsListModelsResponse = AsyncResponse<{
+  models: string[];
+}>;
+
 export type BackgroundRequest =
   | ChatSendRequest
   | SessionCreateRequest
@@ -176,7 +188,8 @@ export type BackgroundRequest =
   | ContextSelectionChangedRequest
   | SettingsGetRequest
   | SettingsSaveRequest
-  | SettingsTestConnectionRequest;
+  | SettingsTestConnectionRequest
+  | SettingsListModelsRequest;
 
 export type ChatSendResponse = AsyncResponse<{
   assistantMessage: ChatMessage;

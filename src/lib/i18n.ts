@@ -53,6 +53,12 @@ type TranslationDictionary = {
     devNote: string;
     apiKey: string;
     model: string;
+    modelHelp: string;
+    modelCompatibilityNote: string;
+    refreshModels: string;
+    refreshingModels: string;
+    modelManualEntry: string;
+    modelListUnavailable: string;
     systemPrompt: string;
     language: string;
     autoAttachPage: string;
@@ -127,6 +133,12 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
         'Development mode detected: the API key field was prefilled from .env. Saving will persist the current value to local extension storage.',
       apiKey: 'API key',
       model: 'Model',
+      modelHelp: 'Load the latest model list from the API, or enter a model ID manually if needed.',
+      modelCompatibilityNote: 'The API may return models that do not support chat completions. Choose a chat-capable model if requests fail.',
+      refreshModels: 'Refresh models',
+      refreshingModels: 'Refreshing models...',
+      modelManualEntry: 'Manual model ID entry',
+      modelListUnavailable: 'Model list could not be loaded. Enter the model ID manually.',
       systemPrompt: 'System prompt',
       language: 'Language',
       autoAttachPage: 'Auto attach full page on first message',
@@ -199,6 +211,12 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
         '開発モードを検出しました。API キー欄には .env の値が初期入力されています。保存すると現在の値が拡張機能のローカルストレージに保持されます。',
       apiKey: 'API キー',
       model: 'モデル',
+      modelHelp: 'API から最新のモデル一覧を取得します。必要なら手入力にも切り替えられます。',
+      modelCompatibilityNote: 'API の一覧にはチャット補完に対応していないモデルが含まれる場合があります。送信に失敗する場合はチャット対応モデルを選んでください。',
+      refreshModels: 'モデル一覧を更新',
+      refreshingModels: 'モデル一覧を更新中...',
+      modelManualEntry: 'モデル ID を手入力',
+      modelListUnavailable: 'モデル一覧を取得できませんでした。モデル ID を手入力してください。',
       systemPrompt: 'システムプロンプト',
       language: '表示言語',
       autoAttachPage: '最初の送信時にページ全文を自動添付',

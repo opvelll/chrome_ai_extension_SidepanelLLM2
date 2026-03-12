@@ -74,14 +74,16 @@ async function waitForOptionsReady(page: Page) {
   await expect(page.getByRole('heading', { name: 'Sidepanel LLM' })).toBeVisible({
     timeout: 10_000,
   });
-  await expect(page.locator('select')).toBeEnabled();
+  await expect(page.locator('select').first()).toBeEnabled();
 }
 
 function optionsFields(page: Page) {
   return {
-    locale: page.locator('select'),
+    locale: page.locator('select').first(),
     apiKey: page.locator('input[type="password"]'),
-    modelId: page.locator('input[type="text"]'),
+    modelSelect: page.locator('select').nth(1),
+    modelId: page.getByLabel(/^(Manual model ID entry|モデル ID を手入力)$/),
+    refreshModels: page.getByRole('button', { name: /^(Refresh models|モデル一覧を更新)$/ }),
     systemPrompt: page.locator('textarea'),
     autoAttachPage: page.getByLabel(/^(Auto attach full page on first message|最初の送信時にページ全文を自動添付)$/),
   };
@@ -244,6 +246,46 @@ test('loads the extension options page and saves settings', async () => {
     await expect(fields.modelId).toHaveValue('gpt-4.1-mini');
     await expect(fields.systemPrompt).toHaveValue('Be concise.');
     await expect(fields.autoAttachPage).toBeChecked();
+  } finally {
+    await closeExtension(context, userDataDir);
+  }
+});
+
+test('loads the latest model list from the API and lets the user select one', async () => {
+  const { context, extensionId, userDataDir } = await launchExtension();
+
+  try {
+    await context.route('https://api.openai.com/v1/models', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          object: 'list',
+          data: [
+            { id: 'gpt-4.1-mini', object: 'model' },
+            { id: 'gpt-4.1', object: 'model' },
+          ],
+        }),
+      });
+    });
+
+    const page = await openExtensionPage(context, extensionId, 'options.html');
+    await waitForOptionsReady(page);
+
+    const fields = optionsFields(page);
+    await fields.apiKey.fill('test-api-key');
+    await fields.refreshModels.click();
+
+    await expect(fields.modelSelect).toBeEnabled();
+    await fields.modelSelect.selectOption('gpt-4.1');
+    await expect(fields.modelSelect).toHaveValue('gpt-4.1');
+
+    await page.getByRole('button', { name: /^(Save|保存)$/ }).click();
+    await expect(page.getByText(/^(Saved\.|保存しました。)$/)).toBeVisible();
+
+    const reloadedPage = await openExtensionPage(context, extensionId, 'options.html');
+    await waitForOptionsReady(reloadedPage);
+    await expect(optionsFields(reloadedPage).modelSelect).toHaveValue('gpt-4.1');
   } finally {
     await closeExtension(context, userDataDir);
   }

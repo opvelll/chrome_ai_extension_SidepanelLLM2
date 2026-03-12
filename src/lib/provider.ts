@@ -18,6 +18,30 @@ function createClient(settings: Settings): OpenAI {
   });
 }
 
+function assertApiKey(apiKey: string): void {
+  if (!apiKey) {
+    throw new Error('API key is not configured.');
+  }
+}
+
+export async function listAvailableModels(apiKey: string): Promise<string[]> {
+  assertApiKey(apiKey);
+
+  const client = createClient({
+    apiKey,
+    modelId: '',
+    systemPrompt: '',
+    locale: 'auto',
+    autoAttachPage: false,
+  });
+
+  const response = await client.models.list();
+  return response.data
+    .map((model) => model.id)
+    .filter((modelId, index, list) => Boolean(modelId) && list.indexOf(modelId) === index)
+    .sort((left, right) => left.localeCompare(right));
+}
+
 export async function sendChatCompletion(input: {
   settings: Settings;
   userMessage: ChatMessage;
@@ -27,9 +51,7 @@ export async function sendChatCompletion(input: {
 }): Promise<ProviderResult> {
   const { settings, userMessage, history, attachments, modelId } = input;
 
-  if (!settings.apiKey) {
-    throw new Error('API key is not configured.');
-  }
+  assertApiKey(settings.apiKey);
 
   const client = createClient(settings);
   const messages: ChatCompletionMessageParam[] = [];

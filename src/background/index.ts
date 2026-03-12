@@ -5,13 +5,14 @@ import {
   sessionCreateRequestSchema,
   sessionDeleteRequestSchema,
   sessionGetRequestSchema,
+  settingsListModelsRequestSchema,
   settingsTestConnectionRequestSchema,
   type BackgroundRequest,
   type ErrorResponse,
 } from '../shared/messages';
 import type { ChatMessage, ContextAttachment, TabSource } from '../shared/models';
 import { appendMessages, createSession, deleteMessage, deleteMessageAttachment, deleteSession, getSession, getSettings, listMessages, listSessions, saveSettings } from '../lib/storage';
-import { sendChatCompletion } from '../lib/provider';
+import { listAvailableModels, sendChatCompletion } from '../lib/provider';
 
 const SESSION_STORAGE_KEYS = {
   pendingSelections: 'pendingSelections',
@@ -29,6 +30,7 @@ type MessageResponse =
   | { ok: true; data: { attachment: ContextAttachment } }
   | { ok: true; data: { attachment: ContextAttachment | null } }
   | { ok: true; data: { settings: Awaited<ReturnType<typeof getSettings>> } }
+  | { ok: true; data: { models: string[] } }
   | { ok: true; data: { message: string } }
   | ErrorResponse;
 
@@ -413,6 +415,12 @@ async function handleSettingsTestConnection(rawRequest: unknown): Promise<Messag
   return { ok: true, data: { message: result.assistantMessage.content } };
 }
 
+async function handleSettingsListModels(rawRequest: unknown): Promise<MessageResponse> {
+  const parsed = settingsListModelsRequestSchema.parse(rawRequest);
+  const models = await listAvailableModels(parsed.payload.apiKey);
+  return { ok: true, data: { models } };
+}
+
 async function routeMessage(
   request: BackgroundRequest,
   sender: chrome.runtime.MessageSender,
@@ -444,6 +452,8 @@ async function routeMessage(
       return handleSettingsSave(request);
     case 'settings.testConnection':
       return handleSettingsTestConnection(request);
+    case 'settings.listModels':
+      return handleSettingsListModels(request);
     case 'chat.send':
       return handleChatSend(request);
     default:

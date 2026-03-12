@@ -141,6 +141,22 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    function handleStorageChanged(
+      changes: Record<string, chrome.storage.StorageChange>,
+      areaName: string,
+    ) {
+      if (areaName !== 'local' || !changes.settings) {
+        return;
+      }
+
+      void loadSettings();
+    }
+
+    chrome.storage.onChanged.addListener(handleStorageChanged);
+    return () => chrome.storage.onChanged.removeListener(handleStorageChanged);
+  }, []);
+
+  useEffect(() => {
     if (activeSessionId) {
       void loadSession(activeSessionId);
     } else {

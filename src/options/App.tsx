@@ -1,4 +1,4 @@
-import { CheckCircle2, FileText, Globe2, KeyRound, MessageSquareText, Server, Sparkles } from 'lucide-react';
+import { CheckCircle2, FileText, Globe2, KeyRound, MessageSquareText, RefreshCcw, Server, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getTranslations } from '../lib/i18n';
 import { getDefaultSettings, hasDevDefaultApiKey } from '../lib/defaultSettings';
@@ -7,6 +7,10 @@ import type { Settings } from '../shared/models';
 
 export function App() {
   const [settings, setSettings] = useState<Settings>(getDefaultSettings());
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelsError, setModelsError] = useState('');
+  const [manualModelEntry, setManualModelEntry] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [testing, setTesting] = useState(false);
@@ -19,22 +23,62 @@ export function App() {
       const response = await sendRuntimeMessage<{ settings: Settings }>({ type: 'settings.get' });
       if (response.ok) {
         setSettings(response.data.settings);
+        setManualModelEntry(false);
+        void loadModels(response.data.settings.apiKey, response.data.settings.modelId);
       }
       setHydrated(true);
     })();
   }, []);
 
-  async function save() {
+  async function loadModels(apiKey: string, currentModelId = settings.modelId) {
+    if (!apiKey.trim()) {
+      setAvailableModels([]);
+      setModelsError('');
+      return;
+    }
+
+    setModelsLoading(true);
+    setModelsError('');
+
+    const response = await sendRuntimeMessage<{ models: string[] }>({
+      type: 'settings.listModels',
+      payload: { apiKey },
+    });
+
+    setModelsLoading(false);
+
+    if (!response.ok) {
+      setAvailableModels([]);
+      setModelsError(response.error.message);
+      setManualModelEntry(true);
+      return;
+    }
+
+    setAvailableModels(response.data.models);
+    setModelsError('');
+    if (!response.data.models.includes(currentModelId)) {
+      setManualModelEntry((current) => current || currentModelId.trim().length > 0);
+    } else {
+      setManualModelEntry(false);
+    }
+  }
+
+  async function persistSettings(nextSettings: Settings) {
     setError('');
     const response = await sendRuntimeMessage<{ settings: Settings }>({
       type: 'settings.save',
-      payload: settings,
+      payload: nextSettings,
     });
     if (!response.ok) {
       setError(response.error.message);
       return;
     }
+    setSettings(response.data.settings);
     setStatus(t.options.saved);
+  }
+
+  async function save() {
+    await persistSettings(settings);
   }
 
   async function testConnection() {
@@ -65,6 +109,8 @@ export function App() {
 
   const primaryButtonClassName =
     'inline-flex items-center justify-center gap-2 rounded-2xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-900/20 transition hover:bg-teal-700 active:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50';
+
+  const modelSelectEnabled = hydrated && !manualModelEntry && availableModels.length > 0;
 
   return (
     <div className="grid min-h-screen place-items-center bg-transparent px-6 py-8 text-slate-900">
@@ -136,13 +182,59 @@ export function App() {
                 <Server className="h-4 w-4 text-teal-600" />
                 {t.options.model}
               </span>
-              <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50 outline-none transition focus:border-teal-300 focus:bg-white"
-                type="text"
-                disabled={!hydrated}
-                value={settings.modelId}
-                onChange={(event) => setSettings((current) => ({ ...current, modelId: event.target.value }))}
-              />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <select
+                  className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50 outline-none transition focus:border-teal-300 focus:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label={t.options.model}
+                  disabled={!modelSelectEnabled}
+                  value={modelSelectEnabled ? settings.modelId : ''}
+                  onChange={(event) => {
+                    const nextModelId = event.target.value;
+                    const nextSettings = { ...settings, modelId: nextModelId };
+                    setSettings(nextSettings);
+                    setManualModelEntry(false);
+                    void persistSettings(nextSettings);
+                  }}
+                >
+                  {!modelSelectEnabled ? <option value="">{modelsLoading ? t.options.refreshingModels : t.options.modelManualEntry}</option> : null}
+                  {availableModels.map((modelId) => (
+                    <option key={modelId} value={modelId}>
+                      {modelId}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className={subtleButtonClassName}
+                  disabled={!hydrated || modelsLoading || !settings.apiKey.trim()}
+                  onClick={() => void loadModels(settings.apiKey)}
+                  title={t.options.refreshModels}
+                >
+                  <RefreshCcw className={`h-4 w-4 ${modelsLoading ? 'animate-spin' : ''}`} />
+                  {modelsLoading ? t.options.refreshingModels : t.options.refreshModels}
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                <span>{t.options.modelHelp}</span>
+                <button
+                  className="font-medium text-teal-700 transition hover:text-teal-800"
+                  disabled={!hydrated}
+                  onClick={() => setManualModelEntry((current) => !current)}
+                >
+                  {t.options.modelManualEntry}
+                </button>
+              </div>
+              <div className="text-xs leading-5 text-amber-700">{t.options.modelCompatibilityNote}</div>
+              {manualModelEntry || availableModels.length === 0 ? (
+                <input
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50 outline-none transition focus:border-teal-300 focus:bg-white"
+                  type="text"
+                  aria-label={t.options.modelManualEntry}
+                  disabled={!hydrated}
+                  value={settings.modelId}
+                  onChange={(event) => setSettings((current) => ({ ...current, modelId: event.target.value }))}
+                />
+              ) : null}
+              {modelsError ? <div className="text-xs text-amber-700">{t.options.modelListUnavailable} {modelsError}</div> : null}
             </label>
 
             <label className="mt-4 flex flex-col gap-2.5">
