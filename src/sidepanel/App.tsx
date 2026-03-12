@@ -56,7 +56,31 @@ export function App() {
     const response = await sendRuntimeMessage<{ settings: Settings }>({ type: 'settings.get' });
     if (response.ok) {
       setSettings(response.data.settings);
+      setAutoAttachPage(response.data.settings.autoAttachPage);
     }
+  }
+
+  async function updateAutoAttachPage(nextValue: boolean) {
+    setAutoAttachPage(nextValue);
+    setSettings((current) => (current ? { ...current, autoAttachPage: nextValue } : current));
+
+    const currentSettings = settings;
+    if (!currentSettings) {
+      return;
+    }
+
+    const response = await sendRuntimeMessage<{ settings: Settings }>({
+      type: 'settings.save',
+      payload: { ...currentSettings, autoAttachPage: nextValue },
+    });
+
+    if (!response.ok) {
+      setError(response.error.message);
+      return;
+    }
+
+    setSettings(response.data.settings);
+    setAutoAttachPage(response.data.settings.autoAttachPage);
   }
 
   async function loadSessions(selectNewest = false) {
@@ -181,7 +205,6 @@ export function App() {
     setAttachments([]);
     setDraft('');
     setHistoryOpen(false);
-    setAutoAttachPage(false);
     await loadSessions(true);
   }
 
@@ -204,7 +227,6 @@ export function App() {
       setAttachments([]);
       setDraft('');
       setActiveSessionId('');
-      setAutoAttachPage(false);
     }
     await loadSessions();
   }
@@ -305,7 +327,6 @@ export function App() {
 
       setDraft('');
       setAttachments([]);
-      setAutoAttachPage(false);
       await loadSessions();
       await loadSession(sessionId);
     } catch (submitError) {
@@ -497,7 +518,7 @@ export function App() {
                 type="checkbox"
                 className="h-3.5 w-3.5 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
                 checked={autoAttachPage}
-                onChange={(event) => setAutoAttachPage(event.target.checked)}
+                onChange={(event) => void updateAutoAttachPage(event.target.checked)}
               />
               <span>{t.sidepanel.autoAttachPageShort}</span>
             </label>

@@ -49,6 +49,7 @@ type TranslationDictionary = {
     model: string;
     systemPrompt: string;
     language: string;
+    autoAttachPage: string;
     languageAuto: string;
     languageEn: string;
     languageJa: string;
@@ -117,6 +118,7 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       model: 'Model',
       systemPrompt: 'System prompt',
       language: 'Language',
+      autoAttachPage: 'Auto attach full page on first message',
       languageAuto: 'Auto',
       languageEn: 'English',
       languageJa: 'Japanese',
@@ -183,6 +185,7 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       model: 'モデル',
       systemPrompt: 'システムプロンプト',
       language: '表示言語',
+      autoAttachPage: '最初の送信時にページ全文を自動添付',
       languageAuto: '自動',
       languageEn: '英語',
       languageJa: '日本語',

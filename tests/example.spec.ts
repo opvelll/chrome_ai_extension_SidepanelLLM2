@@ -71,7 +71,9 @@ async function waitForSidepanelReady(page: Page) {
 }
 
 async function waitForOptionsReady(page: Page) {
-  await expect(page.getByRole('heading', { name: 'Sidepanel LLM' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sidepanel LLM' })).toBeVisible({
+    timeout: 10_000,
+  });
   await expect(page.locator('select')).toBeEnabled();
 }
 
@@ -81,6 +83,7 @@ function optionsFields(page: Page) {
     apiKey: page.locator('input[type="password"]'),
     modelId: page.locator('input[type="text"]'),
     systemPrompt: page.locator('textarea'),
+    autoAttachPage: page.getByLabel(/^(Auto attach full page on first message|最初の送信時にページ全文を自動添付)$/),
   };
 }
 
@@ -119,7 +122,13 @@ async function clickButtonInBackground(page: Page, label: string) {
 
 async function saveSettings(
   page: Page,
-  settings?: { apiKey?: string; modelId?: string; systemPrompt?: string; locale?: 'auto' | 'en' | 'ja' },
+  settings?: {
+    apiKey?: string;
+    modelId?: string;
+    systemPrompt?: string;
+    locale?: 'auto' | 'en' | 'ja';
+    autoAttachPage?: boolean;
+  },
 ) {
   const fields = optionsFields(page);
 
@@ -138,6 +147,16 @@ async function saveSettings(
   if (settings?.locale !== undefined) {
     await fields.locale.selectOption(settings.locale);
     await expect(fields.locale).toHaveValue(settings.locale);
+  }
+
+  if (settings?.autoAttachPage !== undefined) {
+    if (settings.autoAttachPage) {
+      await fields.autoAttachPage.check();
+      await expect(fields.autoAttachPage).toBeChecked();
+    } else {
+      await fields.autoAttachPage.uncheck();
+      await expect(fields.autoAttachPage).not.toBeChecked();
+    }
   }
 
   await page.getByRole('button', { name: /^(Save|保存)$/ }).click();
@@ -212,6 +231,7 @@ test('loads the extension options page and saves settings', async () => {
       apiKey: 'test-api-key',
       modelId: 'gpt-4.1-mini',
       systemPrompt: 'Be concise.',
+      autoAttachPage: true,
     });
 
     await page.close();
@@ -223,6 +243,7 @@ test('loads the extension options page and saves settings', async () => {
     await expect(fields.apiKey).toHaveValue('test-api-key');
     await expect(fields.modelId).toHaveValue('gpt-4.1-mini');
     await expect(fields.systemPrompt).toHaveValue('Be concise.');
+    await expect(fields.autoAttachPage).toBeChecked();
   } finally {
     await closeExtension(context, userDataDir);
   }
@@ -363,12 +384,13 @@ test('sends a chat request with mocked provider response', async () => {
       apiKey: 'test-api-key',
       modelId: 'gpt-4.1-mini',
       systemPrompt: 'Test system prompt.',
+      autoAttachPage: true,
     });
 
     const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
     await waitForSidepanelReady(sidepanelPage);
 
-    await sidepanelPage.getByLabel('Auto attach full page on first message').check();
+    await expect(sidepanelPage.getByLabel('Auto attach full page on first message')).toBeChecked();
     await sidepanelPage.getByPlaceholder('Ask about the current page...').fill('Hello from Playwright');
     await fixturePage.bringToFront();
     await clickButtonInBackground(sidepanelPage, 'Send');

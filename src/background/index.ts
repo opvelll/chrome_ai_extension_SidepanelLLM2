@@ -392,6 +392,7 @@ async function handleSettingsTestConnection(rawRequest: unknown): Promise<Messag
       modelId: parsed.payload.modelId ?? 'gpt-4.1-mini',
       systemPrompt: '',
       locale: 'auto',
+      autoAttachPage: false,
     },
     userMessage,
     history: [],

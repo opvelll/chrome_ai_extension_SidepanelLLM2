@@ -48,6 +48,7 @@ export type Settings = {
   modelId: string;
   systemPrompt: string;
   locale: 'auto' | 'en' | 'ja';
+  autoAttachPage: boolean;
 };
 
 export type TokenUsage = {

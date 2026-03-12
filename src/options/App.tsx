@@ -1,4 +1,4 @@
-import { CheckCircle2, Globe2, KeyRound, MessageSquareText, Server, Sparkles } from 'lucide-react';
+import { CheckCircle2, FileText, Globe2, KeyRound, MessageSquareText, Server, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getTranslations } from '../lib/i18n';
 import { getDefaultSettings, hasDevDefaultApiKey } from '../lib/defaultSettings';
@@ -156,6 +156,23 @@ export function App() {
                 disabled={!hydrated}
                 value={settings.systemPrompt}
                 onChange={(event) => setSettings((current) => ({ ...current, systemPrompt: event.target.value }))}
+              />
+            </label>
+
+            <label className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50">
+              <FileText className="h-4 w-4 shrink-0 text-cyan-600" />
+              <span className="min-w-0 flex-1 font-medium">{t.options.autoAttachPage}</span>
+              <input
+                className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                type="checkbox"
+                disabled={!hydrated}
+                checked={settings.autoAttachPage}
+                onChange={(event) =>
+                  setSettings((current) => ({
+                    ...current,
+                    autoAttachPage: event.target.checked,
+                  }))
+                }
               />
             </label>
 
