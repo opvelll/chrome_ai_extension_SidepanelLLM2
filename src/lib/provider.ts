@@ -71,6 +71,10 @@ export async function sendChatCompletion(input: {
   for (const attachment of attachments) {
     if (attachment.kind === 'screenshot') {
       contentParts.push({
+        type: 'input_text',
+        text: attachmentPromptText(attachment),
+      });
+      contentParts.push({
         type: 'input_image',
         detail: 'auto',
         image_url: attachment.imageDataUrl,
