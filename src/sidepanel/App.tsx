@@ -370,11 +370,10 @@ export function App() {
               {sessions.map((session) => (
                 <div
                   key={session.id}
-                  className={`rounded-[18px] border p-1.5 transition ${
-                    session.id === activeSessionId
-                      ? 'border-cyan-300 bg-cyan-50 shadow-sm shadow-cyan-900/5'
-                      : 'border-slate-200 bg-white'
-                  }`}
+                  className={`rounded-[18px] border p-1.5 transition ${session.id === activeSessionId
+                    ? 'border-cyan-300 bg-cyan-50 shadow-sm shadow-cyan-900/5'
+                    : 'border-slate-200 bg-white'
+                    }`}
                 >
                   <div className="flex items-start gap-2">
                     <button
@@ -408,7 +407,7 @@ export function App() {
         </div>
       ) : null}
 
-      <main className="grid min-h-screen grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-2 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(232,242,247,0.92))] p-2.5 sm:p-3">
+      <main className="grid min-h-screen grid-rows-[auto_minmax(0,1fr)_auto] gap-2 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(232,242,247,0.92))] p-2.5 sm:p-3">
         <header className="rounded-[22px] border border-slate-200/80 bg-white/88 p-2.5 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 rounded-xl bg-slate-100 px-2.5 py-1.5 text-sm font-medium text-slate-600">
@@ -447,20 +446,18 @@ export function App() {
           {messages.map((message) => (
             <article
               key={message.id}
-              className={`message ${message.role} max-w-[95%] rounded-[22px] px-3 py-2.5 shadow-sm ${
-                message.role === 'user'
-                  ? 'self-end bg-slate-900 text-white shadow-slate-900/15'
-                  : 'border border-slate-200 bg-slate-50 text-slate-900'
-              }`}
+              className={`message group ${message.role} max-w-[95%] rounded-[22px] px-3 py-2.5 shadow-sm ${message.role === 'user'
+                ? 'self-end bg-slate-900 text-white shadow-slate-900/15'
+                : 'border border-slate-200 bg-slate-50 text-slate-900'
+                }`}
             >
-              <div className="mb-2 flex items-start justify-between gap-2">
+              <div className="mb-0.5 flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1 whitespace-pre-wrap break-words text-sm leading-5.5">{message.content}</div>
                 <button
-                  className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition ${
-                    message.role === 'user'
-                      ? 'text-white/60 hover:bg-white/10 hover:text-white'
-                      : 'text-slate-400 hover:bg-white hover:text-rose-700'
-                  }`}
+                  className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 ${message.role === 'user'
+                    ? 'text-white/60 hover:bg-white/10 hover:text-white focus:opacity-100'
+                    : 'text-slate-400 hover:bg-white hover:text-rose-700 focus:opacity-100'
+                    }`}
                   onClick={() => void deleteStoredMessage(message.id)}
                   aria-label={t.common.delete}
                   title={t.common.delete}
@@ -473,21 +470,19 @@ export function App() {
                   {message.attachments.map((attachment) => (
                     <div
                       key={attachment.id}
-                      className={`max-w-full self-start rounded-[16px] border px-2.5 py-2 text-xs ${
-                        message.role === 'user'
-                          ? 'border-white/10 bg-white/10'
-                          : 'border-slate-200 bg-white'
-                      }`}
+                      className={`max-w-full self-start rounded-[16px] border px-2.5 py-2 text-xs ${message.role === 'user'
+                        ? 'border-white/10 bg-white/10'
+                        : 'border-slate-200 bg-white'
+                        }`}
                     >
                       <div className="flex items-start gap-2">
                         <span className="mt-0.5">{attachmentIcon(attachment)}</span>
                         <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{attachmentLabel(attachment, settings)}</span>
                         <button
-                          className={`inline-flex h-5 w-5 items-center justify-center rounded-full transition ${
-                            message.role === 'user'
-                              ? 'text-white/60 hover:bg-white/10 hover:text-white'
-                              : 'text-slate-400 hover:bg-slate-100 hover:text-rose-700'
-                          }`}
+                          className={`inline-flex h-5 w-5 items-center justify-center rounded-full transition ${message.role === 'user'
+                            ? 'text-white/60 hover:bg-white/10 hover:text-white'
+                            : 'text-slate-400 hover:bg-slate-100 hover:text-rose-700'
+                            }`}
                           onClick={() => void deleteStoredAttachment(message.id, attachment.id)}
                           aria-label={t.common.delete}
                           title={t.common.delete}
@@ -504,119 +499,117 @@ export function App() {
           {messages.length === 0 ? <div className="m-auto h-full min-h-24" /> : null}
         </section>
 
-        <section className="rounded-[24px] border border-slate-200/80 bg-white/86 p-2.5 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <div className="min-w-0 text-sm font-semibold text-slate-900" title={t.sidepanel.contextHint}>
-              {t.sidepanel.contextLabel}
-            </div>
-            <label
-              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-700"
-              aria-label={t.sidepanel.autoAttachPage}
-              title={t.sidepanel.autoAttachPage}
-            >
-              <input
-                type="checkbox"
-                className="h-3.5 w-3.5 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
-                checked={autoAttachPage}
-                onChange={(event) => void updateAutoAttachPage(event.target.checked)}
-              />
-              <span>{t.sidepanel.autoAttachPageShort}</span>
-            </label>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
-              onClick={() => void captureAttachment('context.captureSelection')}
-              aria-label={t.sidepanel.captureSelection}
-              title={t.sidepanel.captureSelection}
-            >
-              <Type className="h-5 w-5" />
-            </button>
-            <button
-              className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
-              onClick={() => void captureAttachment('context.capturePage')}
-              aria-label={t.sidepanel.capturePage}
-              title={t.sidepanel.capturePage}
-            >
-              <FileText className="h-5 w-5" />
-            </button>
-            <button
-              className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
-              onClick={() => void captureAttachment('context.captureScreenshot')}
-              aria-label={t.sidepanel.captureScreenshot}
-              title={t.sidepanel.captureScreenshot}
-            >
-              <Camera className="h-5 w-5" />
-            </button>
-          </div>
-
-          {contextError ? (
-            <div className="mt-2 rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-              {contextError}
-            </div>
-          ) : null}
-
-          <div className="mt-2 min-w-0 rounded-[20px] border border-slate-200 bg-slate-50/80">
-            {attachments.length === 0 ? (
-              <div className="px-3 py-3 text-xs text-slate-500">{t.sidepanel.attachedItems}</div>
-            ) : (
-              <div className="flex max-h-56 min-w-0 flex-col gap-2 overflow-x-hidden overflow-y-auto p-2">
-                {attachments.map((attachment) => (
-                  <div
-                    key={attachment.id}
-                    className="min-w-0 w-full max-w-full rounded-[18px] border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 shadow-sm"
-                  >
-                    <div className="flex items-start gap-2">
-                      <span className="mt-0.5">{attachmentIcon(attachment)}</span>
-                      <span className="min-w-0 flex-1 [overflow-wrap:anywhere] font-medium">{attachmentLabel(attachment, settings)}</span>
-                      <button
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
-                        onClick={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}
-                        aria-label={t.common.delete}
-                        title={t.common.delete}
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-
-                    {attachment.kind === 'screenshot' ? (
-                      <div className="mt-2 overflow-hidden rounded-[16px] border border-slate-200 bg-slate-100 p-2">
-                        <img
-                          className="max-h-32 w-auto max-w-full rounded-[12px] object-contain shadow-sm"
-                          src={attachment.imageDataUrl}
-                          alt={t.sidepanel.attachmentPreviewAlt}
-                        />
-                      </div>
-                    ) : (
-                      <div className="mt-2 max-h-28 min-w-0 w-full max-w-full overflow-x-hidden overflow-y-auto whitespace-pre-wrap rounded-[14px] border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-600 [overflow-wrap:anywhere]">
-                        {attachment.text}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
         <section className="rounded-[24px] border border-slate-200/80 bg-white/88 p-2.5 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
-          <div className="flex items-end gap-2">
-            <textarea
-              className="min-h-[92px] flex-1 rounded-[20px] border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm leading-5.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:bg-white"
-              placeholder={composerPlaceholder}
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-            />
-            <button
-              className={`${primaryButtonClassName} h-10 w-10 shrink-0 rounded-xl px-0`}
-              disabled={loading || !draft.trim()}
-              onClick={() => void submit()}
-              aria-label={t.sidepanel.send}
-              title={t.sidepanel.send}
-            >
-              {loading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-            </button>
+          <div className="flex flex-col gap-2.5">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+                  onClick={() => void captureAttachment('context.captureSelection')}
+                  aria-label={t.sidepanel.captureSelection}
+                  title={t.sidepanel.captureSelection}
+                >
+                  <Type className="h-5 w-5" />
+                </button>
+                <button
+                  className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+                  onClick={() => void captureAttachment('context.capturePage')}
+                  aria-label={t.sidepanel.capturePage}
+                  title={t.sidepanel.capturePage}
+                >
+                  <FileText className="h-5 w-5" />
+                </button>
+                <button
+                  className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+                  onClick={() => void captureAttachment('context.captureScreenshot')}
+                  aria-label={t.sidepanel.captureScreenshot}
+                  title={t.sidepanel.captureScreenshot}
+                >
+                  <Camera className="h-5 w-5" />
+                </button>
+                <label
+                  className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-medium text-slate-700"
+                  aria-label={t.sidepanel.autoAttachPage}
+                  title={t.sidepanel.autoAttachPage}
+                >
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                    checked={autoAttachPage}
+                    onChange={(event) => void updateAutoAttachPage(event.target.checked)}
+                  />
+                  <span>{t.sidepanel.autoAttachPageShort}</span>
+                </label>
+              </div>
+
+              {contextError ? (
+                <div className="mt-2 rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                  {contextError}
+                </div>
+              ) : null}
+
+              <div className="mt-2 min-w-0 rounded-[20px] border border-slate-200 bg-slate-50/80">
+                {attachments.length === 0 ? (
+                  <div className="px-3 py-3 text-xs text-slate-500">{t.sidepanel.attachedItems}</div>
+                ) : (
+                  <div className="flex max-h-56 min-w-0 flex-col gap-2 overflow-x-hidden overflow-y-auto p-2">
+                    {attachments.map((attachment) => (
+                      <div
+                        key={attachment.id}
+                        className="min-w-0 w-full max-w-full rounded-[18px] border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 shadow-sm"
+                      >
+                        <div className="flex items-start gap-2">
+                          <span className="mt-0.5">{attachmentIcon(attachment)}</span>
+                          <span className="min-w-0 flex-1 [overflow-wrap:anywhere] font-medium">{attachmentLabel(attachment, settings)}</span>
+                          <button
+                            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+                            onClick={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}
+                            aria-label={t.common.delete}
+                            title={t.common.delete}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        {attachment.kind === 'screenshot' ? (
+                          <div className="mt-2 overflow-hidden rounded-[16px] border border-slate-200 bg-slate-100 p-2">
+                            <img
+                              className="max-h-32 w-auto max-w-full rounded-[12px] object-contain shadow-sm"
+                              src={attachment.imageDataUrl}
+                              alt={t.sidepanel.attachmentPreviewAlt}
+                            />
+                          </div>
+                        ) : (
+                          <div className="mt-2 max-h-28 min-w-0 w-full max-w-full overflow-x-hidden overflow-y-auto whitespace-pre-wrap rounded-[14px] border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-600 [overflow-wrap:anywhere]">
+                            {attachment.text}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t border-slate-200/80 pt-2.5">
+              <div className="flex items-end gap-2">
+                <textarea
+                  className="max-h-36 min-h-[92px] flex-1 resize-none overflow-y-auto rounded-[20px] border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm leading-5.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:bg-white"
+                  placeholder={composerPlaceholder}
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                />
+                <button
+                  className={`${primaryButtonClassName} h-10 w-10 shrink-0 rounded-xl px-0`}
+                  disabled={loading || !draft.trim()}
+                  onClick={() => void submit()}
+                  aria-label={t.sidepanel.send}
+                  title={t.sidepanel.send}
+                >
+                  {loading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
           </div>
 
           {error && <div className="mt-2 text-sm text-rose-700">{error}</div>}

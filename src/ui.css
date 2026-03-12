@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "IBM Plex Sans", "Segoe UI", sans-serif;
+  --font-sans: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "Meiryo", "Noto Sans JP", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
   --color-ink-50: #f5f7fa;
   --color-ink-100: #e8edf2;
@@ -40,6 +40,10 @@
     min-width: 0;
     width: 100%;
     overflow-x: hidden;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    line-break: strict;
+    text-autospace: normal;
   }
 
   button,
