@@ -10,7 +10,3 @@
 
 - Use `playwright-interactive` when verifying the extension UI, Chrome extension flows, or Playwright-based debugging.
 
-## Documentation
-
-- If a change affects the overall architecture or makes the structure easier to misunderstand, add or update a short high-level architecture note in `AGENTS.md`.
-- Keep architecture notes simple: list the main modules, their responsibilities, and the primary data flow only.
