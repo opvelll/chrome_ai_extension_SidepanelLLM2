@@ -115,6 +115,7 @@ export const settingsTestConnectionRequestSchema = z.object({
     apiKey: z.string().min(1),
     modelId: z.string().optional(),
     responseTool: z.enum(['none', 'web_search']).optional(),
+    reasoningEffort: z.enum(['default', 'none', 'minimal', 'low', 'medium', 'high', 'xhigh']).optional(),
   }),
 });
 

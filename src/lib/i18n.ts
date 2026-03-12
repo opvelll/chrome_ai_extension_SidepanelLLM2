@@ -59,6 +59,15 @@ type TranslationDictionary = {
     toolHelp: string;
     toolNone: string;
     toolWebSearch: string;
+    reasoning: string;
+    reasoningHelp: string;
+    reasoningDefault: string;
+    reasoningNone: string;
+    reasoningMinimal: string;
+    reasoningLow: string;
+    reasoningMedium: string;
+    reasoningHigh: string;
+    reasoningXHigh: string;
     refreshModels: string;
     refreshingModels: string;
     modelManualEntry: string;
@@ -143,6 +152,15 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       toolHelp: 'Choose the built-in Responses API tool to allow during generation.',
       toolNone: 'None',
       toolWebSearch: 'Web search',
+      reasoning: 'Reasoning',
+      reasoningHelp: 'Set Responses API reasoning effort. Leave as default unless the model supports and needs a specific level.',
+      reasoningDefault: 'Model default',
+      reasoningNone: 'None',
+      reasoningMinimal: 'Minimal',
+      reasoningLow: 'Low',
+      reasoningMedium: 'Medium',
+      reasoningHigh: 'High',
+      reasoningXHigh: 'X-High',
       refreshModels: 'Refresh models',
       refreshingModels: 'Refreshing models...',
       modelManualEntry: 'Manual model ID entry',
@@ -225,6 +243,15 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       toolHelp: 'Responses API で利用を許可する組み込み tool を選びます。',
       toolNone: 'なし',
       toolWebSearch: 'Web 検索',
+      reasoning: 'Reasoning',
+      reasoningHelp: 'Responses API の reasoning effort を設定します。特定レベルが必要なモデル以外は既定値のままにしてください。',
+      reasoningDefault: 'Model default',
+      reasoningNone: 'None',
+      reasoningMinimal: 'Minimal',
+      reasoningLow: 'Low',
+      reasoningMedium: 'Medium',
+      reasoningHigh: 'High',
+      reasoningXHigh: 'X-High',
       refreshModels: 'モデル一覧を更新',
       refreshingModels: 'モデル一覧を更新中...',
       modelManualEntry: 'モデル ID を手入力',

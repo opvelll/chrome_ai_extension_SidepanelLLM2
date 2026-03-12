@@ -84,6 +84,7 @@ function optionsFields(page: Page) {
     modelSelect: page.getByRole('combobox', { name: /^(Model|モデル)$/ }),
     modelId: page.getByLabel(/^(Manual model ID entry|モデル ID を手入力)$/),
     responseTool: page.locator('select').nth(2),
+    reasoningEffort: page.locator('select').nth(3),
     refreshModels: page.getByRole('button', { name: /^(Refresh models|モデル一覧を更新)$/ }),
     systemPrompt: page.locator('textarea'),
     autoAttachPage: page.getByLabel(/^(Auto attach full page on first message|最初の送信時にページ全文を自動添付)$/),
@@ -129,6 +130,7 @@ async function saveSettings(
     apiKey?: string;
     modelId?: string;
     responseTool?: 'none' | 'web_search';
+    reasoningEffort?: 'default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
     systemPrompt?: string;
     locale?: 'auto' | 'en' | 'ja';
     autoAttachPage?: boolean;
@@ -147,6 +149,11 @@ async function saveSettings(
   if (settings?.responseTool !== undefined) {
     await fields.responseTool.selectOption(settings.responseTool);
     await expect(fields.responseTool).toHaveValue(settings.responseTool);
+  }
+
+  if (settings?.reasoningEffort !== undefined) {
+    await fields.reasoningEffort.selectOption(settings.reasoningEffort);
+    await expect(fields.reasoningEffort).toHaveValue(settings.reasoningEffort);
   }
 
   if (settings?.systemPrompt !== undefined) {
@@ -240,6 +247,7 @@ test('loads the extension options page and saves settings', async () => {
       apiKey: 'test-api-key',
       modelId: 'gpt-4.1-mini',
       responseTool: 'web_search',
+      reasoningEffort: 'high',
       systemPrompt: 'Be concise.',
       autoAttachPage: true,
     });
@@ -253,6 +261,7 @@ test('loads the extension options page and saves settings', async () => {
     await expect(fields.apiKey).toHaveValue('test-api-key');
     await expect(fields.modelId).toHaveValue('gpt-4.1-mini');
     await expect(fields.responseTool).toHaveValue('web_search');
+    await expect(fields.reasoningEffort).toHaveValue('high');
     await expect(fields.systemPrompt).toHaveValue('Be concise.');
     await expect(fields.autoAttachPage).toBeChecked();
   } finally {
@@ -445,6 +454,7 @@ test('sends a chat request with mocked provider response', async () => {
           temperature: 1,
           tool_choice: 'auto',
           tools: [{ type: 'web_search_preview' }],
+          reasoning: { effort: 'high' },
           top_p: 1,
           max_output_tokens: null,
           previous_response_id: null,
@@ -468,6 +478,7 @@ test('sends a chat request with mocked provider response', async () => {
       apiKey: 'test-api-key',
       modelId: 'gpt-4.1-mini',
       responseTool: 'web_search',
+      reasoningEffort: 'high',
       systemPrompt: 'Test system prompt.',
       autoAttachPage: true,
     });
@@ -489,6 +500,7 @@ test('sends a chat request with mocked provider response', async () => {
     expect(lastRequestBody).toContain('Source details:');
     expect(lastRequestBody).toContain('URL: http://127.0.0.1');
     expect(lastRequestBody).toContain('"type":"web_search_preview"');
+    expect(lastRequestBody).toContain('"reasoning":{"effort":"high"}');
 
     await sidepanelPage.getByRole('button', { name: /Open attachment: Page: Fixture Article/ }).click();
     const dialog = sidepanelPage.getByRole('dialog', { name: 'Page: Fixture Article' });

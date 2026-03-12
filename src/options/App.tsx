@@ -1,4 +1,4 @@
-import { CheckCircle2, FileText, Globe2, KeyRound, MessageSquareText, RefreshCcw, Server, Sparkles, Wrench } from 'lucide-react';
+import { Brain, CheckCircle2, FileText, Globe2, KeyRound, MessageSquareText, RefreshCcw, Server, Sparkles, Wrench } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getTranslations } from '../lib/i18n';
 import { getDefaultSettings, hasDevDefaultApiKey } from '../lib/defaultSettings';
@@ -93,6 +93,7 @@ export function App() {
         apiKey: settings.apiKey,
         modelId: settings.modelId,
         responseTool: settings.responseTool,
+        reasoningEffort: settings.reasoningEffort,
       },
     });
 
@@ -250,17 +251,48 @@ export function App() {
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50 outline-none transition focus:border-teal-300 focus:bg-white"
                 disabled={!hydrated}
                 value={settings.responseTool}
-                onChange={(event) =>
-                  setSettings((current) => ({
-                    ...current,
+                onChange={(event) => {
+                  const nextSettings = {
+                    ...settings,
                     responseTool: event.target.value as Settings['responseTool'],
-                  }))
-                }
+                  };
+                  setSettings(nextSettings);
+                  void persistSettings(nextSettings);
+                }}
               >
                 <option value="web_search">{t.options.toolWebSearch}</option>
                 <option value="none">{t.options.toolNone}</option>
               </select>
               <div className="text-xs leading-5 text-slate-500">{t.options.toolHelp}</div>
+            </label>
+
+            <label className="mt-4 flex flex-col gap-2.5">
+              <span className="inline-flex items-center gap-2 text-sm font-medium">
+                <Brain className="h-4 w-4 text-teal-600" />
+                {t.options.reasoning}
+              </span>
+              <select
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50 outline-none transition focus:border-teal-300 focus:bg-white"
+                disabled={!hydrated}
+                value={settings.reasoningEffort}
+                onChange={(event) => {
+                  const nextSettings = {
+                    ...settings,
+                    reasoningEffort: event.target.value as Settings['reasoningEffort'],
+                  };
+                  setSettings(nextSettings);
+                  void persistSettings(nextSettings);
+                }}
+              >
+                <option value="default">{t.options.reasoningDefault}</option>
+                <option value="none">{t.options.reasoningNone}</option>
+                <option value="minimal">{t.options.reasoningMinimal}</option>
+                <option value="low">{t.options.reasoningLow}</option>
+                <option value="medium">{t.options.reasoningMedium}</option>
+                <option value="high">{t.options.reasoningHigh}</option>
+                <option value="xhigh">{t.options.reasoningXHigh}</option>
+              </select>
+              <div className="text-xs leading-5 text-slate-500">{t.options.reasoningHelp}</div>
             </label>
 
             <label className="mt-4 flex flex-col gap-2.5">

@@ -4,6 +4,7 @@ const DEV_DEFAULT_SETTINGS: Settings = {
   apiKey: import.meta.env.DEV ? import.meta.env.VITE_DEV_OPENAI_API_KEY ?? '' : '',
   modelId: import.meta.env.DEV ? import.meta.env.VITE_DEV_OPENAI_MODEL_ID ?? 'gpt-4.1-mini' : 'gpt-4.1-mini',
   responseTool: 'web_search',
+  reasoningEffort: 'default',
   systemPrompt: import.meta.env.DEV ? import.meta.env.VITE_DEV_SYSTEM_PROMPT ?? '' : '',
   locale: 'auto',
   autoAttachPage: false,

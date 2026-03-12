@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import type { EasyInputMessage, Response, ResponseInputContent, Tool } from 'openai/resources/responses/responses';
+import type { Reasoning } from 'openai/resources/shared';
 import { attachmentPromptText } from './attachments';
 import type { ChatMessage, ContextAttachment, Settings, TokenUsage } from '../shared/models';
 
@@ -31,6 +32,7 @@ export async function listAvailableModels(apiKey: string): Promise<string[]> {
     apiKey,
     modelId: '',
     responseTool: 'web_search',
+    reasoningEffort: 'default',
     systemPrompt: '',
     locale: 'auto',
     autoAttachPage: false,
@@ -99,6 +101,7 @@ export async function sendChatCompletion(input: {
     input: messages,
     instructions: settings.systemPrompt.trim() || undefined,
     tools: getResponseTools(settings),
+    reasoning: getReasoning(settings),
   });
   const content = extractResponseText(response);
 
@@ -127,6 +130,14 @@ function getResponseTools(settings: Settings): Tool[] | undefined {
   }
 
   return [{ type: 'web_search_preview' }];
+}
+
+function getReasoning(settings: Settings): Reasoning | undefined {
+  if (settings.reasoningEffort === 'default') {
+    return undefined;
+  }
+
+  return { effort: settings.reasoningEffort };
 }
 
 function extractResponseText(response: Response): string {

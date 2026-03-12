@@ -50,6 +50,7 @@ export type Settings = {
   apiKey: string;
   modelId: string;
   responseTool: 'none' | 'web_search';
+  reasoningEffort: 'default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
   systemPrompt: string;
   locale: 'auto' | 'en' | 'ja';
   autoAttachPage: boolean;

@@ -179,6 +179,7 @@ async function handleSettingsTestConnection(rawRequest: unknown): Promise<Messag
       apiKey: parsed.payload.apiKey,
       modelId: parsed.payload.modelId ?? 'gpt-4.1-mini',
       responseTool: parsed.payload.responseTool ?? 'web_search',
+      reasoningEffort: parsed.payload.reasoningEffort ?? 'default',
       systemPrompt: '',
       locale: 'auto',
       autoAttachPage: false,
