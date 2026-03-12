@@ -419,110 +419,113 @@ export function App() {
           </div>
         </header>
 
-        <section className="flex min-h-0 flex-col gap-2 overflow-y-auto rounded-[24px] border border-white/70 bg-white/72 p-2.5 shadow-inner shadow-white/70 backdrop-blur-sm">
-              {messages.map((message) => (
-                <article
-                  key={message.id}
-                  className={`message ${message.role} max-w-[95%] rounded-[22px] px-3 py-2.5 shadow-sm ${
+        <section className="flex min-h-0 min-w-0 flex-col gap-2 overflow-x-hidden overflow-y-auto rounded-[24px] border border-white/70 bg-white/72 p-2.5 shadow-inner shadow-white/70 backdrop-blur-sm">
+          {messages.map((message) => (
+            <article
+              key={message.id}
+              className={`message ${message.role} max-w-[95%] rounded-[22px] px-3 py-2.5 shadow-sm ${
+                message.role === 'user'
+                  ? 'self-end bg-slate-900 text-white shadow-slate-900/15'
+                  : 'border border-slate-200 bg-slate-50 text-slate-900'
+              }`}
+            >
+              <div className="mb-2 flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1 whitespace-pre-wrap break-words text-sm leading-5.5">{message.content}</div>
+                <button
+                  className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition ${
                     message.role === 'user'
-                      ? 'self-end bg-slate-900 text-white shadow-slate-900/15'
-                      : 'border border-slate-200 bg-slate-50 text-slate-900'
+                      ? 'text-white/60 hover:bg-white/10 hover:text-white'
+                      : 'text-slate-400 hover:bg-white hover:text-rose-700'
                   }`}
+                  onClick={() => void deleteStoredMessage(message.id)}
+                  aria-label={t.common.delete}
+                  title={t.common.delete}
                 >
-                  <div className="mb-2 flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1 whitespace-pre-wrap text-sm leading-5.5">{message.content}</div>
-                    <button
-                      className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition ${
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+              {message.attachments?.length ? (
+                <div className="mt-2 flex flex-col gap-1.5">
+                  {message.attachments.map((attachment) => (
+                    <div
+                      key={attachment.id}
+                      className={`max-w-full self-start rounded-[16px] border px-2.5 py-2 text-xs ${
                         message.role === 'user'
-                          ? 'text-white/60 hover:bg-white/10 hover:text-white'
-                          : 'text-slate-400 hover:bg-white hover:text-rose-700'
+                          ? 'border-white/10 bg-white/10'
+                          : 'border-slate-200 bg-white'
                       }`}
-                      onClick={() => void deleteStoredMessage(message.id)}
-                      aria-label={t.common.delete}
-                      title={t.common.delete}
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                  {message.attachments?.length ? (
-                    <div className="mt-2 flex flex-col gap-1.5">
-                      {message.attachments.map((attachment) => (
-                        <div
-                          key={attachment.id}
-                          className={`self-start rounded-[16px] border px-2.5 py-2 text-xs ${
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5">{attachmentIcon(attachment)}</span>
+                        <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{attachmentLabel(attachment, settings)}</span>
+                        <button
+                          className={`inline-flex h-5 w-5 items-center justify-center rounded-full transition ${
                             message.role === 'user'
-                              ? 'border-white/10 bg-white/10'
-                              : 'border-slate-200 bg-white'
+                              ? 'text-white/60 hover:bg-white/10 hover:text-white'
+                              : 'text-slate-400 hover:bg-slate-100 hover:text-rose-700'
                           }`}
+                          onClick={() => void deleteStoredAttachment(message.id, attachment.id)}
+                          aria-label={t.common.delete}
+                          title={t.common.delete}
                         >
-                          <div className="flex items-start gap-2">
-                            <span className="mt-0.5">{attachmentIcon(attachment)}</span>
-                            <span className="min-w-0 flex-1">{attachmentLabel(attachment, settings)}</span>
-                            <button
-                              className={`inline-flex h-5 w-5 items-center justify-center rounded-full transition ${
-                                message.role === 'user'
-                                  ? 'text-white/60 hover:bg-white/10 hover:text-white'
-                                  : 'text-slate-400 hover:bg-slate-100 hover:text-rose-700'
-                              }`}
-                              onClick={() => void deleteStoredAttachment(message.id, attachment.id)}
-                              aria-label={t.common.delete}
-                              title={t.common.delete}
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
-                  ) : null}
-                </article>
-              ))}
-              {messages.length === 0 ? <div className="m-auto h-full min-h-24" /> : null}
+                  ))}
+                </div>
+              ) : null}
+            </article>
+          ))}
+          {messages.length === 0 ? <div className="m-auto h-full min-h-24" /> : null}
         </section>
 
         <section className="rounded-[24px] border border-slate-200/80 bg-white/86 p-2.5 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
-          <div className="mb-2">
-            <div className="text-sm font-semibold text-slate-900" title={t.sidepanel.contextHint}>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className="min-w-0 text-sm font-semibold text-slate-900" title={t.sidepanel.contextHint}>
               {t.sidepanel.contextLabel}
             </div>
+            <label
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-700"
+              aria-label={t.sidepanel.autoAttachPage}
+              title={t.sidepanel.autoAttachPage}
+            >
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                checked={autoAttachPage}
+                onChange={(event) => setAutoAttachPage(event.target.checked)}
+              />
+              <span>{t.sidepanel.autoAttachPageShort}</span>
+            </label>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-                <button
-                  className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
-                  onClick={() => void captureAttachment('context.captureSelection')}
-                  aria-label={t.sidepanel.captureSelection}
-                  title={t.sidepanel.captureSelection}
-                >
-                  <Type className="h-5 w-5" />
-                </button>
-                <button
-                  className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
-                  onClick={() => void captureAttachment('context.capturePage')}
-                  aria-label={t.sidepanel.capturePage}
-                  title={t.sidepanel.capturePage}
-                >
-                  <FileText className="h-5 w-5" />
-                </button>
-                <button
-                  className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
-                  onClick={() => void captureAttachment('context.captureScreenshot')}
-                  aria-label={t.sidepanel.captureScreenshot}
-                  title={t.sidepanel.captureScreenshot}
-                >
-                  <Camera className="h-5 w-5" />
-                </button>
+            <button
+              className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+              onClick={() => void captureAttachment('context.captureSelection')}
+              aria-label={t.sidepanel.captureSelection}
+              title={t.sidepanel.captureSelection}
+            >
+              <Type className="h-5 w-5" />
+            </button>
+            <button
+              className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+              onClick={() => void captureAttachment('context.capturePage')}
+              aria-label={t.sidepanel.capturePage}
+              title={t.sidepanel.capturePage}
+            >
+              <FileText className="h-5 w-5" />
+            </button>
+            <button
+              className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+              onClick={() => void captureAttachment('context.captureScreenshot')}
+              aria-label={t.sidepanel.captureScreenshot}
+              title={t.sidepanel.captureScreenshot}
+            >
+              <Camera className="h-5 w-5" />
+            </button>
           </div>
-
-          <label className="mt-2 flex cursor-pointer items-center gap-2 rounded-[16px] border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
-              checked={autoAttachPage}
-              onChange={(event) => setAutoAttachPage(event.target.checked)}
-            />
-            <span>{t.sidepanel.autoAttachPage}</span>
-          </label>
 
           {contextError ? (
             <div className="mt-2 rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
@@ -530,19 +533,19 @@ export function App() {
             </div>
           ) : null}
 
-          <div className="mt-2 rounded-[20px] border border-slate-200 bg-slate-50/80">
+          <div className="mt-2 min-w-0 rounded-[20px] border border-slate-200 bg-slate-50/80">
             {attachments.length === 0 ? (
               <div className="px-3 py-3 text-xs text-slate-500">{t.sidepanel.attachedItems}</div>
             ) : (
-              <div className="flex max-h-56 flex-col gap-2 overflow-y-auto p-2">
+              <div className="flex max-h-56 min-w-0 flex-col gap-2 overflow-x-hidden overflow-y-auto p-2">
                 {attachments.map((attachment) => (
                   <div
                     key={attachment.id}
-                    className="rounded-[18px] border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 shadow-sm"
+                    className="min-w-0 w-full max-w-full rounded-[18px] border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-700 shadow-sm"
                   >
                     <div className="flex items-start gap-2">
                       <span className="mt-0.5">{attachmentIcon(attachment)}</span>
-                      <span className="min-w-0 flex-1 font-medium">{attachmentLabel(attachment, settings)}</span>
+                      <span className="min-w-0 flex-1 [overflow-wrap:anywhere] font-medium">{attachmentLabel(attachment, settings)}</span>
                       <button
                         className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
                         onClick={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}
@@ -562,7 +565,7 @@ export function App() {
                         />
                       </div>
                     ) : (
-                      <div className="mt-2 max-h-28 overflow-y-auto whitespace-pre-wrap rounded-[14px] border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-600">
+                      <div className="mt-2 max-h-28 min-w-0 w-full max-w-full overflow-x-hidden overflow-y-auto whitespace-pre-wrap rounded-[14px] border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs leading-5 text-slate-600 [overflow-wrap:anywhere]">
                         {attachment.text}
                       </div>
                     )}
