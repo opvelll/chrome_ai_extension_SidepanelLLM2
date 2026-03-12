@@ -4,6 +4,7 @@ import { MessageList } from './components/MessageList';
 import { SessionHistoryDrawer } from './components/SessionHistoryDrawer';
 import { SidepanelHeader } from './components/SidepanelHeader';
 import { useSidepanelState } from './hooks/useSidepanelState';
+import { primaryButtonClassName } from './styles';
 
 export function App() {
   const sidepanel = useSidepanelState();
@@ -30,6 +31,31 @@ export function App() {
         onClose={() => sidepanel.setPreviewAttachment(null)}
         onUpdateScale={sidepanel.updatePreviewScale}
       />
+
+      {sidepanel.apiKeyMissing ? (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-stone-950/45 p-3">
+          <div
+            aria-modal="true"
+            aria-labelledby="setup-required-title"
+            className="w-full max-w-sm rounded-[28px] border border-white/70 bg-white p-4 shadow-2xl shadow-stone-900/25"
+            role="dialog"
+          >
+            <div className="space-y-2">
+              <h2 id="setup-required-title" className="text-base font-semibold text-stone-900">
+                {sidepanel.t.sidepanel.setupRequiredTitle}
+              </h2>
+              <p className="text-sm leading-6 text-stone-600">{sidepanel.t.sidepanel.setupRequiredBody}</p>
+            </div>
+            <button
+              className={`${primaryButtonClassName} mt-4 w-full justify-center`}
+              onClick={() => chrome.runtime.openOptionsPage()}
+              type="button"
+            >
+              {sidepanel.t.sidepanel.openSettings}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <main className="grid min-h-screen grid-rows-[auto_minmax(0,1fr)_auto] gap-2 bg-sand-100 p-2.5 sm:p-3">
         <SidepanelHeader

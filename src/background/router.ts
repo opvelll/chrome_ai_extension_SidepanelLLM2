@@ -177,7 +177,7 @@ async function handleSettingsTestConnection(rawRequest: unknown): Promise<Messag
   const result = await sendChatCompletion({
     settings: {
       apiKey: parsed.payload.apiKey,
-      modelId: parsed.payload.modelId ?? 'gpt-4.1-mini',
+      modelId: parsed.payload.modelId ?? 'gpt-5.4',
       responseTool: parsed.payload.responseTool ?? 'web_search',
       reasoningEffort: parsed.payload.reasoningEffort ?? 'default',
       systemPrompt: '',

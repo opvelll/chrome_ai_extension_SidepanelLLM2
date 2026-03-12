@@ -29,6 +29,7 @@ export function useSidepanelState() {
     () => (autoAttachPage ? t.sidepanel.composerPlaceholderAuto : t.sidepanel.composerPlaceholder),
     [autoAttachPage, t],
   );
+  const apiKeyMissing = !settings?.apiKey.trim();
 
   usePendingSelection({ setAttachments });
 
@@ -312,6 +313,7 @@ export function useSidepanelState() {
     composerPlaceholder,
     previewAttachment: preview.previewAttachment,
     previewScale: preview.previewScale,
+    apiKeyMissing,
     setHistoryOpen,
     setDraft,
     setAttachments,

@@ -269,6 +269,19 @@ test('loads the extension options page and saves settings', async () => {
   }
 });
 
+test('shows a setup modal in the sidepanel when the API key is missing', async () => {
+  const { context, extensionId, userDataDir } = await launchExtension();
+
+  try {
+    const page = await openExtensionPage(context, extensionId, 'sidepanel.html');
+
+    await expect(page.getByRole('dialog', { name: /^(Set up your API key|API キーを設定してください)$/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^(Open Settings|設定を開く)$/ })).toBeVisible();
+  } finally {
+    await closeExtension(context, userDataDir);
+  }
+});
+
 test('loads the latest model list from the API and lets the user select one', async () => {
   const { context, extensionId, userDataDir } = await launchExtension();
 
@@ -280,6 +293,7 @@ test('loads the latest model list from the API and lets the user select one', as
         body: JSON.stringify({
           object: 'list',
           data: [
+            { id: 'gpt-5.4', object: 'model' },
             { id: 'gpt-4.1-mini', object: 'model' },
             { id: 'gpt-4.1', object: 'model' },
           ],
@@ -313,6 +327,10 @@ test('loads the sidepanel UI and can create a new empty session', async () => {
   const { context, extensionId, userDataDir } = await launchExtension();
 
   try {
+    const optionsPage = await openExtensionPage(context, extensionId, 'options.html');
+    await waitForOptionsReady(optionsPage);
+    await saveSettings(optionsPage, { apiKey: 'test-api-key' });
+
     const page = await openExtensionPage(context, extensionId, 'sidepanel.html');
 
     await waitForSidepanelReady(page);
@@ -334,7 +352,7 @@ test('applies Japanese UI copy when the saved locale is set to ja', async () => 
   try {
     const optionsPage = await openExtensionPage(context, extensionId, 'options.html');
     await waitForOptionsReady(optionsPage);
-    await saveSettings(optionsPage, { locale: 'ja' });
+    await saveSettings(optionsPage, { locale: 'ja', apiKey: 'test-api-key' });
 
     const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
     await sidepanelPage.setViewportSize({ width: 420, height: 900 });
@@ -352,6 +370,10 @@ test('captures selection text and page text from the active tab', async () => {
   const { context, extensionId, userDataDir } = await launchExtension();
 
   try {
+    const optionsPage = await openExtensionPage(context, extensionId, 'options.html');
+    await waitForOptionsReady(optionsPage);
+    await saveSettings(optionsPage, { apiKey: 'test-api-key' });
+
     const fixturePage = await openFixturePage(context);
     await fixturePage.bringToFront();
     await selectText(fixturePage, '#lead');
@@ -381,6 +403,10 @@ test('captures a screenshot from the active tab and shows a preview', async () =
   const { context, extensionId, userDataDir } = await launchExtension();
 
   try {
+    const optionsPage = await openExtensionPage(context, extensionId, 'options.html');
+    await waitForOptionsReady(optionsPage);
+    await saveSettings(optionsPage, { apiKey: 'test-api-key' });
+
     const fixturePage = await openFixturePage(context);
     await fixturePage.setViewportSize({ width: 1200, height: 800 });
     await fixturePage.bringToFront();

@@ -21,6 +21,9 @@ type TranslationDictionary = {
     sessionsLabel: string;
     workspaceLabel: string;
     newChat: string;
+    setupRequiredTitle: string;
+    setupRequiredBody: string;
+    openSettings: string;
     deleteConfirm: string;
     emptySessions: string;
     emptyMessages: string;
@@ -112,6 +115,9 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       sessionsLabel: 'Sessions',
       workspaceLabel: 'Workspace',
       newChat: 'New chat',
+      setupRequiredTitle: 'Set up your API key',
+      setupRequiredBody: 'Open Settings and save an OpenAI API key before using the side panel.',
+      openSettings: 'Open Settings',
       deleteConfirm: 'Delete this session and all saved messages?',
       emptySessions: 'No sessions yet.',
       emptyMessages: 'Start a chat, then attach page context if needed.',
@@ -203,6 +209,9 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       sessionsLabel: 'セッション',
       workspaceLabel: 'ワークスペース',
       newChat: '新しいチャット',
+      setupRequiredTitle: 'API キーを設定してください',
+      setupRequiredBody: 'サイドパネルを使う前に、設定を開いて OpenAI API キーを保存してください。',
+      openSettings: '設定を開く',
       deleteConfirm: 'このセッションと保存済みメッセージをすべて削除しますか？',
       emptySessions: 'まだセッションはありません。',
       emptyMessages: 'チャットを開始し、必要ならページ情報を添付してください。',
