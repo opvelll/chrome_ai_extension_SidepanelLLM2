@@ -167,100 +167,52 @@ async function handleAreaCapture(
   sender: chrome.runtime.MessageSender,
 ): Promise<MessageResponse> {
   const tab = sender.tab?.id ? sender.tab : await getActiveTab();
-  console.log('[area-capture][background] handleAreaCapture start', {
-    payload: rawRequest.payload,
-    senderTab: sender.tab,
-    resolvedTab: tab,
-  });
   if (tab.id !== undefined) {
     try {
-      console.log('[area-capture][background] sidePanel.setOptions start', {
-        tabId: tab.id,
-        windowId: tab.windowId,
-      });
       await chrome.sidePanel.setOptions({
         tabId: tab.id,
         path: 'sidepanel.html',
         enabled: true,
       });
-      console.log('[area-capture][background] sidePanel.setOptions done', {
-        tabId: tab.id,
-      });
-    } catch (error) {
-      console.error('[area-capture][background] sidePanel.setOptions failed', error);
+    } catch {
+      // Ignore failures here; the capture can still be queued for a manually opened side panel.
     }
 
     try {
-      console.log('[area-capture][background] sidePanel.open start', {
-        tabId: tab.id,
-        windowId: tab.windowId,
-      });
       await chrome.sidePanel.open({
         tabId: tab.id,
         windowId: tab.windowId,
       });
-      console.log('[area-capture][background] sidePanel.open done', {
-        tabId: tab.id,
-      });
-    } catch (error) {
-      console.error('[area-capture][background] sidePanel.open failed', error);
+    } catch {
+      // Chrome may reject open() when the message hop no longer counts as a user gesture.
     }
   } else if (tab.windowId !== undefined) {
     try {
-      console.log('[area-capture][background] sidePanel.setOptions window start', {
-        windowId: tab.windowId,
-      });
       await chrome.sidePanel.setOptions({
         path: 'sidepanel.html',
         enabled: true,
       });
-      console.log('[area-capture][background] sidePanel.setOptions window done', {
-        windowId: tab.windowId,
-      });
-    } catch (error) {
-      console.error('[area-capture][background] sidePanel.setOptions window failed', error);
+    } catch {
+      // Ignore failures here; the capture can still be queued for a manually opened side panel.
     }
 
     try {
-      console.log('[area-capture][background] sidePanel.open window start', {
-        windowId: tab.windowId,
-      });
       await chrome.sidePanel.open({ windowId: tab.windowId });
-      console.log('[area-capture][background] sidePanel.open window done', {
-        windowId: tab.windowId,
-      });
-    } catch (error) {
-      console.error('[area-capture][background] sidePanel.open window failed', error);
+    } catch {
+      // Chrome may reject open() when the message hop no longer counts as a user gesture.
     }
   }
 
-  console.log('[area-capture][background] captureAreaScreenshot start');
   const attachment = await captureAreaScreenshot(rawRequest.payload, tab);
-  console.log('[area-capture][background] captureAreaScreenshot done', {
-    attachment,
-  });
-  console.log('[area-capture][background] enqueuePendingAttachment start', {
-    attachmentId: attachment.id,
-  });
   await enqueuePendingAttachment(attachment);
-  console.log('[area-capture][background] enqueuePendingAttachment done', {
-    attachmentId: attachment.id,
-  });
   try {
-    console.log('[area-capture][background] pendingAttachmentReady send start', {
-      attachmentId: attachment.id,
-    });
-    const response = await chrome.runtime.sendMessage({
+    await chrome.runtime.sendMessage({
       type: 'context.pendingAttachmentReady',
       payload: { attachment },
     });
-    console.log('[area-capture][background] pendingAttachmentReady send done', response);
-  } catch (error) {
-    console.error('[area-capture][background] pendingAttachmentReady send failed', error);
+  } catch {
+    // No side panel is listening yet; the pending attachment remains available for later consumption.
   }
-  console.log('[area-capture][background] handleAreaCapture done', {
-    attachmentId: attachment.id,
-  });
 
   return { ok: true, data: { attachment } };
 }

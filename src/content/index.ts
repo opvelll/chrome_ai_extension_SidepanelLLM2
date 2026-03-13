@@ -85,7 +85,6 @@ if (!globalState.__sidepanelContentScriptInstalled__) {
       resetAreaCapture();
 
       if (width < 8 || height < 8) {
-        console.log('[area-capture][content] skipped small rect', { left, top, width, height });
         return;
       }
 
@@ -100,14 +99,11 @@ if (!globalState.__sidepanelContentScriptInstalled__) {
       };
 
       try {
-        console.log('[area-capture][content] sending captureArea', payload);
-        const response = await chrome.runtime.sendMessage({
+        await chrome.runtime.sendMessage({
           type: 'context.captureArea',
           payload,
         });
-        console.log('[area-capture][content] captureArea response', response);
       } catch {
-        console.error('[area-capture][content] captureArea send failed');
         // Ignore transient runtime disconnects while pages are reloading.
       }
     }
@@ -123,12 +119,6 @@ if (!globalState.__sidepanelContentScriptInstalled__) {
         currentX: event.clientX,
         currentY: event.clientY,
       };
-      console.log('[area-capture][content] drag start', {
-        x: event.clientX,
-        y: event.clientY,
-        altKey: event.altKey,
-        button: event.button,
-      });
       suppressContextMenu = true;
       renderSelectionBox();
       event.preventDefault();
@@ -153,12 +143,6 @@ if (!globalState.__sidepanelContentScriptInstalled__) {
 
       event.preventDefault();
       event.stopPropagation();
-      console.log('[area-capture][content] drag end', {
-        startX: dragState.startX,
-        startY: dragState.startY,
-        endX: dragState.currentX,
-        endY: dragState.currentY,
-      });
       void finalizeAreaCapture();
     };
 

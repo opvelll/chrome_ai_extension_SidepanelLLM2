@@ -10,17 +10,7 @@ export function usePendingSelection({ setAttachments }: UsePendingSelectionParam
   const didConsumePendingSelectionRef = useRef(false);
 
   function appendAttachment(nextAttachment: ContextAttachment) {
-    console.log('[area-capture][sidepanel] appendAttachment start', {
-      attachmentId: nextAttachment.id,
-      kind: nextAttachment.kind,
-      sourceUrl: nextAttachment.source.url,
-      capturedAt: nextAttachment.source.capturedAt,
-    });
     setAttachments((current) => {
-      console.log('[area-capture][sidepanel] appendAttachment current', {
-        count: current.length,
-        ids: current.map((attachment) => attachment.id),
-      });
       if (
         current.some(
           (attachment) =>
@@ -29,23 +19,14 @@ export function usePendingSelection({ setAttachments }: UsePendingSelectionParam
             attachment.source.capturedAt === nextAttachment.source.capturedAt,
         )
       ) {
-        console.log('[area-capture][sidepanel] appendAttachment skipped duplicate', {
-          attachmentId: nextAttachment.id,
-        });
         return current;
       }
 
-      const next = [...current, nextAttachment];
-      console.log('[area-capture][sidepanel] appendAttachment next', {
-        count: next.length,
-        ids: next.map((attachment) => attachment.id),
-      });
-      return next;
+      return [...current, nextAttachment];
     });
   }
 
   async function consumePendingAreaAttachment() {
-    console.log('[area-capture][sidepanel] consumePendingAreaAttachment start');
     const pendingAttachmentResponse = await sendRuntimeMessage<{ attachment: ContextAttachment | null }>({
       type: 'context.consumePendingAttachment',
     });
@@ -53,12 +34,6 @@ export function usePendingSelection({ setAttachments }: UsePendingSelectionParam
     const pendingAttachment = pendingAttachmentResponse.ok
       ? pendingAttachmentResponse.data.attachment
       : null;
-
-    console.log('[area-capture][sidepanel] consumePendingAreaAttachment response', {
-      ok: pendingAttachmentResponse.ok,
-      attachmentId: pendingAttachment?.id ?? null,
-      kind: pendingAttachment?.kind ?? null,
-    });
 
     if (!pendingAttachment) {
       return false;
@@ -77,9 +52,7 @@ export function usePendingSelection({ setAttachments }: UsePendingSelectionParam
     didConsumePendingSelectionRef.current = true;
 
     void (async () => {
-      console.log('[area-capture][sidepanel] initial pending consume start');
       if (await consumePendingAreaAttachment()) {
-        console.log('[area-capture][sidepanel] initial pending consume got area attachment');
         return;
       }
 
@@ -127,10 +100,6 @@ export function usePendingSelection({ setAttachments }: UsePendingSelectionParam
       _sender: chrome.runtime.MessageSender,
       sendResponse: (response?: unknown) => void,
     ) {
-      console.log('[area-capture][sidepanel] runtime message received', {
-        type: request.type,
-        attachmentId: request.payload?.attachment?.id ?? null,
-      });
       if (request.type !== 'context.pendingAttachmentReady' || !request.payload?.attachment) {
         return;
       }
@@ -148,10 +117,6 @@ export function usePendingSelection({ setAttachments }: UsePendingSelectionParam
       changes: Record<string, chrome.storage.StorageChange>,
       areaName: string,
     ) {
-      console.log('[area-capture][sidepanel] storage changed', {
-        areaName,
-        keys: Object.keys(changes),
-      });
       if (areaName !== 'session' || !changes.pendingAttachments) {
         return;
       }
