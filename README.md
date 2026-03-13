@@ -1,57 +1,113 @@
 # Sidepanel LLM
 
-Chrome のサイドパネルで使う、OpenAI 互換 API 対応のチャット拡張です。  
-現在のページの選択テキスト、ページ本文、スクリーンショットを添付して質問できます。
+Chrome のサイドパネルで使う OpenAI ベースのチャット拡張です。  
+閲覧中のページを文脈として添付しながら、そのまま横で質問できます。
 
-## 主な機能
+## 利用者向け
 
-- サイドパネル上のチャット UI
-- Options 画面での API Key / Model / System Prompt / Base URL 設定
-- OpenAI 互換 Chat Completions API への送信
-- セッション一覧とメッセージ履歴の保存
-- ページ上の選択テキスト取得
-- ページ本文の取得
-- 表示中タブのスクリーンショット取得
+### できること
 
-## 技術スタック
+- Chrome のサイドパネルで会話できます。
+- 現在のページで選択したテキストを添付して質問できます。
+- 現在のページ本文全体を添付して要約や確認ができます。
+- 表示中タブのスクリーンショットを添付して質問できます。
+- 最初の送信時にページ全文を自動添付する設定が使えます。
+- 会話セッションを複数保存し、あとから切り替えられます。
+- メッセージや添付をあとから削除できます。
+- 英語 / 日本語の UI を切り替えられます。
+- 設定画面から API Key、モデル、system prompt、reasoning、tool 利用を設定できます。
+
+### 使い始め方
+
+1. Chrome の拡張機能ページで `dist` を「パッケージ化されていない拡張機能」として読み込みます。
+2. 拡張機能からサイドパネルを開きます。
+3. `Settings` で API Key とモデルを設定します。
+4. 必要に応じて、選択テキスト、ページ全文、スクリーンショットを添付します。
+5. メッセージを送信します。
+
+### 画面ごとの役割
+
+- Sidepanel: 会話、添付、セッション切り替えを行う画面
+- Options: API 設定、モデル設定、言語設定、system prompt などを保存する画面
+
+### 保存されるもの
+
+- 設定
+- セッション一覧
+- メッセージ履歴
+- 添付したページ文脈
+
+これらは `chrome.storage.local` に保存され、そのブラウザープロファイル内に残ります。
+
+## 開発者向け
+
+### 技術スタック
 
 - React
 - TypeScript
 - Vite
 - `@crxjs/vite-plugin`
 - Chrome Extension Manifest V3
+- Vitest
+- Playwright
 
-## セットアップ
+### セットアップ
 
 ```bash
 pnpm install
 pnpm build
 ```
 
-ビルド後、Chrome の拡張機能ページで `dist` を「パッケージ化されていない拡張機能」として読み込んでください。
+ビルド後、Chrome の拡張機能ページで `dist` を読み込みます。
 
-## 使い方
-
-1. 拡張機能を読み込む
-2. 拡張機能アイコンを押してサイドパネルを開く
-3. `Settings` から API 情報を設定する
-4. 必要なら `Capture selection` / `Capture page` / `Capture screenshot` で文脈を添付する
-5. メッセージを送信する
-
-## 開発コマンド
+開発中は必要に応じて以下を使います。
 
 ```bash
 pnpm dev
-pnpm build
 pnpm typecheck
+pnpm test:unit
+pnpm build
+pnpm test:e2e
 ```
 
-## API Key の扱い
+### テスト方針
 
-- 開発時のみ、`.env` か `.env.local` に `VITE_DEV_OPENAI_API_KEY` を置くと設定画面の初期値として読み込まれます
-- 本番ビルドでは環境変数の API key は使わず、ユーザーに入力してもらう前提です
-- 保存された設定は `chrome.storage.local` に保存され、そのブラウザープロファイルのローカルにのみ残ります
-- 配布用ビルドに秘密鍵を埋め込む運用は避けてください
+- `tests/unit`: 純粋ロジック
+- `tests/integration`: Chrome API をモックした統合テスト
+- `tests/ui`: DOM / component テスト
+- `tests/e2e`: 実拡張フローの Playwright テスト
+
+### ディレクトリ構成
+
+```text
+src/
+  background/   # service worker と Chrome API 連携
+  content/      # ページ上の情報取得
+  lib/          # storage / provider / i18n など共有実装
+  options/      # 設定画面
+  shared/       # 型と runtime message 契約
+  sidepanel/    # サイドパネル UI
+tests/
+  e2e/
+  helpers/
+  integration/
+  setup/
+  ui/
+  unit/
+```
+
+### 構成ルール
+
+- 共有ドメイン型は `src/shared/models.ts` に置きます。
+- runtime message の schema と request/response 型は `src/shared/messages.ts` に置きます。
+- 直接の runtime/storage/provider アクセスは `src/lib` か surface-local な `lib` に寄せます。
+- `sidepanel/components` は表示、`sidepanel/hooks` は stateful orchestration、`sidepanel/utils` は pure helper に限定します。
+
+### 開発用設定
+
+- 開発時のみ `VITE_DEV_OPENAI_API_KEY` を使って API Key の初期値を入れられます。
+- `VITE_DEV_OPENAI_MODEL_ID` と `VITE_DEV_SYSTEM_PROMPT` も使えます。
+- 配布用ビルドに秘密鍵を埋め込む運用は避けてください。
 
 `.env.local` の例:
 
@@ -59,19 +115,7 @@ pnpm typecheck
 cp .env.example .env.local
 ```
 
-## ディレクトリ構成
+### 現在の前提
 
-```text
-src/
-  background/   # service worker, Chrome API, provider 呼び出し
-  content/      # ページ情報の取得
-  sidepanel/    # メインチャット UI
-  options/      # 設定画面
-  shared/       # 型とメッセージ契約
-  lib/          # storage / provider
-```
-
-## 補足
-
-- 設定や会話履歴は `chrome.storage.local` に保存されます
-- 接続先は OpenAI API に固定されています
+- 接続先は OpenAI API です。
+- 設定と会話履歴はローカル保存です。
