@@ -474,7 +474,7 @@ test('sends a chat request with mocked provider response', async () => {
   let lastRequestBody = '';
 
   try {
-    await context.route('https://api.openai.com/v1/responses', async (route) => {
+    await context.route('**/v1/responses', async (route) => {
       lastRequestBody = route.request().postData() ?? '';
       await route.fulfill({
         status: 200,

@@ -4,8 +4,6 @@ import type { Reasoning } from 'openai/resources/shared';
 import { attachmentPromptText } from './attachments';
 import type { ChatMessage, ContextAttachment, Settings, TokenUsage } from '../shared/models';
 
-const OPENAI_BASE_URL = 'https://api.openai.com/v1';
-
 type ProviderResult = {
   assistantMessage: ChatMessage;
   usage?: TokenUsage;
@@ -14,7 +12,6 @@ type ProviderResult = {
 function createClient(settings: Settings): OpenAI {
   return new OpenAI({
     apiKey: settings.apiKey,
-    baseURL: OPENAI_BASE_URL,
     dangerouslyAllowBrowser: true,
   });
 }
