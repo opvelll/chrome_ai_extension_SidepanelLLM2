@@ -1,14 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getTranslations } from '../../lib/i18n';
-import { sendRuntimeMessage } from '../../lib/runtime';
 import type { ChatMessage, ChatSession, ContextAttachment, Settings } from '../../shared/models';
+import {
+  captureAttachment as requestCaptureAttachment,
+  createSession,
+  deleteMessage,
+  deleteMessageAttachment,
+  deleteSession,
+  getDefaultSessionTitle,
+  getSession,
+  getSessionListActiveId,
+  getSettings,
+  listSessions,
+  saveSettings,
+  sendChatMessage,
+  type CaptureRequestType,
+} from '../lib/api';
+import {
+  appendDraftAttachment,
+  hasPageTextAttachment,
+  removeDraftAttachment,
+} from '../utils/attachmentState';
 import { useAttachmentPreview } from './useAttachmentPreview';
 import { usePendingSelection } from './usePendingSelection';
-
-type CaptureRequestType =
-  | 'context.captureSelection'
-  | 'context.capturePage'
-  | 'context.captureScreenshot';
 
 export function useSidepanelState() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -34,7 +48,7 @@ export function useSidepanelState() {
   usePendingSelection({ setAttachments });
 
   async function loadSettings() {
-    const response = await sendRuntimeMessage<{ settings: Settings }>({ type: 'settings.get' });
+    const response = await getSettings();
     if (response.ok) {
       setSettings(response.data.settings);
       setAutoAttachPage(response.data.settings.autoAttachPage);
@@ -42,37 +56,18 @@ export function useSidepanelState() {
   }
 
   async function loadSessions(selectNewest = false) {
-    const response = await sendRuntimeMessage<{ sessions: ChatSession[] }>({ type: 'session.list' });
+    const response = await listSessions();
     if (!response.ok) {
       setError(response.error.message);
       return;
     }
 
     setSessions(response.data.sessions);
-
-    const nextSessionId =
-      activeSessionId && response.data.sessions.some((session) => session.id === activeSessionId)
-        ? activeSessionId
-        : response.data.sessions[0]?.id;
-
-    if (selectNewest && response.data.sessions[0]?.id) {
-      setActiveSessionId(response.data.sessions[0].id);
-      return;
-    }
-
-    if (nextSessionId) {
-      setActiveSessionId(nextSessionId);
-      return;
-    }
-
-    setActiveSessionId('');
+    setActiveSessionId(getSessionListActiveId(response.data.sessions, activeSessionId, selectNewest));
   }
 
   async function loadSession(sessionId: string) {
-    const response = await sendRuntimeMessage<{ session: ChatSession; messages: ChatMessage[] }>({
-      type: 'session.get',
-      payload: { sessionId },
-    });
+    const response = await getSession(sessionId);
 
     if (!response.ok) {
       setError(response.error.message);
@@ -119,10 +114,7 @@ export function useSidepanelState() {
       return;
     }
 
-    const response = await sendRuntimeMessage<{ settings: Settings }>({
-      type: 'settings.save',
-      payload: { ...settings, autoAttachPage: nextValue },
-    });
+    const response = await saveSettings({ ...settings, autoAttachPage: nextValue });
 
     if (!response.ok) {
       setError(response.error.message);
@@ -138,10 +130,7 @@ export function useSidepanelState() {
       return activeSessionId;
     }
 
-    const response = await sendRuntimeMessage<{ session: ChatSession }>({
-      type: 'session.create',
-      payload: { title: t.sidepanel.defaultSessionTitle },
-    });
+    const response = await createSession(getDefaultSessionTitle(t));
     if (!response.ok) {
       throw new Error(response.error.message);
     }
@@ -153,10 +142,7 @@ export function useSidepanelState() {
   async function createNewSession() {
     setError('');
     setContextError('');
-    const response = await sendRuntimeMessage<{ session: ChatSession }>({
-      type: 'session.create',
-      payload: { title: t.sidepanel.defaultSessionTitle },
-    });
+    const response = await createSession(getDefaultSessionTitle(t));
     if (!response.ok) {
       setError(response.error.message);
       return;
@@ -174,10 +160,7 @@ export function useSidepanelState() {
     if (!window.confirm(t.sidepanel.deleteConfirm)) {
       return;
     }
-    const response = await sendRuntimeMessage<{ sessionId: string }>({
-      type: 'session.delete',
-      payload: { sessionId },
-    });
+    const response = await deleteSession(sessionId);
     if (!response.ok) {
       setError(response.error.message);
       return;
@@ -195,10 +178,7 @@ export function useSidepanelState() {
       return;
     }
 
-    const response = await sendRuntimeMessage<{ messages: ChatMessage[] }>({
-      type: 'message.delete',
-      payload: { sessionId: activeSessionId, messageId },
-    });
+    const response = await deleteMessage(activeSessionId, messageId);
 
     if (!response.ok) {
       setError(response.error.message);
@@ -214,10 +194,7 @@ export function useSidepanelState() {
       return;
     }
 
-    const response = await sendRuntimeMessage<{ messages: ChatMessage[] }>({
-      type: 'message.attachmentDelete',
-      payload: { sessionId: activeSessionId, messageId, attachmentId },
-    });
+    const response = await deleteMessageAttachment(activeSessionId, messageId, attachmentId);
 
     if (!response.ok) {
       setError(response.error.message);
@@ -231,13 +208,13 @@ export function useSidepanelState() {
   async function captureAttachment(type: CaptureRequestType) {
     setError('');
     setContextError('');
-    const response = await sendRuntimeMessage<{ attachment: ContextAttachment }>({ type });
+    const response = await requestCaptureAttachment(type);
     if (!response.ok) {
       setContextError(response.error.message);
       return;
     }
     setContextError('');
-    setAttachments((current) => [...current, response.data.attachment]);
+    setAttachments((current) => appendDraftAttachment(current, response.data.attachment));
   }
 
   async function submit() {
@@ -256,11 +233,9 @@ export function useSidepanelState() {
       if (
         autoAttachPage &&
         messages.length === 0 &&
-        !nextAttachments.some((attachment) => attachment.kind === 'pageText')
+        !hasPageTextAttachment(nextAttachments)
       ) {
-        const pageResponse = await sendRuntimeMessage<{ attachment: ContextAttachment }>({
-          type: 'context.capturePage',
-        });
+        const pageResponse = await requestCaptureAttachment('context.capturePage');
 
         if (!pageResponse.ok) {
           setContextError(pageResponse.error.message);
@@ -270,16 +245,7 @@ export function useSidepanelState() {
         nextAttachments = [...nextAttachments, pageResponse.data.attachment];
       }
 
-      const response = await sendRuntimeMessage<{
-        assistantMessage: ChatMessage;
-      }>({
-        type: 'chat.send',
-        payload: {
-          sessionId,
-          message: draft.trim(),
-          attachments: nextAttachments,
-        },
-      });
+      const response = await sendChatMessage(sessionId, draft.trim(), nextAttachments);
 
       if (!response.ok) {
         setError(response.error.message);
@@ -328,7 +294,7 @@ export function useSidepanelState() {
     deleteStoredMessage,
     deleteStoredAttachment,
     removeDraftAttachment(attachmentId: string) {
-      setAttachments((current) => current.filter((item) => item.id !== attachmentId));
+      setAttachments((current) => removeDraftAttachment(current, attachmentId));
     },
     updateAutoAttachPage,
     captureSelection() {

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { sendRuntimeMessage } from '../../lib/runtime';
 import type { ContextAttachment } from '../../shared/models';
+import { appendDraftAttachment, appendSelectionAttachment } from '../utils/attachmentState';
 
 type UsePendingSelectionParams = {
   setAttachments: React.Dispatch<React.SetStateAction<ContextAttachment[]>>;
@@ -10,20 +11,7 @@ export function usePendingSelection({ setAttachments }: UsePendingSelectionParam
   const didConsumePendingSelectionRef = useRef(false);
 
   function appendAttachment(nextAttachment: ContextAttachment) {
-    setAttachments((current) => {
-      if (
-        current.some(
-          (attachment) =>
-            attachment.kind === nextAttachment.kind &&
-            attachment.source.url === nextAttachment.source.url &&
-            attachment.source.capturedAt === nextAttachment.source.capturedAt,
-        )
-      ) {
-        return current;
-      }
-
-      return [...current, nextAttachment];
-    });
+    setAttachments((current) => appendDraftAttachment(current, nextAttachment));
   }
 
   async function consumePendingAreaAttachment() {
@@ -76,21 +64,7 @@ export function usePendingSelection({ setAttachments }: UsePendingSelectionParam
 
       const pendingSelectionAttachment = selectionResponse.data.attachment;
 
-      setAttachments((current) => {
-        if (
-          current.some(
-            (attachment) =>
-              attachment.kind === 'selectionText' &&
-              pendingSelectionAttachment.kind === 'selectionText' &&
-              attachment.text === pendingSelectionAttachment.text &&
-              attachment.source.url === pendingSelectionAttachment.source.url,
-          )
-        ) {
-          return current;
-        }
-
-        return [...current, pendingSelectionAttachment];
-      });
+      setAttachments((current) => appendSelectionAttachment(current, pendingSelectionAttachment));
     })();
   }, [setAttachments]);
 

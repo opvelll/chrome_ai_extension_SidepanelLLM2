@@ -15,6 +15,14 @@
 - Keep real extension Playwright flows in `tests/e2e`.
 - Reuse shared test helpers from `tests/helpers` and setup files from `tests/setup`.
 
+## Architecture Conventions
+
+- Keep cross-surface domain types in `src/shared/models.ts`.
+- Keep Chrome runtime message schemas, request types, and response types in `src/shared/messages.ts`.
+- Keep direct runtime, storage, provider, and other platform access in `src/lib` or a surface-local `lib` module.
+- Keep `sidepanel/components` focused on presentation, `sidepanel/hooks` focused on stateful orchestration, and `sidepanel/utils` limited to pure helper logic.
+- When a hook or component starts mixing UI state with runtime/storage calls or deduplication rules, extract the side-effect-free logic to `utils` and the message wrappers to `lib` before adding more branches.
+
 ## Skills
 
 - Use `playwright-interactive` when verifying the extension UI, Chrome extension flows, or Playwright-based debugging.
