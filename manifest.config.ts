@@ -4,7 +4,7 @@ export default defineManifest({
   manifest_version: 3,
   default_locale: 'en',
   name: '__MSG_extName__',
-  version: '0.1.0',
+  version: '1.0.0',
   description: '__MSG_extDescription__',
   permissions: ['storage', 'activeTab', 'tabs', 'sidePanel', 'scripting'],
   host_permissions: ['<all_urls>'],

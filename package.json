@@ -1,8 +1,18 @@
 {
   "name": "chrome-ai-extension-sidepanel-llm2",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "Chrome side panel chat extension with OpenAI and browser context capture.",
+  "license": "MIT",
   "private": true,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opvelll/chrome_ai_extension_SidepanelLLM2.git"
+  },
+  "homepage": "https://github.com/opvelll/chrome_ai_extension_SidepanelLLM2",
+  "bugs": {
+    "url": "https://github.com/opvelll/chrome_ai_extension_SidepanelLLM2/issues"
+  },
   "packageManager": "pnpm@10.28.2",
   "scripts": {
     "dev": "vite",
