@@ -8,8 +8,11 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "test:unit": "vitest run",
-    "test:e2e": "playwright test"
+    "test:unit": "pnpm test:unit:logic && pnpm test:unit:integration && pnpm test:unit:ui",
+    "test:unit:logic": "vitest run --config vitest.unit.config.ts",
+    "test:unit:integration": "vitest run --config vitest.integration.config.ts",
+    "test:unit:ui": "vitest run --config vitest.ui.config.ts",
+    "test:e2e": "pnpm build && playwright test"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.1",
@@ -23,11 +26,13 @@
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.1.0",
     "@playwright/test": "^1.58.2",
+    "@testing-library/react": "^16.3.0",
     "@types/chrome": "^0.1.28",
     "@types/node": "^25.4.0",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.2",
+    "jsdom": "^27.0.0",
     "playwright": "^1.58.2",
     "typescript": "^5.9.2",
     "vite": "^7.1.3",

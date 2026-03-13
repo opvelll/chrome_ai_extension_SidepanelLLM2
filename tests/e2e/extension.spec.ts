@@ -366,7 +366,7 @@ test('applies Japanese UI copy when the saved locale is set to ja', async () => 
     await expect(sidepanelPage.getByRole('button', { name: '新しいチャット' })).toBeVisible();
     await sidepanelPage.getByRole('button', { name: 'セッション', exact: true }).click();
     await expect(sidepanelPage.locator('.session-item')).toHaveCount(0);
-    await expect(sidepanelPage.getByRole('paragraph').filter({ hasText: 'まだセッションはありません。' })).toBeVisible();
+    await expect(sidepanelPage.getByText('まだセッションはありません。')).toBeVisible();
   } finally {
     await closeExtension(context, userDataDir);
   }
@@ -508,7 +508,6 @@ test('sends a chat request with mocked provider response', async () => {
           temperature: 1,
           tool_choice: 'auto',
           tools: [{ type: 'web_search_preview' }],
-          reasoning: { effort: 'high' },
           top_p: 1,
           max_output_tokens: null,
           previous_response_id: null,

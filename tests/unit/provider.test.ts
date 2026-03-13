@@ -29,6 +29,7 @@ function createSettings(overrides: Partial<Settings> = {}): Settings {
     apiKey: 'test-key',
     modelId: 'gpt-4.1-mini',
     responseTool: 'none',
+    reasoningEffort: 'default',
     systemPrompt: '',
     locale: 'ja',
     autoAttachPage: false,

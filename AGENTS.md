@@ -5,7 +5,15 @@
 - Run `pnpm typecheck` after code changes.
 - Run `pnpm test:unit` after code changes.
 - Run `pnpm build` after code changes that affect the extension bundle.
-- Run `pnpm exec playwright test` after UI, extension flow, or test-related changes.
+- Run `pnpm test:e2e` after UI, extension flow, or test-related changes.
+
+## Test Layout
+
+- Keep pure logic tests in `tests/unit`.
+- Keep Chrome API mocked integration tests in `tests/integration`.
+- Keep DOM and component tests in `tests/ui`.
+- Keep real extension Playwright flows in `tests/e2e`.
+- Reuse shared test helpers from `tests/helpers` and setup files from `tests/setup`.
 
 ## Skills
 
