@@ -24,7 +24,7 @@ import {
   saveSettings,
 } from '../lib/storage';
 import { listAvailableModels, sendChatCompletion } from '../lib/provider';
-import { capturePage, captureScreenshot, captureSelection } from './contextCapture';
+import { capturePage, captureScreenshot, captureSelection, getActiveSelection } from './contextCapture';
 import { consumePendingSelection, updatePendingSelection } from './pendingSelections';
 
 type MessageResponse =
@@ -221,6 +221,8 @@ export async function routeMessage(
       return handleContextCapture(request.type);
     case 'context.consumePendingSelection':
       return { ok: true, data: { attachment: await consumePendingSelection() } };
+    case 'context.getActiveSelection':
+      return { ok: true, data: { attachment: await getActiveSelection() } };
     case 'context.selectionChanged':
       return { ok: true, data: { attachment: await updatePendingSelection(request, sender) } };
     case 'settings.get':

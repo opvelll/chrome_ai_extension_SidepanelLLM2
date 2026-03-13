@@ -47,6 +47,8 @@ if (!globalState.__sidepanelContentScriptInstalled__) {
     void publishSelectionSnapshot();
   });
 
+  void publishSelectionSnapshot();
+
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (request?.type === 'content.getSelection') {
       const selection = window.getSelection()?.toString() ?? '';

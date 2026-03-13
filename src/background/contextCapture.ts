@@ -13,6 +13,20 @@ function canInjectContentScript(tab: chrome.tabs.Tab): boolean {
   return Boolean(url) && /^https?:\/\//.test(url);
 }
 
+function getContentScriptFiles(): string[] {
+  const scriptFiles =
+    chrome.runtime
+      .getManifest()
+      .content_scripts?.flatMap((entry) => entry.js ?? [])
+      .filter((value, index, values) => values.indexOf(value) === index) ?? [];
+
+  if (scriptFiles.length === 0) {
+    throw new Error('Content script is not configured in the extension manifest.');
+  }
+
+  return scriptFiles;
+}
+
 export function getTabSource(tab: chrome.tabs.Tab): TabSource {
   const parsedUrl = (() => {
     try {
@@ -58,7 +72,7 @@ async function sendContentRequest(
 
     await chrome.scripting.executeScript({
       target: { tabId },
-      files: ['src/content/index.ts'],
+      files: getContentScriptFiles(),
     });
 
     result = (await chrome.tabs.sendMessage(tabId, { type })) as { text?: string };
@@ -74,6 +88,20 @@ export async function captureSelection(): Promise<ContextAttachment> {
   const { text, source } = await sendContentRequest('content.getSelection');
   if (!text) {
     throw new Error('No selected text found on the active page.');
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    kind: 'selectionText',
+    text,
+    source,
+  };
+}
+
+export async function getActiveSelection(): Promise<ContextAttachment | null> {
+  const { text, source } = await sendContentRequest('content.getSelection');
+  if (!text) {
+    return null;
   }
 
   return {

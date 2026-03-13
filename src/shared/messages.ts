@@ -155,6 +155,10 @@ export type ContextConsumePendingSelectionRequest = {
   type: 'context.consumePendingSelection';
 };
 
+export type ContextGetActiveSelectionRequest = {
+  type: 'context.getActiveSelection';
+};
+
 export type ContextSelectionChangedRequest = {
   type: 'context.selectionChanged';
   payload: {
@@ -187,6 +191,7 @@ export type BackgroundRequest =
   | ContextCapturePageRequest
   | ContextCaptureScreenshotRequest
   | ContextConsumePendingSelectionRequest
+  | ContextGetActiveSelectionRequest
   | ContextSelectionChangedRequest
   | SettingsGetRequest
   | SettingsSaveRequest

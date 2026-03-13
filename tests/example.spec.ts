@@ -447,6 +447,28 @@ test('captures a screenshot from the active tab and shows a preview', async () =
   }
 });
 
+test('preloads selected text when the sidepanel opens after text selection', async () => {
+  const { context, extensionId, userDataDir } = await launchExtension();
+
+  try {
+    const optionsPage = await openExtensionPage(context, extensionId, 'options.html');
+    await waitForOptionsReady(optionsPage);
+    await saveSettings(optionsPage, { apiKey: 'test-api-key' });
+
+    const fixturePage = await openFixturePage(context);
+    await fixturePage.bringToFront();
+    await selectText(fixturePage, '#lead');
+
+    const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
+    await waitForSidepanelReady(sidepanelPage);
+
+    await expect(sidepanelPage.getByText(/Selection: Selected text for extension capture\./)).toBeVisible();
+    await expect(sidepanelPage.getByText('Selected text for extension capture.', { exact: true })).toBeVisible();
+  } finally {
+    await closeExtension(context, userDataDir);
+  }
+});
+
 test('sends a chat request with mocked provider response', async () => {
   const { context, extensionId, userDataDir } = await launchExtension();
   let lastRequestBody = '';

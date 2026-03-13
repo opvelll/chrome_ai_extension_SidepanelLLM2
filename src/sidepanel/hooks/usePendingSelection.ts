@@ -17,15 +17,25 @@ export function usePendingSelection({ setAttachments }: UsePendingSelectionParam
     didConsumePendingSelectionRef.current = true;
 
     void (async () => {
-      const response = await sendRuntimeMessage<{ attachment: ContextAttachment | null }>({
+      const pendingResponse = await sendRuntimeMessage<{ attachment: ContextAttachment | null }>({
         type: 'context.consumePendingSelection',
       });
 
-      if (!response.ok || !response.data.attachment) {
+      if (!pendingResponse.ok) {
         return;
       }
 
-      const pendingAttachment = response.data.attachment;
+      const selectionResponse = pendingResponse.data.attachment
+        ? pendingResponse
+        : await sendRuntimeMessage<{ attachment: ContextAttachment | null }>({
+            type: 'context.getActiveSelection',
+          });
+
+      if (!selectionResponse.ok || !selectionResponse.data.attachment) {
+        return;
+      }
+
+      const pendingAttachment = selectionResponse.data.attachment;
 
       setAttachments((current) => {
         if (
