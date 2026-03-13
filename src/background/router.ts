@@ -24,7 +24,15 @@ import {
   saveSettings,
 } from '../lib/storage';
 import { listAvailableModels, sendChatCompletion } from '../lib/provider';
-import { capturePage, captureScreenshot, captureSelection, getActiveSelection } from './contextCapture';
+import {
+  captureAreaScreenshot,
+  capturePage,
+  captureScreenshot,
+  captureSelection,
+  getActiveSelection,
+  getActiveTab,
+} from './contextCapture';
+import { enqueuePendingAttachment, consumePendingAttachment } from './pendingAttachments';
 import { consumePendingSelection, updatePendingSelection } from './pendingSelections';
 
 type MessageResponse =
@@ -154,6 +162,109 @@ async function handleContextCapture(
   return { ok: true, data: { attachment } };
 }
 
+async function handleAreaCapture(
+  rawRequest: Extract<BackgroundRequest, { type: 'context.captureArea' }>,
+  sender: chrome.runtime.MessageSender,
+): Promise<MessageResponse> {
+  const tab = sender.tab?.id ? sender.tab : await getActiveTab();
+  console.log('[area-capture][background] handleAreaCapture start', {
+    payload: rawRequest.payload,
+    senderTab: sender.tab,
+    resolvedTab: tab,
+  });
+  if (tab.id !== undefined) {
+    try {
+      console.log('[area-capture][background] sidePanel.setOptions start', {
+        tabId: tab.id,
+        windowId: tab.windowId,
+      });
+      await chrome.sidePanel.setOptions({
+        tabId: tab.id,
+        path: 'sidepanel.html',
+        enabled: true,
+      });
+      console.log('[area-capture][background] sidePanel.setOptions done', {
+        tabId: tab.id,
+      });
+    } catch (error) {
+      console.error('[area-capture][background] sidePanel.setOptions failed', error);
+    }
+
+    try {
+      console.log('[area-capture][background] sidePanel.open start', {
+        tabId: tab.id,
+        windowId: tab.windowId,
+      });
+      await chrome.sidePanel.open({
+        tabId: tab.id,
+        windowId: tab.windowId,
+      });
+      console.log('[area-capture][background] sidePanel.open done', {
+        tabId: tab.id,
+      });
+    } catch (error) {
+      console.error('[area-capture][background] sidePanel.open failed', error);
+    }
+  } else if (tab.windowId !== undefined) {
+    try {
+      console.log('[area-capture][background] sidePanel.setOptions window start', {
+        windowId: tab.windowId,
+      });
+      await chrome.sidePanel.setOptions({
+        path: 'sidepanel.html',
+        enabled: true,
+      });
+      console.log('[area-capture][background] sidePanel.setOptions window done', {
+        windowId: tab.windowId,
+      });
+    } catch (error) {
+      console.error('[area-capture][background] sidePanel.setOptions window failed', error);
+    }
+
+    try {
+      console.log('[area-capture][background] sidePanel.open window start', {
+        windowId: tab.windowId,
+      });
+      await chrome.sidePanel.open({ windowId: tab.windowId });
+      console.log('[area-capture][background] sidePanel.open window done', {
+        windowId: tab.windowId,
+      });
+    } catch (error) {
+      console.error('[area-capture][background] sidePanel.open window failed', error);
+    }
+  }
+
+  console.log('[area-capture][background] captureAreaScreenshot start');
+  const attachment = await captureAreaScreenshot(rawRequest.payload, tab);
+  console.log('[area-capture][background] captureAreaScreenshot done', {
+    attachment,
+  });
+  console.log('[area-capture][background] enqueuePendingAttachment start', {
+    attachmentId: attachment.id,
+  });
+  await enqueuePendingAttachment(attachment);
+  console.log('[area-capture][background] enqueuePendingAttachment done', {
+    attachmentId: attachment.id,
+  });
+  try {
+    console.log('[area-capture][background] pendingAttachmentReady send start', {
+      attachmentId: attachment.id,
+    });
+    const response = await chrome.runtime.sendMessage({
+      type: 'context.pendingAttachmentReady',
+      payload: { attachment },
+    });
+    console.log('[area-capture][background] pendingAttachmentReady send done', response);
+  } catch (error) {
+    console.error('[area-capture][background] pendingAttachmentReady send failed', error);
+  }
+  console.log('[area-capture][background] handleAreaCapture done', {
+    attachmentId: attachment.id,
+  });
+
+  return { ok: true, data: { attachment } };
+}
+
 async function handleSettingsGet(): Promise<MessageResponse> {
   const settings = await getSettings();
   return { ok: true, data: { settings } };
@@ -219,12 +330,18 @@ export async function routeMessage(
     case 'context.capturePage':
     case 'context.captureScreenshot':
       return handleContextCapture(request.type);
+    case 'context.captureArea':
+      return handleAreaCapture(request, sender);
+    case 'context.consumePendingAttachment':
+      return { ok: true, data: { attachment: await consumePendingAttachment() } };
     case 'context.consumePendingSelection':
       return { ok: true, data: { attachment: await consumePendingSelection() } };
     case 'context.getActiveSelection':
       return { ok: true, data: { attachment: await getActiveSelection() } };
     case 'context.selectionChanged':
       return { ok: true, data: { attachment: await updatePendingSelection(request, sender) } };
+    case 'context.pendingAttachmentReady':
+      return { ok: true, data: { attachment: request.payload.attachment } };
     case 'settings.get':
       return handleSettingsGet();
     case 'settings.save':

@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { capturePage, captureSelection, captureScreenshot } from '../../src/background/contextCapture';
+import {
+  captureAreaScreenshot,
+  capturePage,
+  captureSelection,
+  captureScreenshot,
+} from '../../src/background/contextCapture';
 import { createContextCaptureChromeMock } from '../helpers/chrome';
 
 afterEach(() => {
@@ -68,5 +73,67 @@ describe('contextCapture', () => {
     }
     expect(attachment.imageDataUrl).toBe('data:image/png;base64,screenshot');
     expect(attachment.source.tabId).toBe(11);
+  });
+
+  it('crops an area from the visible tab screenshot', async () => {
+    const { chrome } = createContextCaptureChromeMock({
+      screenshotDataUrl: 'data:image/png;base64,fixture',
+    });
+    const drawImage = vi.fn();
+    const convertToBlob = vi.fn(async () => new Blob(['cropped'], { type: 'image/png' }));
+    const getContext = vi.fn(() => ({ drawImage }));
+
+    vi.stubGlobal('chrome', chrome);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        blob: async () => new Blob(['fixture'], { type: 'image/png' }),
+      })),
+    );
+    vi.stubGlobal(
+      'createImageBitmap',
+      vi.fn(async () => ({
+        width: 400,
+        height: 200,
+      })),
+    );
+    vi.stubGlobal(
+      'OffscreenCanvas',
+      class {
+        width: number;
+        height: number;
+
+        constructor(width: number, height: number) {
+          this.width = width;
+          this.height = height;
+        }
+
+        getContext() {
+          return getContext();
+        }
+
+        convertToBlob() {
+          return convertToBlob();
+        }
+      },
+    );
+    vi.stubGlobal('btoa', (value: string) => Buffer.from(value, 'binary').toString('base64'));
+
+    const attachment = await captureAreaScreenshot({
+      x: 10,
+      y: 12,
+      width: 40,
+      height: 24,
+      devicePixelRatio: 2,
+    });
+
+    expect(chrome.tabs.captureVisibleTab).toHaveBeenCalledWith(22, { format: 'png' });
+    expect(drawImage).toHaveBeenCalledWith(expect.anything(), 20, 24, 80, 48, 0, 0, 80, 48);
+    expect(convertToBlob).toHaveBeenCalledOnce();
+    expect(attachment.kind).toBe('screenshot');
+    if (attachment.kind !== 'screenshot') {
+      throw new Error('Expected a screenshot attachment.');
+    }
+    expect(attachment.imageDataUrl).toBe('data:image/png;base64,Y3JvcHBlZA==');
   });
 });

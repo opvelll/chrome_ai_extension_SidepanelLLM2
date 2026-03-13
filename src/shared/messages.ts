@@ -151,6 +151,21 @@ export type ContextCaptureScreenshotRequest = {
   type: 'context.captureScreenshot';
 };
 
+export type ContextCaptureAreaRequest = {
+  type: 'context.captureArea';
+  payload: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    devicePixelRatio: number;
+  };
+};
+
+export type ContextConsumePendingAttachmentRequest = {
+  type: 'context.consumePendingAttachment';
+};
+
 export type ContextConsumePendingSelectionRequest = {
   type: 'context.consumePendingSelection';
 };
@@ -163,6 +178,13 @@ export type ContextSelectionChangedRequest = {
   type: 'context.selectionChanged';
   payload: {
     text: string;
+  };
+};
+
+export type ContextPendingAttachmentReadyRequest = {
+  type: 'context.pendingAttachmentReady';
+  payload: {
+    attachment: ContextAttachment;
   };
 };
 
@@ -190,9 +212,12 @@ export type BackgroundRequest =
   | ContextCaptureSelectionRequest
   | ContextCapturePageRequest
   | ContextCaptureScreenshotRequest
+  | ContextCaptureAreaRequest
+  | ContextConsumePendingAttachmentRequest
   | ContextConsumePendingSelectionRequest
   | ContextGetActiveSelectionRequest
   | ContextSelectionChangedRequest
+  | ContextPendingAttachmentReadyRequest
   | SettingsGetRequest
   | SettingsSaveRequest
   | SettingsTestConnectionRequest
