@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_SYSTEM_PROMPT } from '../../src/lib/defaultSystemPrompt';
 import { sendChatCompletion } from '../../src/lib/provider';
 import type { ChatMessage, ContextAttachment, Settings } from '../../src/shared/models';
 
@@ -30,8 +31,10 @@ function createSettings(overrides: Partial<Settings> = {}): Settings {
     modelId: 'gpt-4.1-mini',
     responseTool: 'none',
     reasoningEffort: 'default',
-    systemPrompt: '',
+    systemPrompt: DEFAULT_SYSTEM_PROMPT,
     locale: 'ja',
+    includeCurrentDateTime: true,
+    includeResponseLanguageInstruction: true,
     autoAttachPage: false,
     ...overrides,
   };
@@ -114,5 +117,55 @@ describe('sendChatCompletion', () => {
         image_url: 'data:image/png;base64,abc',
       },
     ]);
+  });
+
+  it('uses the saved system prompt as the main instructions body', async () => {
+    const userMessage: ChatMessage = {
+      id: 'message-1',
+      role: 'user',
+      content: 'Summarize this.',
+      createdAt: '2026-03-13T00:00:00.000Z',
+    };
+
+    await sendChatCompletion({
+      settings: createSettings({
+        locale: 'en',
+        systemPrompt: 'You are a terse assistant.\nPrefer bullet points when helpful.',
+      }),
+      userMessage,
+      history: [],
+      attachments: [],
+    });
+
+    const request = createMock.create.mock.calls[0]?.[0];
+    expect(request.instructions).toContain('You are a terse assistant.');
+    expect(request.instructions).toContain('Prefer bullet points when helpful.');
+    expect(request.instructions).toContain('Current date and time:');
+    expect(request.instructions).toContain('Respond to the user in English.');
+    expect(request.instructions).not.toContain('Additional instructions:');
+  });
+
+  it('omits optional embedded context when disabled', async () => {
+    const userMessage: ChatMessage = {
+      id: 'message-1',
+      role: 'user',
+      content: 'Summarize this.',
+      createdAt: '2026-03-13T00:00:00.000Z',
+    };
+
+    await sendChatCompletion({
+      settings: createSettings({
+        includeCurrentDateTime: false,
+        includeResponseLanguageInstruction: false,
+      }),
+      userMessage,
+      history: [],
+      attachments: [],
+    });
+
+    const request = createMock.create.mock.calls[0]?.[0];
+    expect(request.instructions).not.toContain('Current date and time:');
+    expect(request.instructions).not.toContain('Respond to the user in');
+    expect(request.instructions).not.toContain("Respond in the same language as the user's latest message");
   });
 });

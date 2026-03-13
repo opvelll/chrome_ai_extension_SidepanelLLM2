@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import type { EasyInputMessage, Response, ResponseInputContent, Tool } from 'openai/resources/responses/responses';
 import type { Reasoning } from 'openai/resources/shared';
 import { attachmentPromptText } from './attachments';
+import { buildSystemInstructions } from './defaultSystemPrompt';
 import type { ChatMessage, ContextAttachment, Settings, TokenUsage } from '../shared/models';
 
 type ProviderResult = {
@@ -32,6 +33,8 @@ export async function listAvailableModels(apiKey: string): Promise<string[]> {
     reasoningEffort: 'default',
     systemPrompt: '',
     locale: 'auto',
+    includeCurrentDateTime: true,
+    includeResponseLanguageInstruction: true,
     autoAttachPage: false,
   });
 
@@ -96,7 +99,7 @@ export async function sendChatCompletion(input: {
   const response = await client.responses.create({
     model: modelId || settings.modelId,
     input: messages,
-    instructions: settings.systemPrompt.trim() || undefined,
+    instructions: buildSystemInstructions(settings) || undefined,
     tools: getResponseTools(settings),
     reasoning: getReasoning(settings),
   });

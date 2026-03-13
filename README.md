@@ -106,8 +106,6 @@ tests/
 ### 開発用設定
 
 - 開発時のみ `VITE_DEV_OPENAI_API_KEY` を使って API Key の初期値を入れられます。
-- `VITE_DEV_OPENAI_MODEL_ID` と `VITE_DEV_SYSTEM_PROMPT` も使えます。
-- 配布用ビルドに秘密鍵を埋め込む運用は避けてください。
 
 `.env.local` の例:
 

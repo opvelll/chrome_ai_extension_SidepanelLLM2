@@ -12,6 +12,8 @@ function createSettings(overrides: Partial<Settings> = {}): Settings {
     reasoningEffort: 'default',
     systemPrompt: '',
     locale: 'en',
+    includeCurrentDateTime: true,
+    includeResponseLanguageInstruction: true,
     autoAttachPage: false,
     ...overrides,
   };

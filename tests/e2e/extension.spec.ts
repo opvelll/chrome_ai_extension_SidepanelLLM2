@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
+import { DEFAULT_SYSTEM_PROMPT } from '../../src/lib/defaultSystemPrompt';
 
 const extensionPath = path.resolve(process.cwd(), 'dist');
 let fixtureServer: http.Server;
@@ -89,6 +90,9 @@ function optionsFields(page: Page) {
     reasoningEffort: page.getByRole('combobox', { name: /^Reasoning$/ }),
     refreshModels: page.getByRole('button', { name: /^(Refresh models|モデル一覧を更新)$/ }),
     systemPrompt: page.locator('textarea'),
+    resetSystemPrompt: page.getByRole('button', { name: /^(Reset|リセット)$/ }),
+    includeCurrentDateTime: page.getByLabel(/^(Include current date and time|現在日時を含める)$/),
+    includeResponseLanguageInstruction: page.getByLabel(/^(Include response language instruction|返答言語の指示を含める)$/),
     autoAttachPage: page.getByLabel(/^(Auto attach full page on first message|最初の送信時にページ全文を自動添付)$/),
   };
 }
@@ -135,6 +139,8 @@ async function saveSettings(
     reasoningEffort?: 'default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
     systemPrompt?: string;
     locale?: 'auto' | 'en' | 'ja';
+    includeCurrentDateTime?: boolean;
+    includeResponseLanguageInstruction?: boolean;
     autoAttachPage?: boolean;
   },
 ) {
@@ -166,6 +172,26 @@ async function saveSettings(
   if (settings?.locale !== undefined) {
     await fields.locale.selectOption(settings.locale);
     await expect(fields.locale).toHaveValue(settings.locale);
+  }
+
+  if (settings?.includeCurrentDateTime !== undefined) {
+    if (settings.includeCurrentDateTime) {
+      await fields.includeCurrentDateTime.check();
+      await expect(fields.includeCurrentDateTime).toBeChecked();
+    } else {
+      await fields.includeCurrentDateTime.uncheck();
+      await expect(fields.includeCurrentDateTime).not.toBeChecked();
+    }
+  }
+
+  if (settings?.includeResponseLanguageInstruction !== undefined) {
+    if (settings.includeResponseLanguageInstruction) {
+      await fields.includeResponseLanguageInstruction.check();
+      await expect(fields.includeResponseLanguageInstruction).toBeChecked();
+    } else {
+      await fields.includeResponseLanguageInstruction.uncheck();
+      await expect(fields.includeResponseLanguageInstruction).not.toBeChecked();
+    }
   }
 
   if (settings?.autoAttachPage !== undefined) {
@@ -246,6 +272,14 @@ test('loads the extension options page and saves settings', async () => {
     const page = await openExtensionPage(context, extensionId, 'options.html');
 
     await waitForOptionsReady(page);
+    const fields = optionsFields(page);
+    await expect(fields.resetSystemPrompt).toBeDisabled();
+    await fields.systemPrompt.fill('Temporary prompt');
+    await expect(fields.resetSystemPrompt).toBeEnabled();
+    await fields.resetSystemPrompt.click();
+    await expect(fields.systemPrompt).toHaveValue(DEFAULT_SYSTEM_PROMPT);
+    await expect(fields.resetSystemPrompt).toBeDisabled();
+
     await saveSettings(page, {
       apiKey: 'test-api-key',
       modelId: 'gpt-4.1-mini',
@@ -259,14 +293,14 @@ test('loads the extension options page and saves settings', async () => {
 
     const reloadedPage = await openExtensionPage(context, extensionId, 'options.html');
     await waitForOptionsReady(reloadedPage);
-    const fields = optionsFields(reloadedPage);
-    await expect(fields.locale).toHaveValue('auto');
-    await expect(fields.apiKey).toHaveValue('test-api-key');
-    await expect(fields.modelId).toHaveValue('gpt-4.1-mini');
-    await expect(fields.responseTool).toHaveValue('web_search');
-    await expect(fields.reasoningEffort).toHaveValue('high');
-    await expect(fields.systemPrompt).toHaveValue('Be concise.');
-    await expect(fields.autoAttachPage).toBeChecked();
+    const reloadedFields = optionsFields(reloadedPage);
+    await expect(reloadedFields.locale).toHaveValue('auto');
+    await expect(reloadedFields.apiKey).toHaveValue('test-api-key');
+    await expect(reloadedFields.modelId).toHaveValue('gpt-4.1-mini');
+    await expect(reloadedFields.responseTool).toHaveValue('web_search');
+    await expect(reloadedFields.reasoningEffort).toHaveValue('high');
+    await expect(reloadedFields.systemPrompt).toHaveValue('Be concise.');
+    await expect(reloadedFields.autoAttachPage).toBeChecked();
   } finally {
     await closeExtension(context, userDataDir);
   }

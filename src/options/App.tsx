@@ -6,7 +6,8 @@ import { sendRuntimeMessage } from '../lib/runtime';
 import type { Settings } from '../shared/models';
 
 export function App() {
-  const [settings, setSettings] = useState<Settings>(getDefaultSettings());
+  const defaultSettings = getDefaultSettings();
+  const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsError, setModelsError] = useState('');
@@ -131,18 +132,16 @@ export function App() {
               </div>
             </div>
 
-            {showDevelopmentNotes ? (
-              <div className="mt-6 space-y-3 text-sm leading-6 text-slate-300">
-                <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
-                  {t.options.storageNote}
-                </div>
-                {devDefaultApiKey ? (
-                  <div className="rounded-[24px] border border-teal-400/20 bg-teal-400/10 px-4 py-4">
-                    {t.options.devNote}
-                  </div>
-                ) : null}
+            <div className="mt-6 space-y-3 text-sm leading-6 text-slate-300">
+              <div className="rounded-[24px] border border-white/10 bg-white/6 px-4 py-4">
+                {t.options.storageNote}
               </div>
-            ) : null}
+              {showDevelopmentNotes && devDefaultApiKey ? (
+                <div className="rounded-[24px] border border-teal-400/20 bg-teal-400/10 px-4 py-4">
+                  {t.options.devNote}
+                </div>
+              ) : null}
+            </div>
           </section>
 
           <section className="px-6 py-7">
@@ -320,11 +319,26 @@ export function App() {
               <div className="text-xs leading-5 text-slate-500">{t.options.reasoningHelp}</div>
             </label>
 
-            <label className="mt-4 flex flex-col gap-2.5">
-              <span className="inline-flex items-center gap-2 text-sm font-medium">
-                <MessageSquareText className="h-4 w-4 text-teal-600" />
-                {t.options.systemPrompt}
-              </span>
+            <div className="mt-4 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-2 text-sm font-medium">
+                  <MessageSquareText className="h-4 w-4 text-teal-600" />
+                  {t.options.systemPrompt}
+                </span>
+                <button
+                  type="button"
+                  className={subtleButtonClassName}
+                  disabled={!hydrated || settings.systemPrompt === defaultSettings.systemPrompt}
+                  onClick={() =>
+                    setSettings((current) => ({
+                      ...current,
+                      systemPrompt: defaultSettings.systemPrompt,
+                    }))
+                  }
+                >
+                  {t.common.reset}
+                </button>
+              </div>
               <textarea
                 className="min-h-[160px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 shadow-inner shadow-white/50 outline-none transition focus:border-teal-300 focus:bg-white"
                 rows={6}
@@ -332,7 +346,46 @@ export function App() {
                 value={settings.systemPrompt}
                 onChange={(event) => setSettings((current) => ({ ...current, systemPrompt: event.target.value }))}
               />
-            </label>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-2.5">
+              <span className="inline-flex items-center gap-2 text-sm font-medium">
+                <MessageSquareText className="h-4 w-4 text-teal-600" />
+                {t.options.promptContext}
+              </span>
+
+              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50">
+                <span className="min-w-0 flex-1 font-medium">{t.options.includeCurrentDateTime}</span>
+                <input
+                  className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                  type="checkbox"
+                  disabled={!hydrated}
+                  checked={settings.includeCurrentDateTime}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      includeCurrentDateTime: event.target.checked,
+                    }))
+                  }
+                />
+              </label>
+
+              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50">
+                <span className="min-w-0 flex-1 font-medium">{t.options.includeResponseLanguageInstruction}</span>
+                <input
+                  className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                  type="checkbox"
+                  disabled={!hydrated}
+                  checked={settings.includeResponseLanguageInstruction}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      includeResponseLanguageInstruction: event.target.checked,
+                    }))
+                  }
+                />
+              </label>
+            </div>
 
             <label className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50">
               <FileText className="h-4 w-4 shrink-0 text-teal-600" />

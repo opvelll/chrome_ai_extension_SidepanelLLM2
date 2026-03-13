@@ -1,12 +1,15 @@
 import type { Settings } from '../shared/models';
+import { DEFAULT_SYSTEM_PROMPT } from './defaultSystemPrompt';
 
 const DEV_DEFAULT_SETTINGS: Settings = {
   apiKey: import.meta.env.DEV ? import.meta.env.VITE_DEV_OPENAI_API_KEY ?? '' : '',
-  modelId: import.meta.env.DEV ? import.meta.env.VITE_DEV_OPENAI_MODEL_ID ?? 'gpt-5.4' : 'gpt-5.4',
+  modelId: 'gpt-5.4',
   responseTool: 'web_search',
   reasoningEffort: 'default',
-  systemPrompt: import.meta.env.DEV ? import.meta.env.VITE_DEV_SYSTEM_PROMPT ?? '' : '',
+  systemPrompt: DEFAULT_SYSTEM_PROMPT,
   locale: 'auto',
+  includeCurrentDateTime: true,
+  includeResponseLanguageInstruction: true,
   autoAttachPage: false,
 };
 

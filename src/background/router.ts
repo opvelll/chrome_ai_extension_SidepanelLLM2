@@ -245,6 +245,8 @@ async function handleSettingsTestConnection(rawRequest: unknown): Promise<Messag
       reasoningEffort: parsed.payload.reasoningEffort ?? 'default',
       systemPrompt: '',
       locale: 'auto',
+      includeCurrentDateTime: true,
+      includeResponseLanguageInstruction: true,
       autoAttachPage: false,
     },
     userMessage,

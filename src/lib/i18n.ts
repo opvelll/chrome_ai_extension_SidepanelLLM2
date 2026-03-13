@@ -79,6 +79,9 @@ type TranslationDictionary = {
     modelManualEntry: string;
     modelListUnavailable: string;
     systemPrompt: string;
+    promptContext: string;
+    includeCurrentDateTime: string;
+    includeResponseLanguageInstruction: string;
     language: string;
     autoAttachPage: string;
     languageAuto: string;
@@ -178,6 +181,9 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       modelManualEntry: 'Manual model ID entry',
       modelListUnavailable: 'Model list could not be loaded. Enter the model ID manually.',
       systemPrompt: 'System prompt',
+      promptContext: 'Prompt context',
+      includeCurrentDateTime: 'Include current date and time',
+      includeResponseLanguageInstruction: 'Include response language instruction',
       language: 'Language',
       autoAttachPage: 'Auto attach full page on first message',
       languageAuto: 'Auto',
@@ -275,6 +281,9 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       modelManualEntry: 'モデル ID を手入力',
       modelListUnavailable: 'モデル一覧を取得できませんでした。モデル ID を手入力してください。',
       systemPrompt: 'システムプロンプト',
+      promptContext: '埋め込みコンテキスト',
+      includeCurrentDateTime: '現在日時を含める',
+      includeResponseLanguageInstruction: '返答言語の指示を含める',
       language: '表示言語',
       autoAttachPage: '最初の送信時にページ全文を自動添付',
       languageAuto: '自動',

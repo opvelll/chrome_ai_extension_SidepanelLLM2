@@ -53,6 +53,8 @@ export type Settings = {
   reasoningEffort: 'default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
   systemPrompt: string;
   locale: 'auto' | 'en' | 'ja';
+  includeCurrentDateTime: boolean;
+  includeResponseLanguageInstruction: boolean;
   autoAttachPage: boolean;
 };
 
