@@ -525,6 +525,17 @@ test('sends a chat request with mocked provider response', async () => {
           metadata: {},
           output: [
             {
+              id: 'ws_123',
+              type: 'web_search_call',
+              status: 'completed',
+              action: {
+                type: 'search',
+                query: 'fixture article',
+                queries: ['fixture article'],
+                sources: [],
+              },
+            },
+            {
               id: 'msg_123',
               type: 'message',
               role: 'assistant',
@@ -583,10 +594,12 @@ test('sends a chat request with mocked provider response', async () => {
     await expect(sidepanelPage.locator('.message.assistant')).toContainText('Mocked assistant reply.', {
       timeout: 10_000,
     });
+    await expect(sidepanelPage.locator('.message.assistant')).toContainText('Web search used');
     expect(lastRequestBody).toContain('Attachment type: Page text');
     expect(lastRequestBody).toContain('Source details:');
     expect(lastRequestBody).toContain('URL: http://127.0.0.1');
     expect(lastRequestBody).toContain('"type":"web_search_preview"');
+    expect(lastRequestBody).toContain('"include":["web_search_call.action.sources"]');
     expect(lastRequestBody).toContain('"reasoning":{"effort":"high"}');
 
     await sidepanelPage.getByRole('button', { name: /Open attachment: Page: Fixture Article/ }).click();
@@ -684,6 +697,7 @@ test('sends a chat request with ctrl+enter from the composer', async () => {
     await expect(sidepanelPage.locator('.message.assistant')).toContainText('Shortcut reply.', {
       timeout: 10_000,
     });
+    await expect(sidepanelPage.locator('.message.assistant')).not.toContainText('Web search used');
   } finally {
     await closeExtension(context, userDataDir);
   }

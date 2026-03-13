@@ -145,6 +145,85 @@ describe('sendChatCompletion', () => {
     expect(request.instructions).not.toContain('Additional instructions:');
   });
 
+  it('records whether web search actually ran', async () => {
+    createMock.create.mockResolvedValueOnce({
+      output_text: 'Verified reply',
+      output: [
+        {
+          id: 'ws_123',
+          type: 'web_search_call',
+          status: 'completed',
+          action: {
+            type: 'search',
+            query: 'today weather tokyo',
+            queries: ['today weather tokyo'],
+            sources: [],
+          },
+        },
+        {
+          id: 'msg_123',
+          type: 'message',
+          role: 'assistant',
+          status: 'completed',
+          content: [
+            {
+              type: 'output_text',
+              text: 'Verified reply',
+              annotations: [],
+            },
+          ],
+        },
+      ],
+      usage: {
+        input_tokens: 11,
+        output_tokens: 4,
+        total_tokens: 15,
+      },
+    });
+
+    const result = await sendChatCompletion({
+      settings: createSettings({
+        responseTool: 'web_search',
+      }),
+      userMessage: {
+        id: 'message-1',
+        role: 'user',
+        content: 'What is the weather in Tokyo today?',
+        createdAt: '2026-03-13T00:00:00.000Z',
+      },
+      history: [],
+      attachments: [],
+    });
+
+    const request = createMock.create.mock.calls[0]?.[0];
+    expect(request.include).toEqual(['web_search_call.action.sources']);
+    expect(result.assistantMessage.toolUsage).toEqual({
+      webSearchUsed: true,
+      webSearchQueries: ['today weather tokyo'],
+    });
+  });
+
+  it('stores an explicit no-search marker when web search is enabled but unused', async () => {
+    const result = await sendChatCompletion({
+      settings: createSettings({
+        responseTool: 'web_search',
+      }),
+      userMessage: {
+        id: 'message-1',
+        role: 'user',
+        content: 'Say hello.',
+        createdAt: '2026-03-13T00:00:00.000Z',
+      },
+      history: [],
+      attachments: [],
+    });
+
+    expect(result.assistantMessage.toolUsage).toEqual({
+      webSearchUsed: false,
+      webSearchQueries: [],
+    });
+  });
+
   it('omits optional embedded context when disabled', async () => {
     const userMessage: ChatMessage = {
       id: 'message-1',

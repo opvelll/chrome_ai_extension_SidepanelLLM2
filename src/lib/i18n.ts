@@ -48,6 +48,8 @@ type TranslationDictionary = {
     activeModel: string;
     messageCount: string;
     attachmentsCount: string;
+    webSearchUsed: string;
+    webSearchNotUsed: string;
   };
   options: {
     title: string;
@@ -148,6 +150,8 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       activeModel: 'Active model',
       messageCount: 'Messages',
       attachmentsCount: 'Attachments',
+      webSearchUsed: 'Web search used',
+      webSearchNotUsed: 'No web search used',
     },
     options: {
       title: 'Settings',
@@ -248,6 +252,8 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       activeModel: '使用モデル',
       messageCount: 'メッセージ',
       attachmentsCount: '添付',
+      webSearchUsed: 'Web 検索あり',
+      webSearchNotUsed: 'Web 検索なし',
     },
     options: {
       title: '設定',

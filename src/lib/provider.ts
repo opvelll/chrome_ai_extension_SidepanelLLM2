@@ -3,7 +3,7 @@ import type { EasyInputMessage, Response, ResponseInputContent, Tool } from 'ope
 import type { Reasoning } from 'openai/resources/shared';
 import { attachmentPromptText } from './attachments';
 import { buildSystemInstructions } from './defaultSystemPrompt';
-import type { ChatMessage, ContextAttachment, Settings, TokenUsage } from '../shared/models';
+import type { ChatMessage, ChatMessageToolUsage, ContextAttachment, Settings, TokenUsage } from '../shared/models';
 
 type ProviderResult = {
   assistantMessage: ChatMessage;
@@ -101,9 +101,13 @@ export async function sendChatCompletion(input: {
     input: messages,
     instructions: buildSystemInstructions(settings) || undefined,
     tools: getResponseTools(settings),
+    include: getResponseIncludes(settings),
     reasoning: getReasoning(settings),
   });
   const content = extractResponseText(response);
+  const toolUsage = settings.responseTool === 'web_search'
+    ? extractToolUsage(response)
+    : undefined;
 
   if (!content) {
     throw new Error('Provider returned an empty response.');
@@ -115,6 +119,7 @@ export async function sendChatCompletion(input: {
       role: 'assistant',
       content,
       createdAt: new Date().toISOString(),
+      toolUsage,
     },
     usage: {
       promptTokens: response.usage?.input_tokens,
@@ -130,6 +135,14 @@ function getResponseTools(settings: Settings): Tool[] | undefined {
   }
 
   return [{ type: 'web_search_preview' }];
+}
+
+function getResponseIncludes(settings: Settings): Array<'web_search_call.action.sources'> | undefined {
+  if (settings.responseTool !== 'web_search') {
+    return undefined;
+  }
+
+  return ['web_search_call.action.sources'];
 }
 
 function getReasoning(settings: Settings): Reasoning | undefined {
@@ -152,4 +165,31 @@ function extractResponseText(response: Response): string {
     .map((item) => item.text)
     .join('\n')
     .trim();
+}
+
+function extractToolUsage(response: Response): ChatMessageToolUsage {
+  const webSearchCalls = response.output.filter((item) => item.type === 'web_search_call');
+  if (webSearchCalls.length === 0) {
+    return {
+      webSearchUsed: false,
+      webSearchQueries: [],
+    };
+  }
+
+  const webSearchQueries = Array.from(new Set(
+    webSearchCalls.flatMap((item) => {
+      const queries = 'queries' in item.action && Array.isArray(item.action.queries) ? item.action.queries : [];
+      if (queries.length > 0) {
+        return queries;
+      }
+
+      const query = 'query' in item.action && typeof item.action.query === 'string' ? item.action.query : '';
+      return query ? [query] : [];
+    }),
+  )).filter(Boolean);
+
+  return {
+    webSearchUsed: true,
+    webSearchQueries,
+  };
 }

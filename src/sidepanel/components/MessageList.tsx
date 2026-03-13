@@ -33,7 +33,19 @@ export function MessageList({
           }`}
         >
           <div className="mb-0.5 flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1 whitespace-pre-wrap break-words text-sm leading-5.5">{message.content}</div>
+            <div className="min-w-0 flex-1">
+              <div className="whitespace-pre-wrap break-words text-sm leading-5.5">{message.content}</div>
+              {message.role === 'assistant' && message.toolUsage?.webSearchUsed ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span
+                    className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-200"
+                    title={message.toolUsage.webSearchQueries?.join('\n') || undefined}
+                  >
+                    {t.sidepanel.webSearchUsed}
+                  </span>
+                </div>
+              ) : null}
+            </div>
             <button
               className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 ${
                 message.role === 'user'

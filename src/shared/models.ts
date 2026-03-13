@@ -31,12 +31,18 @@ export type ContextAttachment =
 
 export type ChatRole = 'system' | 'user' | 'assistant';
 
+export type ChatMessageToolUsage = {
+  webSearchUsed?: boolean;
+  webSearchQueries?: string[];
+};
+
 export type ChatMessage = {
   id: string;
   role: ChatRole;
   content: string;
   createdAt: string;
   attachments?: ContextAttachment[];
+  toolUsage?: ChatMessageToolUsage;
 };
 
 export type ChatSession = {
