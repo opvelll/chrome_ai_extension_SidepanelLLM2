@@ -127,6 +127,12 @@ export function ComposerPanel({
               placeholder={composerPlaceholder}
               value={draft}
               onChange={(event) => onDraftChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && event.ctrlKey && !loading && draft.trim()) {
+                  event.preventDefault();
+                  onSubmit();
+                }
+              }}
             />
             <button
               className={`${primaryButtonClassName} h-10 w-10 shrink-0 rounded-xl px-0`}

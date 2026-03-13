@@ -572,3 +572,85 @@ test('sends a chat request with mocked provider response', async () => {
     await closeExtension(context, userDataDir);
   }
 });
+
+test('sends a chat request with ctrl+enter from the composer', async () => {
+  const { context, extensionId, userDataDir } = await launchExtension();
+
+  try {
+    await context.route('**/v1/responses', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'resp_shortcut_test',
+          object: 'response',
+          created_at: 1735689600,
+          model: 'gpt-4.1-mini',
+          output_text: 'Shortcut reply.',
+          error: null,
+          incomplete_details: null,
+          instructions: null,
+          metadata: {},
+          output: [
+            {
+              id: 'msg_shortcut',
+              type: 'message',
+              role: 'assistant',
+              status: 'completed',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Shortcut reply.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          parallel_tool_calls: false,
+          temperature: 1,
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          max_output_tokens: null,
+          previous_response_id: null,
+          reasoning: null,
+          status: 'completed',
+          usage: {
+            input_tokens: 8,
+            output_tokens: 3,
+            total_tokens: 11,
+          },
+        }),
+      });
+    });
+
+    const fixturePage = await openFixturePage(context);
+    await fixturePage.bringToFront();
+
+    const optionsPage = await openExtensionPage(context, extensionId, 'options.html');
+    await saveSettings(optionsPage, {
+      locale: 'en',
+      apiKey: 'test-api-key',
+      modelId: 'gpt-4.1-mini',
+    });
+
+    const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
+    await waitForSidepanelReady(sidepanelPage);
+
+    const composer = sidepanelPage.locator('textarea').last();
+    await composer.fill('Shortcut send');
+    await composer.press('Enter');
+    await expect(composer).toHaveValue('Shortcut send\n');
+
+    await expect(sidepanelPage.locator('.message.user')).toHaveCount(0);
+
+    await composer.press('Control+Enter');
+
+    await expect(sidepanelPage.locator('.message.user')).toContainText('Shortcut send');
+    await expect(sidepanelPage.locator('.message.assistant')).toContainText('Shortcut reply.', {
+      timeout: 10_000,
+    });
+  } finally {
+    await closeExtension(context, userDataDir);
+  }
+});
