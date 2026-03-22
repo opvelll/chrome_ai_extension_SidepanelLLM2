@@ -45,36 +45,36 @@ export function ComposerPanel({
   const hasAttachments = attachments.length > 0;
 
   return (
-    <section className="sticky bottom-0 z-10 rounded-[24px] border border-stone-200/70 bg-white/92 p-2.5 shadow-md shadow-stone-900/6 backdrop-blur-xl">
-      <div className="flex flex-col gap-2.5">
+    <section className="sticky bottom-0 z-10 rounded-[20px] border border-stone-200/70 bg-white/92 p-2 shadow-md shadow-stone-900/6 backdrop-blur-xl">
+      <div className="flex flex-col gap-2">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
-              className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+              className={`${subtleButtonClassName} h-8 w-8 rounded-lg px-0`}
               onClick={onCaptureSelection}
               aria-label={t.sidepanel.captureSelection}
               title={t.sidepanel.captureSelection}
             >
-              <Type className="h-5 w-5" />
+              <Type className="h-4.5 w-4.5" />
             </button>
             <button
-              className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+              className={`${subtleButtonClassName} h-8 w-8 rounded-lg px-0`}
               onClick={onCapturePage}
               aria-label={t.sidepanel.capturePage}
               title={t.sidepanel.capturePage}
             >
-              <FileText className="h-5 w-5" />
+              <FileText className="h-4.5 w-4.5" />
             </button>
             <button
-              className={`${subtleButtonClassName} h-9 w-9 rounded-xl px-0`}
+              className={`${subtleButtonClassName} h-8 w-8 rounded-lg px-0`}
               onClick={onCaptureScreenshot}
               aria-label={t.sidepanel.captureScreenshot}
               title={t.sidepanel.captureScreenshot}
             >
-              <Camera className="h-5 w-5" />
+              <Camera className="h-4.5 w-4.5" />
             </button>
             <label
-              className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-stone-200 bg-stone-50 px-2.5 text-[11px] font-medium text-stone-700 transition hover:border-teal-200 hover:bg-teal-50/50"
+              className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-stone-200 bg-stone-50 px-2 text-[10px] font-medium text-stone-700 transition hover:border-teal-200 hover:bg-teal-50/50"
               aria-label={t.sidepanel.autoAttachPage}
               title={t.sidepanel.autoAttachPage}
             >
@@ -89,14 +89,14 @@ export function ComposerPanel({
           </div>
 
           {contextError ? (
-            <div className="mt-2 rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
+            <div className="mt-1.5 rounded-[14px] border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[13px] text-rose-600">
               {contextError}
             </div>
           ) : null}
 
           {hasAttachments ? (
-            <div className="mt-2 min-w-0 rounded-[20px] border border-stone-200 bg-stone-50/70">
-              <div className="flex max-h-56 min-w-0 flex-col gap-2 overflow-x-hidden overflow-y-auto p-2">
+            <div className="mt-1.5 min-w-0 rounded-[18px] border border-stone-200 bg-stone-50/70">
+              <div className="flex max-h-48 min-w-0 flex-col gap-1.5 overflow-x-hidden overflow-y-auto p-1.5">
                 {attachments.map((attachment) => (
                   <AttachmentCard
                     key={attachment.id}
@@ -106,11 +106,11 @@ export function ComposerPanel({
                     deleteLabel={t.common.delete}
                     onOpen={onPreviewAttachment}
                     onDelete={(currentAttachment) => onDeleteAttachment(currentAttachment.id)}
-                    className="min-w-0 w-full max-w-full cursor-pointer rounded-[18px] border border-stone-200 bg-white px-3 py-2.5 text-left text-xs text-stone-700 shadow-sm transition hover:bg-stone-50"
+                    className="min-w-0 w-full max-w-full cursor-pointer rounded-[16px] border border-stone-200 bg-white px-2.5 py-2 text-left text-[11px] text-stone-700 shadow-sm transition hover:bg-stone-50"
                     titleClassName="font-medium [overflow-wrap:anywhere]"
-                    metaClassName="mt-1 text-[10px] leading-4 text-stone-500 [overflow-wrap:anywhere]"
-                    deleteButtonClassName="inline-flex h-6 w-6 items-center justify-center rounded-full text-stone-400 transition hover:bg-stone-100 hover:text-stone-800"
-                    bodyClassName="mt-2 line-clamp-3 min-w-0 w-full max-w-full whitespace-pre-wrap rounded-[14px] border border-stone-200 bg-stone-50 px-2.5 py-2 text-xs leading-5 text-stone-600 [overflow-wrap:anywhere]"
+                    metaClassName="mt-0.5 text-[10px] leading-3.5 text-stone-500 [overflow-wrap:anywhere]"
+                    deleteButtonClassName="inline-flex h-5 w-5 items-center justify-center rounded-full text-stone-400 transition hover:bg-stone-100 hover:text-stone-800"
+                    bodyClassName="mt-1.5 line-clamp-3 min-w-0 w-full max-w-full whitespace-pre-wrap rounded-[12px] border border-stone-200 bg-stone-50 px-2 py-1.5 text-[11px] leading-4.5 text-stone-600 [overflow-wrap:anywhere]"
                     showBodyPreview
                     previewAlt={t.sidepanel.attachmentPreviewAlt}
                   />
@@ -120,10 +120,10 @@ export function ComposerPanel({
           ) : null}
         </div>
 
-        <div className="border-t border-stone-200/70 pt-2.5">
-          <div className="flex items-end gap-2">
+        <div className="border-t border-stone-200/70 pt-2">
+          <div className="flex items-end gap-1.5">
             <textarea
-              className="max-h-36 min-h-[92px] flex-1 resize-none overflow-y-auto rounded-[20px] border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm leading-5.5 text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-teal-300 focus:bg-white"
+              className="max-h-32 min-h-[72px] flex-1 resize-none overflow-y-auto rounded-[18px] border border-stone-200 bg-stone-50 px-2.5 py-2 text-[13px] leading-5 text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-teal-300 focus:bg-white"
               placeholder={composerPlaceholder}
               value={draft}
               onChange={(event) => onDraftChange(event.target.value)}
@@ -135,19 +135,19 @@ export function ComposerPanel({
               }}
             />
             <button
-              className={`${primaryButtonClassName} h-10 w-10 shrink-0 rounded-xl px-0`}
+              className={`${primaryButtonClassName} h-9 w-9 shrink-0 rounded-lg px-0`}
               disabled={loading || !draft.trim()}
               onClick={onSubmit}
               aria-label={t.sidepanel.send}
               title={t.sidepanel.send}
             >
-              {loading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+              {loading ? <LoaderCircle className="h-4.5 w-4.5 animate-spin" /> : <Send className="h-4.5 w-4.5" />}
             </button>
           </div>
         </div>
       </div>
 
-      {error ? <div className="mt-2 text-sm text-rose-600">{error}</div> : null}
+      {error ? <div className="mt-1.5 text-[13px] text-rose-600">{error}</div> : null}
     </section>
   );
 }

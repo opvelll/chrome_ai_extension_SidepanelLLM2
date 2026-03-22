@@ -57,7 +57,7 @@ export function App() {
         </div>
       ) : null}
 
-      <main className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-2 overflow-hidden bg-sand-100 p-2.5 sm:p-3">
+      <main className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-1.5 overflow-hidden bg-sand-100 p-1.5 sm:p-2">
         <SidepanelHeader
           settings={sidepanel.settings}
           translations={sidepanel.t}
