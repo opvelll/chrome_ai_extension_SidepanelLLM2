@@ -1,4 +1,5 @@
 import { Trash2, X } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { attachmentSourceDetails } from '../../lib/attachments';
 import { attachmentLabel } from '../../lib/i18n';
 import type { ChatMessage, ContextAttachment, Settings } from '../../shared/models';
@@ -8,6 +9,8 @@ type MessageListProps = {
   messages: ChatMessage[];
   settings: Settings | null;
   translations: ReturnType<typeof import('../../lib/i18n').getTranslations>;
+  scrollTargetMessageId: string;
+  onScrollTargetHandled: () => void;
   onDeleteMessage: (messageId: string) => void;
   onDeleteAttachment: (messageId: string, attachmentId: string) => void;
   onPreviewAttachment: (attachment: ContextAttachment) => void;
@@ -17,15 +20,36 @@ export function MessageList({
   messages,
   settings,
   translations: t,
+  scrollTargetMessageId,
+  onScrollTargetHandled,
   onDeleteMessage,
   onDeleteAttachment,
   onPreviewAttachment,
 }: MessageListProps) {
+  const messageRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  useEffect(() => {
+    if (!scrollTargetMessageId) {
+      return;
+    }
+
+    const target = messageRefs.current[scrollTargetMessageId];
+    if (!target) {
+      return;
+    }
+
+    target.scrollIntoView({ block: 'start', behavior: 'auto' });
+    onScrollTargetHandled();
+  }, [messages, onScrollTargetHandled, scrollTargetMessageId]);
+
   return (
     <section className="flex min-h-0 min-w-0 flex-col gap-1.5 overflow-x-hidden overflow-y-auto rounded-[20px] border border-stone-200/50 bg-white/78 p-2 shadow-inner shadow-stone-900/4 backdrop-blur-sm">
       {messages.map((message) => (
         <article
           key={message.id}
+          ref={(element) => {
+            messageRefs.current[message.id] = element;
+          }}
           className={`message group ${message.role} max-w-[95%] rounded-[18px] px-2.5 py-2 shadow-sm ${
             message.role === 'user'
               ? 'self-end bg-teal-700 text-white shadow-teal-900/20'

@@ -36,6 +36,7 @@ export function useSidepanelState() {
   const [contextError, setContextError] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [autoAttachPage, setAutoAttachPage] = useState(false);
+  const [scrollTargetMessageId, setScrollTargetMessageId] = useState('');
   const preview = useAttachmentPreview();
   const t = getTranslations(settings);
 
@@ -150,6 +151,7 @@ export function useSidepanelState() {
     setAttachments([]);
     setDraft('');
     setHistoryOpen(false);
+    setScrollTargetMessageId('');
     await loadSessions(true);
   }
 
@@ -169,6 +171,7 @@ export function useSidepanelState() {
       setAttachments([]);
       setDraft('');
       setActiveSessionId('');
+      setScrollTargetMessageId('');
     }
     await loadSessions();
   }
@@ -254,6 +257,7 @@ export function useSidepanelState() {
 
       setDraft('');
       setAttachments([]);
+      setScrollTargetMessageId(response.data.userMessageId);
       await loadSessions();
       await loadSession(sessionId);
     } catch (submitError) {
@@ -276,6 +280,7 @@ export function useSidepanelState() {
     contextError,
     historyOpen,
     autoAttachPage,
+    scrollTargetMessageId,
     composerPlaceholder,
     previewAttachment: preview.previewAttachment,
     previewScale: preview.previewScale,
@@ -283,6 +288,9 @@ export function useSidepanelState() {
     setHistoryOpen,
     setDraft,
     setAttachments,
+    clearScrollTargetMessageId() {
+      setScrollTargetMessageId('');
+    },
     setPreviewAttachment: preview.setPreviewAttachment,
     updatePreviewScale: preview.updatePreviewScale,
     createNewSession,
@@ -290,6 +298,7 @@ export function useSidepanelState() {
     selectSession(sessionId: string) {
       setActiveSessionId(sessionId);
       setHistoryOpen(false);
+      setScrollTargetMessageId('');
     },
     deleteStoredMessage,
     deleteStoredAttachment,

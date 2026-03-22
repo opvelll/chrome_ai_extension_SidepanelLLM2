@@ -70,6 +70,8 @@ export function App() {
           messages={sidepanel.messages}
           settings={sidepanel.settings}
           translations={sidepanel.t}
+          scrollTargetMessageId={sidepanel.scrollTargetMessageId}
+          onScrollTargetHandled={sidepanel.clearScrollTargetMessageId}
           onDeleteMessage={(messageId) => void sidepanel.deleteStoredMessage(messageId)}
           onDeleteAttachment={(messageId, attachmentId) =>
             void sidepanel.deleteStoredAttachment(messageId, attachmentId)

@@ -66,7 +66,7 @@ export function sendChatMessage(
   attachments: ContextAttachment[],
   modelId?: string,
 ) {
-  return sendRuntimeMessage<{ assistantMessage: ChatMessage }>({
+  return sendRuntimeMessage<{ assistantMessage: ChatMessage; userMessageId: string }>({
     type: 'chat.send',
     payload: {
       sessionId,

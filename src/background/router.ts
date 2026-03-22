@@ -94,7 +94,10 @@ async function handleChatSend(rawRequest: unknown) {
     await appendMessages(session.id, [result.assistantMessage]);
     return {
       ok: true,
-      data: result,
+      data: {
+        ...result,
+        userMessageId: userMessage.id,
+      },
     };
   } catch (error) {
     return errorResponse(
