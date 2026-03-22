@@ -42,8 +42,10 @@ export function ComposerPanel({
   onDraftChange,
   onSubmit,
 }: ComposerPanelProps) {
+  const hasAttachments = attachments.length > 0;
+
   return (
-    <section className="rounded-[24px] border border-stone-200/70 bg-white/92 p-2.5 shadow-md shadow-stone-900/6 backdrop-blur-xl">
+    <section className="sticky bottom-0 z-10 rounded-[24px] border border-stone-200/70 bg-white/92 p-2.5 shadow-md shadow-stone-900/6 backdrop-blur-xl">
       <div className="flex flex-col gap-2.5">
         <div>
           <div className="flex flex-wrap items-center gap-2">
@@ -92,10 +94,8 @@ export function ComposerPanel({
             </div>
           ) : null}
 
-          <div className="mt-2 min-w-0 rounded-[20px] border border-stone-200 bg-stone-50/70">
-            {attachments.length === 0 ? (
-              <div className="px-3 py-3 text-xs text-stone-500">{t.sidepanel.attachedItems}</div>
-            ) : (
+          {hasAttachments ? (
+            <div className="mt-2 min-w-0 rounded-[20px] border border-stone-200 bg-stone-50/70">
               <div className="flex max-h-56 min-w-0 flex-col gap-2 overflow-x-hidden overflow-y-auto p-2">
                 {attachments.map((attachment) => (
                   <AttachmentCard
@@ -116,8 +116,8 @@ export function ComposerPanel({
                   />
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="border-t border-stone-200/70 pt-2.5">

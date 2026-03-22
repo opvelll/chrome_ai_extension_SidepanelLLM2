@@ -10,7 +10,7 @@ export function App() {
   const sidepanel = useSidepanelState();
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-transparent text-stone-900">
+    <div className="relative h-screen overflow-hidden bg-transparent text-stone-900">
       <SessionHistoryDrawer
         open={sidepanel.historyOpen}
         sessions={sidepanel.sessions}
@@ -57,7 +57,7 @@ export function App() {
         </div>
       ) : null}
 
-      <main className="grid min-h-screen grid-rows-[auto_minmax(0,1fr)_auto] gap-2 bg-sand-100 p-2.5 sm:p-3">
+      <main className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-2 overflow-hidden bg-sand-100 p-2.5 sm:p-3">
         <SidepanelHeader
           settings={sidepanel.settings}
           translations={sidepanel.t}
