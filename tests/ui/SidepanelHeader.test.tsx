@@ -11,6 +11,7 @@ function createSettings(overrides: Partial<Settings> = {}): Settings {
     responseTool: 'none',
     reasoningEffort: 'default',
     systemPrompt: '',
+    automationSystemPrompt: '',
     locale: 'en',
     includeCurrentDateTime: true,
     includeResponseLanguageInstruction: true,

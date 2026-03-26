@@ -4,6 +4,7 @@ import type { ChatMessage, ContextAttachment, ChatSession, Settings } from '../.
 export type CaptureRequestType =
   | 'context.captureSelection'
   | 'context.capturePage'
+  | 'context.capturePageStructure'
   | 'context.captureScreenshot';
 
 export function getSettings() {
@@ -68,6 +69,23 @@ export function sendChatMessage(
 ) {
   return sendRuntimeMessage<{ assistantMessage: ChatMessage; userMessageId: string }>({
     type: 'chat.send',
+    payload: {
+      sessionId,
+      message,
+      attachments,
+      modelId,
+    },
+  });
+}
+
+export function runAutomationMessage(
+  sessionId: string,
+  message: string,
+  attachments: ContextAttachment[],
+  modelId?: string,
+) {
+  return sendRuntimeMessage<{ assistantMessage: ChatMessage; userMessageId: string }>({
+    type: 'automation.run',
     payload: {
       sessionId,
       message,

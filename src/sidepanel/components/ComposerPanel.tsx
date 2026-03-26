@@ -8,6 +8,7 @@ type ComposerPanelProps = {
   draft: string;
   loading: boolean;
   autoAttachPage: boolean;
+  automationMode: boolean;
   composerPlaceholder: string;
   contextError: string;
   error: string;
@@ -17,6 +18,7 @@ type ComposerPanelProps = {
   onCapturePage: () => void;
   onCaptureScreenshot: () => void;
   onToggleAutoAttachPage: (nextValue: boolean) => void;
+  onToggleAutomationMode: (nextValue: boolean) => void;
   onPreviewAttachment: (attachment: ContextAttachment) => void;
   onDeleteAttachment: (attachmentId: string) => void;
   onDraftChange: (nextValue: string) => void;
@@ -28,6 +30,7 @@ export function ComposerPanel({
   draft,
   loading,
   autoAttachPage,
+  automationMode,
   composerPlaceholder,
   contextError,
   error,
@@ -37,54 +40,91 @@ export function ComposerPanel({
   onCapturePage,
   onCaptureScreenshot,
   onToggleAutoAttachPage,
+  onToggleAutomationMode,
   onPreviewAttachment,
   onDeleteAttachment,
   onDraftChange,
   onSubmit,
 }: ComposerPanelProps) {
   const hasAttachments = attachments.length > 0;
+  const switchClassName =
+    'relative inline-flex h-8 min-w-[58px] shrink-0 items-center rounded-full border transition focus-within:ring-2 focus-within:ring-offset-2';
 
   return (
     <section className="sticky bottom-0 z-10 rounded-[20px] border border-stone-200/70 bg-white/92 p-2 shadow-md shadow-stone-900/6 backdrop-blur-xl">
       <div className="flex flex-col gap-2">
         <div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button
-              className={`${subtleButtonClassName} h-8 w-8 rounded-lg px-0`}
-              onClick={onCaptureSelection}
-              aria-label={t.sidepanel.captureSelection}
-              title={t.sidepanel.captureSelection}
-            >
-              <Type className="h-4.5 w-4.5" />
-            </button>
-            <button
-              className={`${subtleButtonClassName} h-8 w-8 rounded-lg px-0`}
-              onClick={onCapturePage}
-              aria-label={t.sidepanel.capturePage}
-              title={t.sidepanel.capturePage}
-            >
-              <FileText className="h-4.5 w-4.5" />
-            </button>
-            <button
-              className={`${subtleButtonClassName} h-8 w-8 rounded-lg px-0`}
-              onClick={onCaptureScreenshot}
-              aria-label={t.sidepanel.captureScreenshot}
-              title={t.sidepanel.captureScreenshot}
-            >
-              <Camera className="h-4.5 w-4.5" />
-            </button>
+          <div className="flex items-center gap-1.5">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+              <button
+                className={`${subtleButtonClassName} h-8 w-8 rounded-lg px-0`}
+                onClick={onCaptureSelection}
+                aria-label={t.sidepanel.captureSelection}
+                title={t.sidepanel.captureSelection}
+              >
+                <Type className="h-4.5 w-4.5" />
+              </button>
+              <div className="inline-flex items-center gap-1 rounded-xl border border-stone-200 bg-stone-50 px-1 py-1">
+                <button
+                  className={`${subtleButtonClassName} h-6.5 w-6.5 rounded-lg border-0 bg-transparent px-0 shadow-none hover:bg-white`}
+                  onClick={onCapturePage}
+                  aria-label={t.sidepanel.capturePage}
+                  title={t.sidepanel.capturePage}
+                >
+                  <FileText className="h-4 w-4" />
+                </button>
+                <label
+                  className="inline-flex h-6.5 shrink-0 cursor-pointer items-center gap-1 rounded-lg px-1.5 text-[10px] font-medium text-stone-700"
+                  aria-label={t.sidepanel.autoAttachPage}
+                  title={t.sidepanel.autoAttachPage}
+                >
+                  <input
+                    type="checkbox"
+                    className="h-3 w-3 rounded border-stone-300 text-teal-600 focus:ring-teal-500"
+                    checked={autoAttachPage}
+                    onChange={(event) => onToggleAutoAttachPage(event.target.checked)}
+                  />
+                  <span>{t.sidepanel.autoAttachPageShort}</span>
+                </label>
+              </div>
+              <button
+                className={`${subtleButtonClassName} h-8 w-8 rounded-lg px-0`}
+                onClick={onCaptureScreenshot}
+                aria-label={t.sidepanel.captureScreenshot}
+                title={t.sidepanel.captureScreenshot}
+              >
+                <Camera className="h-4.5 w-4.5" />
+              </button>
+            </div>
             <label
-              className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-stone-200 bg-stone-50 px-2 text-[10px] font-medium text-stone-700 transition hover:border-teal-200 hover:bg-teal-50/50"
-              aria-label={t.sidepanel.autoAttachPage}
-              title={t.sidepanel.autoAttachPage}
+              className={`ml-auto inline-flex items-center gap-1.5 text-[10px] font-medium ${
+                automationMode ? 'text-amber-700' : 'text-stone-700'
+              }`}
+              aria-label={t.sidepanel.automationMode}
             >
               <input
                 type="checkbox"
-                className="h-3.5 w-3.5 rounded border-stone-300 text-teal-600 focus:ring-teal-500"
-                checked={autoAttachPage}
-                onChange={(event) => onToggleAutoAttachPage(event.target.checked)}
+                className="peer sr-only"
+                checked={automationMode}
+                onChange={(event) => onToggleAutomationMode(event.target.checked)}
               />
-              <span>{t.sidepanel.autoAttachPageShort}</span>
+              <span
+                className={`${switchClassName} ${
+                  automationMode
+                    ? 'border-amber-300 bg-amber-100/90 focus-within:ring-amber-300'
+                    : 'border-stone-200 bg-stone-100 focus-within:ring-stone-300'
+                }`}
+                title={t.sidepanel.automationMode}
+              >
+                <span
+                  className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full shadow-sm transition-transform ${
+                    automationMode
+                      ? 'translate-x-[28px] bg-amber-500'
+                      : 'translate-x-0 bg-white'
+                  }`}
+                />
+              </span>
+              <span>{t.sidepanel.automationModeShort}</span>
             </label>
           </div>
 

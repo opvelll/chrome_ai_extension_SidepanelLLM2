@@ -31,6 +31,8 @@ export function attachmentPromptText(attachment: ContextAttachment): string {
       return `Attachment type: Selected text\nSource details:\n${sourceDetails}\nContent:\n${attachment.text}`;
     case 'pageText':
       return `Attachment type: Page text\nSource details:\n${sourceDetails}\nContent:\n${attachment.text}`;
+    case 'pageStructure':
+      return `Attachment type: Page structure\nSource details:\n${sourceDetails}\nContent:\n${attachment.text}`;
     case 'screenshot':
       return `Attachment type: Screenshot\nSource details:\n${sourceDetails}\nContent: Screenshot image attached separately.`;
   }

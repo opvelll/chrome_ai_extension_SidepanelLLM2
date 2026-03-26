@@ -1,4 +1,5 @@
 import {
+  automationRunRequestSchema,
   chatSendRequestSchema,
   messageAttachmentDeleteRequestSchema,
   messageDeleteRequestSchema,
@@ -23,10 +24,12 @@ import {
   listSessions,
   saveSettings,
 } from '../lib/storage';
-import { listAvailableModels, sendChatCompletion } from '../lib/provider';
+import { listAvailableModels, runAutomationCompletion, sendChatCompletion } from '../lib/provider';
+import { executeAutomationToolCall } from './browserAutomation';
 import {
   captureAreaScreenshot,
   capturePage,
+  capturePageStructure,
   captureScreenshot,
   captureSelection,
   getActiveSelection,
@@ -37,6 +40,7 @@ import { consumePendingSelection, updatePendingSelection } from './pendingSelect
 
 type MessageResponse =
   | Awaited<ReturnType<typeof handleChatSend>>
+  | Awaited<ReturnType<typeof handleAutomationRun>>
   | { ok: true; data: { session: Awaited<ReturnType<typeof createSession>> } }
   | { ok: true; data: { sessions: Awaited<ReturnType<typeof listSessions>> } }
   | {
@@ -108,6 +112,53 @@ async function handleChatSend(rawRequest: unknown) {
   }
 }
 
+async function handleAutomationRun(rawRequest: unknown) {
+  const request = automationRunRequestSchema.parse(rawRequest);
+  const settings = await getSettings();
+  const session = await getSession(request.payload.sessionId);
+
+  if (!session) {
+    return errorResponse('Session not found.', 'session_not_found');
+  }
+
+  const userMessage: ChatMessage = {
+    id: crypto.randomUUID(),
+    role: 'user',
+    content: request.payload.message,
+    createdAt: new Date().toISOString(),
+    attachments: request.payload.attachments,
+  };
+
+  const history = await listMessages(session.id);
+  await appendMessages(session.id, [userMessage]);
+
+  try {
+    const result = await runAutomationCompletion({
+      settings,
+      userMessage,
+      history,
+      attachments: request.payload.attachments,
+      modelId: request.payload.modelId,
+      executeToolCall: (toolCall) => executeAutomationToolCall(toolCall.name, toolCall.arguments),
+    });
+
+    await appendMessages(session.id, [result.assistantMessage]);
+    return {
+      ok: true,
+      data: {
+        ...result,
+        userMessageId: userMessage.id,
+      },
+    };
+  } catch (error) {
+    return errorResponse(
+      error instanceof Error ? error.message : 'Automation request failed.',
+      'provider_error',
+      true,
+    );
+  }
+}
+
 async function handleSessionCreate(rawRequest: unknown): Promise<MessageResponse> {
   const parsed = sessionCreateRequestSchema.parse(rawRequest);
   const session = await createSession(parsed.payload?.title);
@@ -153,13 +204,15 @@ async function handleMessageAttachmentDelete(rawRequest: unknown): Promise<Messa
 }
 
 async function handleContextCapture(
-  type: 'context.captureSelection' | 'context.capturePage' | 'context.captureScreenshot',
+  type: 'context.captureSelection' | 'context.capturePage' | 'context.capturePageStructure' | 'context.captureScreenshot',
 ): Promise<MessageResponse> {
   const attachment =
     type === 'context.captureSelection'
       ? await captureSelection()
       : type === 'context.capturePage'
         ? await capturePage()
+        : type === 'context.capturePageStructure'
+          ? await capturePageStructure()
         : await captureScreenshot();
 
   return { ok: true, data: { attachment } };
@@ -247,6 +300,7 @@ async function handleSettingsTestConnection(rawRequest: unknown): Promise<Messag
       responseTool: parsed.payload.responseTool ?? 'web_search',
       reasoningEffort: parsed.payload.reasoningEffort ?? 'default',
       systemPrompt: '',
+      automationSystemPrompt: '',
       locale: 'auto',
       includeCurrentDateTime: true,
       includeResponseLanguageInstruction: true,
@@ -285,6 +339,7 @@ export async function routeMessage(
       return handleMessageAttachmentDelete(request);
     case 'context.captureSelection':
     case 'context.capturePage':
+    case 'context.capturePageStructure':
     case 'context.captureScreenshot':
       return handleContextCapture(request.type);
     case 'context.captureArea':
@@ -309,6 +364,8 @@ export async function routeMessage(
       return handleSettingsListModels(request);
     case 'chat.send':
       return handleChatSend(request);
+    case 'automation.run':
+      return handleAutomationRun(request);
     default:
       return errorResponse('Unsupported message type.', 'unsupported_message');
   }

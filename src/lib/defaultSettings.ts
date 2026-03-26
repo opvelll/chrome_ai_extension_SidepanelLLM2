@@ -1,5 +1,5 @@
 import type { Settings } from '../shared/models';
-import { DEFAULT_SYSTEM_PROMPT } from './defaultSystemPrompt';
+import { DEFAULT_AUTOMATION_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT } from './defaultSystemPrompt';
 
 const DEV_DEFAULT_SETTINGS: Settings = {
   apiKey: import.meta.env.DEV ? import.meta.env.VITE_DEV_OPENAI_API_KEY ?? '' : '',
@@ -7,6 +7,7 @@ const DEV_DEFAULT_SETTINGS: Settings = {
   responseTool: 'web_search',
   reasoningEffort: 'default',
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
+  automationSystemPrompt: DEFAULT_AUTOMATION_SYSTEM_PROMPT,
   locale: 'auto',
   includeCurrentDateTime: true,
   includeResponseLanguageInstruction: true,

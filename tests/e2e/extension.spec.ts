@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
-import { DEFAULT_SYSTEM_PROMPT } from '../../src/lib/defaultSystemPrompt';
+import { DEFAULT_AUTOMATION_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT } from '../../src/lib/defaultSystemPrompt';
 
 const extensionPath = path.resolve(process.cwd(), 'dist');
 let fixtureServer: http.Server;
@@ -89,8 +89,10 @@ function optionsFields(page: Page) {
     responseTool: page.getByRole('combobox', { name: /^Tool$/ }),
     reasoningEffort: page.getByRole('combobox', { name: /^Reasoning$/ }),
     refreshModels: page.getByRole('button', { name: /^(Refresh models|モデル一覧を更新)$/ }),
-    systemPrompt: page.locator('textarea'),
-    resetSystemPrompt: page.getByRole('button', { name: /^(Reset|リセット)$/ }),
+    systemPrompt: page.locator('textarea').nth(0),
+    automationSystemPrompt: page.locator('textarea').nth(1),
+    resetSystemPrompt: page.getByRole('button', { name: /^(Reset|リセット)$/ }).nth(0),
+    resetAutomationSystemPrompt: page.getByRole('button', { name: /^(Reset|リセット)$/ }).nth(1),
     includeCurrentDateTime: page.getByLabel(/^(Include current date and time|現在日時を含める)$/),
     includeResponseLanguageInstruction: page.getByLabel(/^(Include response language instruction|返答言語の指示を含める)$/),
     autoAttachPage: page.getByLabel(/^(Auto attach full page on first message|最初の送信時にページ全文を自動添付)$/),
@@ -138,6 +140,7 @@ async function saveSettings(
     responseTool?: 'none' | 'web_search';
     reasoningEffort?: 'default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
     systemPrompt?: string;
+    automationSystemPrompt?: string;
     locale?: 'auto' | 'en' | 'ja';
     includeCurrentDateTime?: boolean;
     includeResponseLanguageInstruction?: boolean;
@@ -167,6 +170,10 @@ async function saveSettings(
 
   if (settings?.systemPrompt !== undefined) {
     await fields.systemPrompt.fill(settings.systemPrompt);
+  }
+
+  if (settings?.automationSystemPrompt !== undefined) {
+    await fields.automationSystemPrompt.fill(settings.automationSystemPrompt);
   }
 
   if (settings?.locale !== undefined) {
@@ -234,6 +241,15 @@ test.beforeAll(async () => {
               This page exists to verify that the content script can read page text
               and the current selection from the active tab.
             </p>
+            <form
+              id="fixture-search-form"
+              onsubmit="event.preventDefault(); document.getElementById('search-result').textContent = 'Search submitted: ' + document.getElementById('fixture-search-input').value;"
+            >
+              <label for="fixture-search-input">Search</label>
+              <input id="fixture-search-input" name="q" placeholder="Search term" />
+              <button type="submit">Run search</button>
+            </form>
+            <p id="search-result" aria-live="polite"></p>
           </main>
         </body>
       </html>
@@ -274,11 +290,17 @@ test('loads the extension options page and saves settings', async () => {
     await waitForOptionsReady(page);
     const fields = optionsFields(page);
     await expect(fields.resetSystemPrompt).toBeDisabled();
+    await expect(fields.resetAutomationSystemPrompt).toBeDisabled();
     await fields.systemPrompt.fill('Temporary prompt');
     await expect(fields.resetSystemPrompt).toBeEnabled();
     await fields.resetSystemPrompt.click();
     await expect(fields.systemPrompt).toHaveValue(DEFAULT_SYSTEM_PROMPT);
     await expect(fields.resetSystemPrompt).toBeDisabled();
+    await fields.automationSystemPrompt.fill('Temporary automation prompt');
+    await expect(fields.resetAutomationSystemPrompt).toBeEnabled();
+    await fields.resetAutomationSystemPrompt.click();
+    await expect(fields.automationSystemPrompt).toHaveValue(DEFAULT_AUTOMATION_SYSTEM_PROMPT);
+    await expect(fields.resetAutomationSystemPrompt).toBeDisabled();
 
     await saveSettings(page, {
       apiKey: 'test-api-key',
@@ -286,6 +308,7 @@ test('loads the extension options page and saves settings', async () => {
       responseTool: 'web_search',
       reasoningEffort: 'high',
       systemPrompt: 'Be concise.',
+      automationSystemPrompt: 'Use tools aggressively.',
       autoAttachPage: true,
     });
 
@@ -300,6 +323,7 @@ test('loads the extension options page and saves settings', async () => {
     await expect(reloadedFields.responseTool).toHaveValue('web_search');
     await expect(reloadedFields.reasoningEffort).toHaveValue('high');
     await expect(reloadedFields.systemPrompt).toHaveValue('Be concise.');
+    await expect(reloadedFields.automationSystemPrompt).toHaveValue('Use tools aggressively.');
     await expect(reloadedFields.autoAttachPage).toBeChecked();
   } finally {
     await closeExtension(context, userDataDir);
@@ -698,6 +722,233 @@ test('sends a chat request with ctrl+enter from the composer', async () => {
       timeout: 10_000,
     });
     await expect(sidepanelPage.locator('.message.assistant')).not.toContainText('Web search used');
+  } finally {
+    await closeExtension(context, userDataDir);
+  }
+});
+
+test('runs browser automation mode from the composer toggle', async () => {
+  const { context, extensionId, userDataDir } = await launchExtension();
+  let responseCount = 0;
+  const requestBodies: string[] = [];
+
+  try {
+    await context.route('**/v1/responses', async (route) => {
+      requestBodies.push(route.request().postData() ?? '');
+      responseCount += 1;
+
+      if (responseCount === 1) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            id: 'resp_auto_1',
+            object: 'response',
+            created_at: 1735689600,
+            model: 'gpt-4.1-mini',
+            output_text: '',
+            error: null,
+            incomplete_details: null,
+            instructions: null,
+            metadata: {},
+            output: [
+              {
+                id: 'fc_auto_1',
+                type: 'function_call',
+                call_id: 'call_auto_1',
+                name: 'browser_inspect_page',
+                arguments: '{"maxElements":10}',
+                status: 'completed',
+              },
+            ],
+            parallel_tool_calls: false,
+            temperature: 1,
+            tool_choice: 'auto',
+            tools: [],
+            top_p: 1,
+            max_output_tokens: null,
+            previous_response_id: null,
+            reasoning: null,
+            status: 'completed',
+            usage: {
+              input_tokens: 15,
+              output_tokens: 4,
+              total_tokens: 19,
+            },
+          }),
+        });
+        return;
+      }
+
+      if (responseCount === 2) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            id: 'resp_auto_2',
+            object: 'response',
+            created_at: 1735689601,
+            model: 'gpt-4.1-mini',
+            output_text: '',
+            error: null,
+            incomplete_details: null,
+            instructions: null,
+            metadata: {},
+            output: [
+              {
+                id: 'fc_auto_2',
+                type: 'function_call',
+                call_id: 'call_auto_2',
+                name: 'browser_type',
+                arguments: '{"selector":"[data-sidepanel-automation-id=\\"sp-auto-0\\"]","text":"penguin","clear":true,"submit":false}',
+                status: 'completed',
+              },
+              {
+                id: 'fc_auto_3',
+                type: 'function_call',
+                call_id: 'call_auto_3',
+                name: 'browser_click',
+                arguments: '{"selector":"[data-sidepanel-automation-id=\\"sp-auto-1\\"]"}',
+                status: 'completed',
+              },
+            ],
+            parallel_tool_calls: false,
+            temperature: 1,
+            tool_choice: 'auto',
+            tools: [],
+            top_p: 1,
+            max_output_tokens: null,
+            previous_response_id: 'resp_auto_1',
+            reasoning: null,
+            status: 'completed',
+            usage: {
+              input_tokens: 17,
+              output_tokens: 6,
+              total_tokens: 23,
+            },
+          }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'resp_auto_3',
+          object: 'response',
+          created_at: 1735689602,
+          model: 'gpt-4.1-mini',
+          output_text: 'Completed the browser task.',
+          error: null,
+          incomplete_details: null,
+          instructions: null,
+          metadata: {},
+          output: [
+            {
+              id: 'msg_auto_final',
+              type: 'message',
+              role: 'assistant',
+              status: 'completed',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Completed the browser task.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          parallel_tool_calls: false,
+          temperature: 1,
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          max_output_tokens: null,
+          previous_response_id: 'resp_auto_2',
+          reasoning: null,
+          status: 'completed',
+          usage: {
+            input_tokens: 9,
+            output_tokens: 3,
+            total_tokens: 12,
+          },
+        }),
+      });
+    });
+
+    const fixturePage = await openFixturePage(context);
+    await fixturePage.bringToFront();
+
+    const optionsPage = await openExtensionPage(context, extensionId, 'options.html');
+    await saveSettings(optionsPage, {
+      locale: 'en',
+      apiKey: 'test-api-key',
+      modelId: 'gpt-4.1-mini',
+      responseTool: 'none',
+    });
+
+    const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
+    await waitForSidepanelReady(sidepanelPage);
+
+    await sidepanelPage.getByLabel('Automatic browser actions').check();
+    await sidepanelPage.getByPlaceholder('Describe what to do on this page...').fill('Type penguin into the search box and run it.');
+    await fixturePage.bringToFront();
+    await clickButtonInBackground(sidepanelPage, 'Send');
+
+    await expect(sidepanelPage.locator('.message.user')).toContainText('Type penguin into the search box and run it.');
+    await expect(sidepanelPage.locator('.message.assistant')).toContainText('Completed the browser task.', {
+      timeout: 10_000,
+    });
+    await expect(sidepanelPage.locator('.message.user')).toContainText('Page structure: Fixture Article');
+    await expect(fixturePage.locator('#fixture-search-input')).toHaveValue('penguin');
+    await expect(fixturePage.locator('#search-result')).toContainText('Search submitted: penguin');
+    expect(responseCount).toBe(3);
+    expect(requestBodies[0]).toContain('Attachment type: Page structure');
+    expect(requestBodies[0]).toContain('"type":"computer"');
+    expect(requestBodies[0]).not.toContain('"type":"web_search_preview"');
+  } finally {
+    await closeExtension(context, userDataDir);
+  }
+});
+
+test('keeps the user message visible when the provider returns an error', async () => {
+  const { context, extensionId, userDataDir } = await launchExtension();
+
+  try {
+    await context.route('**/v1/responses', async (route) => {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: {
+            message: 'Mocked provider failure.',
+            type: 'server_error',
+          },
+        }),
+      });
+    });
+
+    const fixturePage = await openFixturePage(context);
+    await fixturePage.bringToFront();
+
+    const optionsPage = await openExtensionPage(context, extensionId, 'options.html');
+    await saveSettings(optionsPage, {
+      locale: 'en',
+      apiKey: 'test-api-key',
+      modelId: 'gpt-4.1-mini',
+      responseTool: 'none',
+    });
+
+    const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
+    await waitForSidepanelReady(sidepanelPage);
+
+    await sidepanelPage.getByPlaceholder('Type a message...').fill('This should remain visible');
+    await fixturePage.bringToFront();
+    await clickButtonInBackground(sidepanelPage, 'Send');
+
+    await expect(sidepanelPage.locator('.message.user')).toContainText('This should remain visible');
+    await expect(sidepanelPage.getByText('Mocked provider failure.')).toBeVisible();
   } finally {
     await closeExtension(context, userDataDir);
   }

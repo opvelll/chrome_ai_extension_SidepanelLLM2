@@ -33,6 +33,7 @@ type TranslationDictionary = {
     contextHint: string;
     composerPlaceholder: string;
     composerPlaceholderAuto: string;
+    composerPlaceholderAutomation: string;
     send: string;
     attachmentPreviewAlt: string;
     userRole: string;
@@ -43,6 +44,8 @@ type TranslationDictionary = {
     captureScreenshot: string;
     autoAttachPage: string;
     autoAttachPageShort: string;
+    automationMode: string;
+    automationModeShort: string;
     attachedItems: string;
     attachmentOpen: string;
     activeModel: string;
@@ -81,6 +84,7 @@ type TranslationDictionary = {
     modelManualEntry: string;
     modelListUnavailable: string;
     systemPrompt: string;
+    automationSystemPrompt: string;
     promptContext: string;
     includeCurrentDateTime: string;
     includeResponseLanguageInstruction: string;
@@ -98,6 +102,7 @@ type TranslationDictionary = {
     selection: string;
     page: string;
     screenshot: string;
+    pageStructure: string;
     currentPage: string;
   };
   errors: {
@@ -135,6 +140,7 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       contextHint: 'Bring the current page into the conversation before sending.',
       composerPlaceholder: 'Type a message...',
       composerPlaceholderAuto: 'Ask about the current page...',
+      composerPlaceholderAutomation: 'Describe what to do on this page...',
       send: 'Send',
       attachmentPreviewAlt: 'Attached screenshot preview',
       userRole: 'You',
@@ -144,7 +150,9 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       capturePage: 'Capture page',
       captureScreenshot: 'Capture screenshot',
       autoAttachPage: 'Auto attach full page on first message',
-      autoAttachPageShort: 'Auto',
+      autoAttachPageShort: 'Page attach',
+      automationMode: 'Automatic browser actions',
+      automationModeShort: 'Automatic',
       attachedItems: 'Attached items',
       attachmentOpen: 'Open attachment',
       activeModel: 'Active model',
@@ -185,6 +193,7 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       modelManualEntry: 'Manual model ID entry',
       modelListUnavailable: 'Model list could not be loaded. Enter the model ID manually.',
       systemPrompt: 'System prompt',
+      automationSystemPrompt: 'Automation mode prompt',
       promptContext: 'Prompt context',
       includeCurrentDateTime: 'Include current date and time',
       includeResponseLanguageInstruction: 'Include response language instruction',
@@ -202,6 +211,7 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       selection: 'Selection',
       page: 'Page',
       screenshot: 'Screenshot',
+      pageStructure: 'Page structure',
       currentPage: 'Current page',
     },
     errors: {
@@ -237,6 +247,7 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       contextHint: '送信前に現在のページ情報を会話に取り込みます。',
       composerPlaceholder: 'メッセージを入力...',
       composerPlaceholderAuto: '現在のページについて質問してください...',
+      composerPlaceholderAutomation: 'このページでやってほしい操作を入力...',
       send: '送信',
       attachmentPreviewAlt: '添付したスクリーンショットのプレビュー',
       userRole: 'あなた',
@@ -246,7 +257,9 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       capturePage: 'ページ全文を取得',
       captureScreenshot: 'スクリーンショットを取得',
       autoAttachPage: '最初の送信時にページ全文を自動添付',
-      autoAttachPageShort: 'auto',
+      autoAttachPageShort: 'ページ添付',
+      automationMode: '自動操作モード',
+      automationModeShort: '自動操作',
       attachedItems: '添付中の項目',
       attachmentOpen: '添付を開く',
       activeModel: '使用モデル',
@@ -287,6 +300,7 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       modelManualEntry: 'モデル ID を手入力',
       modelListUnavailable: 'モデル一覧を取得できませんでした。モデル ID を手入力してください。',
       systemPrompt: 'システムプロンプト',
+      automationSystemPrompt: '自動操作モード用プロンプト',
       promptContext: '埋め込みコンテキスト',
       includeCurrentDateTime: '現在日時を含める',
       includeResponseLanguageInstruction: '返答言語の指示を含める',
@@ -304,6 +318,7 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       selection: '選択範囲',
       page: 'ページ',
       screenshot: 'スクリーンショット',
+      pageStructure: 'ページ構造',
       currentPage: '現在のページ',
     },
     errors: {
@@ -348,6 +363,8 @@ export function attachmentLabel(
       return `${t.attachments.selection}: ${attachment.text.slice(0, 48)}`;
     case 'pageText':
       return `${t.attachments.page}: ${attachmentSourceSummary(attachment.source) || t.attachments.currentPage}`;
+    case 'pageStructure':
+      return `${t.attachments.pageStructure}: ${attachmentSourceSummary(attachment.source) || t.attachments.currentPage}`;
     case 'screenshot':
       return `${t.attachments.screenshot}: ${attachmentSourceSummary(attachment.source) || t.attachments.currentPage}`;
   }

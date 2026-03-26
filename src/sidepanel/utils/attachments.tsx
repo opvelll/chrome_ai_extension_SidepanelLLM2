@@ -6,6 +6,7 @@ export function attachmentIcon(attachment: ContextAttachment) {
     case 'selectionText':
       return <Type className="h-4.5 w-4.5" />;
     case 'pageText':
+    case 'pageStructure':
       return <FileText className="h-4.5 w-4.5" />;
     case 'screenshot':
       return <ImageIcon className="h-4.5 w-4.5" />;

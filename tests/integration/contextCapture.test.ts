@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   captureAreaScreenshot,
   capturePage,
+  capturePageStructure,
   captureSelection,
   captureScreenshot,
 } from '../../src/background/contextCapture';
@@ -73,6 +74,22 @@ describe('contextCapture', () => {
     }
     expect(attachment.imageDataUrl).toBe('data:image/png;base64,screenshot');
     expect(attachment.source.tabId).toBe(11);
+  });
+
+  it('captures page structure from the active tab', async () => {
+    const { chrome } = createContextCaptureChromeMock({
+      sendMessageResults: [{ text: 'Title: Fixture Article\nVisible interactive elements:\n1. selector=button' }],
+    });
+    vi.stubGlobal('chrome', chrome);
+
+    const attachment = await capturePageStructure();
+
+    expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(11, { type: 'content.getPageStructure' });
+    expect(attachment.kind).toBe('pageStructure');
+    if (attachment.kind !== 'pageStructure') {
+      throw new Error('Expected a page structure attachment.');
+    }
+    expect(attachment.text).toContain('Visible interactive elements');
   });
 
   it('crops an area from the visible tab screenshot', async () => {

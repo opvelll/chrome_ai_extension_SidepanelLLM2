@@ -1,7 +1,20 @@
 import OpenAI from 'openai';
-import type { EasyInputMessage, Response, ResponseInputContent, Tool } from 'openai/resources/responses/responses';
+import type {
+  EasyInputMessage,
+  Response,
+  ResponseFunctionToolCall,
+  ResponseInputContent,
+  ResponseInputItem,
+  Tool,
+} from 'openai/resources/responses/responses';
 import type { Reasoning } from 'openai/resources/shared';
 import { attachmentPromptText } from './attachments';
+import {
+  AUTOMATION_MAX_STEPS,
+  formatAutomationResult,
+  getAutomationTools,
+  parseAutomationToolCall,
+} from './automation';
 import { buildSystemInstructions } from './defaultSystemPrompt';
 import type { ChatMessage, ChatMessageToolUsage, ContextAttachment, Settings, TokenUsage } from '../shared/models';
 
@@ -32,6 +45,7 @@ export async function listAvailableModels(apiKey: string): Promise<string[]> {
     responseTool: 'web_search',
     reasoningEffort: 'default',
     systemPrompt: '',
+    automationSystemPrompt: '',
     locale: 'auto',
     includeCurrentDateTime: true,
     includeResponseLanguageInstruction: true,
@@ -57,6 +71,136 @@ export async function sendChatCompletion(input: {
   assertApiKey(settings.apiKey);
 
   const client = createClient(settings);
+  const messages = buildInputMessages(history, userMessage, attachments);
+
+  const response = await client.responses.create({
+    model: modelId || settings.modelId,
+    input: messages,
+    instructions: buildSystemInstructions(settings, settings.systemPrompt) || undefined,
+    tools: getResponseTools(settings),
+    include: getResponseIncludes(settings),
+    reasoning: getReasoning(settings),
+  });
+  const content = extractResponseText(response);
+  const toolUsage = settings.responseTool === 'web_search'
+    ? extractToolUsage(response)
+    : undefined;
+
+  if (!content) {
+    throw new Error('Provider returned an empty response.');
+  }
+
+  return {
+    assistantMessage: {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content,
+      createdAt: new Date().toISOString(),
+      toolUsage,
+    },
+    usage: {
+      promptTokens: response.usage?.input_tokens,
+      completionTokens: response.usage?.output_tokens,
+      totalTokens: response.usage?.total_tokens,
+    },
+  };
+}
+
+export async function runAutomationCompletion(input: {
+  settings: Settings;
+  userMessage: ChatMessage;
+  history: ChatMessage[];
+  attachments: ContextAttachment[];
+  modelId?: string;
+  executeToolCall: (toolCall: ResponseFunctionToolCall) => Promise<unknown>;
+}): Promise<ProviderResult> {
+  const { settings, userMessage, history, attachments, modelId, executeToolCall } = input;
+
+  assertApiKey(settings.apiKey);
+
+  const client = createClient(settings);
+  const tools = getResponseTools(settings, { includeAutomation: true });
+  const instructions = buildSystemInstructions(settings, settings.automationSystemPrompt);
+  let response = await client.responses.create({
+    model: modelId || settings.modelId,
+    input: buildInputMessages(history, userMessage, attachments),
+    instructions,
+    tools,
+    include: getResponseIncludes(settings),
+    reasoning: getReasoning(settings),
+    parallel_tool_calls: false,
+  });
+
+  for (let step = 0; step < AUTOMATION_MAX_STEPS; step += 1) {
+    const functionCalls = response.output.filter((item): item is ResponseFunctionToolCall => item.type === 'function_call');
+
+    if (functionCalls.length === 0) {
+      const content = extractResponseText(response);
+      if (!content) {
+        throw new Error('Provider returned an empty response.');
+      }
+
+      return {
+        assistantMessage: {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content,
+          createdAt: new Date().toISOString(),
+        },
+        usage: {
+          promptTokens: response.usage?.input_tokens,
+          completionTokens: response.usage?.output_tokens,
+          totalTokens: response.usage?.total_tokens,
+        },
+      };
+    }
+
+    const toolOutputs: ResponseInputItem[] = [];
+
+    for (const functionCall of functionCalls) {
+      try {
+        parseAutomationToolCall(functionCall.name, functionCall.arguments);
+        const result = await executeToolCall(functionCall);
+        toolOutputs.push({
+          type: 'function_call_output',
+          call_id: functionCall.call_id,
+          output: formatAutomationResult({
+            ok: true,
+            result,
+          }),
+        });
+      } catch (error) {
+        toolOutputs.push({
+          type: 'function_call_output',
+          call_id: functionCall.call_id,
+          output: formatAutomationResult({
+            ok: false,
+            error: error instanceof Error ? error.message : 'Automation tool execution failed.',
+          }),
+        });
+      }
+    }
+
+    response = await client.responses.create({
+      model: modelId || settings.modelId,
+      previous_response_id: response.id,
+      input: toolOutputs,
+      instructions,
+      tools,
+      include: getResponseIncludes(settings),
+      reasoning: getReasoning(settings),
+      parallel_tool_calls: false,
+    });
+  }
+
+  throw new Error(`Automation stopped after reaching the ${AUTOMATION_MAX_STEPS}-step limit.`);
+}
+
+function buildInputMessages(
+  history: ChatMessage[],
+  userMessage: ChatMessage,
+  attachments: ContextAttachment[],
+): EasyInputMessage[] {
   const messages: EasyInputMessage[] = history.map((message) => ({
     type: 'message',
     role: message.role,
@@ -96,45 +240,21 @@ export async function sendChatCompletion(input: {
     content: contentParts,
   });
 
-  const response = await client.responses.create({
-    model: modelId || settings.modelId,
-    input: messages,
-    instructions: buildSystemInstructions(settings) || undefined,
-    tools: getResponseTools(settings),
-    include: getResponseIncludes(settings),
-    reasoning: getReasoning(settings),
-  });
-  const content = extractResponseText(response);
-  const toolUsage = settings.responseTool === 'web_search'
-    ? extractToolUsage(response)
-    : undefined;
-
-  if (!content) {
-    throw new Error('Provider returned an empty response.');
-  }
-
-  return {
-    assistantMessage: {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content,
-      createdAt: new Date().toISOString(),
-      toolUsage,
-    },
-    usage: {
-      promptTokens: response.usage?.input_tokens,
-      completionTokens: response.usage?.output_tokens,
-      totalTokens: response.usage?.total_tokens,
-    },
-  };
+  return messages;
 }
 
-function getResponseTools(settings: Settings): Tool[] | undefined {
-  if (settings.responseTool !== 'web_search') {
-    return undefined;
+function getResponseTools(settings: Settings, options?: { includeAutomation?: boolean }): Tool[] | undefined {
+  if (options?.includeAutomation) {
+    return [{ type: 'computer' }, ...getAutomationTools()];
   }
 
-  return [{ type: 'web_search_preview' }];
+  const tools: Tool[] = [];
+
+  if (settings.responseTool === 'web_search') {
+    tools.push({ type: 'web_search_preview' });
+  }
+
+  return tools.length > 0 ? tools : undefined;
 }
 
 function getResponseIncludes(settings: Settings): Array<'web_search_call.action.sources'> | undefined {

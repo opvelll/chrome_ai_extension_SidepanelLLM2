@@ -48,7 +48,7 @@ export function getTabSource(tab: chrome.tabs.Tab): TabSource {
 }
 
 async function sendContentRequest(
-  type: 'content.getSelection' | 'content.getPageText',
+  type: 'content.getSelection' | 'content.getPageText' | 'content.getPageStructure',
 ): Promise<{ text: string; source: TabSource }> {
   const tab = await getActiveTab();
   const tabId = tab.id;
@@ -122,6 +122,20 @@ export async function capturePage(): Promise<ContextAttachment> {
   return {
     id: crypto.randomUUID(),
     kind: 'pageText',
+    text,
+    source,
+  };
+}
+
+export async function capturePageStructure(): Promise<ContextAttachment> {
+  const { text, source } = await sendContentRequest('content.getPageStructure');
+  if (!text) {
+    throw new Error('No readable page structure found on the active page.');
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    kind: 'pageStructure',
     text,
     source,
   };

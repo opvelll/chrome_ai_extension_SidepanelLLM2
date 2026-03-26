@@ -349,6 +349,40 @@ export function App() {
             </div>
 
             <div className="mt-4 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-2 text-sm font-medium">
+                  <MessageSquareText className="h-4 w-4 text-amber-600" />
+                  {t.options.automationSystemPrompt}
+                </span>
+                <button
+                  type="button"
+                  className={subtleButtonClassName}
+                  disabled={!hydrated || settings.automationSystemPrompt === defaultSettings.automationSystemPrompt}
+                  onClick={() =>
+                    setSettings((current) => ({
+                      ...current,
+                      automationSystemPrompt: defaultSettings.automationSystemPrompt,
+                    }))
+                  }
+                >
+                  {t.common.reset}
+                </button>
+              </div>
+              <textarea
+                className="min-h-[220px] rounded-2xl border border-amber-200 bg-amber-50/60 px-4 py-3 text-sm leading-6 shadow-inner shadow-white/50 outline-none transition focus:border-amber-300 focus:bg-white"
+                rows={10}
+                disabled={!hydrated}
+                value={settings.automationSystemPrompt}
+                onChange={(event) =>
+                  setSettings((current) => ({
+                    ...current,
+                    automationSystemPrompt: event.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="mt-4 flex flex-col gap-2.5">
               <span className="inline-flex items-center gap-2 text-sm font-medium">
                 <MessageSquareText className="h-4 w-4 text-teal-600" />
                 {t.options.promptContext}

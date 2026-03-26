@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_SYSTEM_PROMPT } from '../../src/lib/defaultSystemPrompt';
-import { sendChatCompletion } from '../../src/lib/provider';
+import { DEFAULT_AUTOMATION_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT } from '../../src/lib/defaultSystemPrompt';
+import { runAutomationCompletion, sendChatCompletion } from '../../src/lib/provider';
 import type { ChatMessage, ContextAttachment, Settings } from '../../src/shared/models';
 
 const createMock = vi.hoisted(() => {
@@ -32,6 +32,7 @@ function createSettings(overrides: Partial<Settings> = {}): Settings {
     responseTool: 'none',
     reasoningEffort: 'default',
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
+    automationSystemPrompt: DEFAULT_AUTOMATION_SYSTEM_PROMPT,
     locale: 'ja',
     includeCurrentDateTime: true,
     includeResponseLanguageInstruction: true,
@@ -246,5 +247,107 @@ describe('sendChatCompletion', () => {
     expect(request.instructions).not.toContain('Current date and time:');
     expect(request.instructions).not.toContain('Respond to the user in');
     expect(request.instructions).not.toContain("Respond in the same language as the user's latest message");
+  });
+
+  it('runs the automation tool loop until the model returns a final message', async () => {
+    createMock.create
+      .mockResolvedValueOnce({
+        id: 'resp_auto_1',
+        output_text: '',
+        output: [
+          {
+            id: 'fc_1',
+            type: 'function_call',
+            call_id: 'call_1',
+            name: 'browser_inspect_page',
+            arguments: '{"maxElements":8}',
+            status: 'completed',
+          },
+        ],
+        usage: {
+          input_tokens: 21,
+          output_tokens: 6,
+          total_tokens: 27,
+        },
+      })
+      .mockResolvedValueOnce({
+        id: 'resp_auto_2',
+        output_text: 'Completed the browser task.',
+        output: [
+          {
+            id: 'msg_2',
+            type: 'message',
+            role: 'assistant',
+            status: 'completed',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Completed the browser task.',
+                annotations: [],
+              },
+            ],
+          },
+        ],
+        usage: {
+          input_tokens: 9,
+          output_tokens: 3,
+          total_tokens: 12,
+        },
+      });
+
+    const executeToolCall = vi.fn().mockResolvedValue({
+      title: 'Fixture Article',
+      url: 'https://example.com/articles/fixture',
+      elements: [],
+    });
+
+    const result = await runAutomationCompletion({
+      settings: createSettings(),
+      userMessage: {
+        id: 'message-1',
+        role: 'user',
+        content: 'Open the search box and type penguin.',
+        createdAt: '2026-03-13T00:00:00.000Z',
+      },
+      history: [],
+      attachments: [],
+      executeToolCall,
+    });
+
+    expect(executeToolCall).toHaveBeenCalledTimes(1);
+    expect(executeToolCall.mock.calls[0]?.[0]).toMatchObject({
+      name: 'browser_inspect_page',
+      call_id: 'call_1',
+    });
+
+    const firstRequest = createMock.create.mock.calls[0]?.[0];
+    expect(firstRequest.tools).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'computer' }),
+        expect.objectContaining({ type: 'function', name: 'browser_inspect_page' }),
+        expect.objectContaining({ type: 'function', name: 'browser_click' }),
+      ]),
+    );
+    expect(firstRequest.instructions).toContain('You are an autonomous browser operator');
+    expect(firstRequest.instructions).toContain('Interpret the user request as something they want accomplished on the current page');
+
+    const secondRequest = createMock.create.mock.calls[1]?.[0];
+    expect(secondRequest.previous_response_id).toBe('resp_auto_1');
+    expect(secondRequest.input).toEqual([
+      {
+        type: 'function_call_output',
+        call_id: 'call_1',
+        output: JSON.stringify({
+          ok: true,
+          result: {
+            title: 'Fixture Article',
+            url: 'https://example.com/articles/fixture',
+            elements: [],
+          },
+        }),
+      },
+    ]);
+
+    expect(result.assistantMessage.content).toBe('Completed the browser task.');
   });
 });

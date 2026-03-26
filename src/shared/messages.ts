@@ -46,6 +46,19 @@ const contextAttachmentSchema = z.discriminatedUnion('kind', [
   }),
   z.object({
     id: z.string(),
+    kind: z.literal('pageStructure'),
+    text: z.string(),
+    source: z.object({
+      title: z.string(),
+      url: z.string(),
+      hostname: z.string(),
+      pathname: z.string(),
+      capturedAt: z.string(),
+      tabId: z.number().optional(),
+    }),
+  }),
+  z.object({
+    id: z.string(),
     kind: z.literal('screenshot'),
     imageDataUrl: z.string(),
     source: z.object({
@@ -61,6 +74,16 @@ const contextAttachmentSchema = z.discriminatedUnion('kind', [
 
 export const chatSendRequestSchema = z.object({
   type: z.literal('chat.send'),
+  payload: z.object({
+    sessionId: z.string(),
+    message: z.string().min(1),
+    attachments: z.array(contextAttachmentSchema),
+    modelId: z.string().optional(),
+  }),
+});
+
+export const automationRunRequestSchema = z.object({
+  type: z.literal('automation.run'),
   payload: z.object({
     sessionId: z.string(),
     message: z.string().min(1),
@@ -127,6 +150,7 @@ export const settingsListModelsRequestSchema = z.object({
 });
 
 export type ChatSendRequest = z.infer<typeof chatSendRequestSchema>;
+export type AutomationRunRequest = z.infer<typeof automationRunRequestSchema>;
 export type SessionGetRequest = z.infer<typeof sessionGetRequestSchema>;
 export type SessionDeleteRequest = z.infer<typeof sessionDeleteRequestSchema>;
 export type MessageDeleteRequest = z.infer<typeof messageDeleteRequestSchema>;
@@ -145,6 +169,10 @@ export type ContextCaptureSelectionRequest = {
 
 export type ContextCapturePageRequest = {
   type: 'context.capturePage';
+};
+
+export type ContextCapturePageStructureRequest = {
+  type: 'context.capturePageStructure';
 };
 
 export type ContextCaptureScreenshotRequest = {
@@ -203,6 +231,7 @@ export type SettingsListModelsResponse = AsyncResponse<{
 
 export type BackgroundRequest =
   | ChatSendRequest
+  | AutomationRunRequest
   | SessionCreateRequest
   | SessionListRequest
   | SessionGetRequest
@@ -211,6 +240,7 @@ export type BackgroundRequest =
   | MessageAttachmentDeleteRequest
   | ContextCaptureSelectionRequest
   | ContextCapturePageRequest
+  | ContextCapturePageStructureRequest
   | ContextCaptureScreenshotRequest
   | ContextCaptureAreaRequest
   | ContextConsumePendingAttachmentRequest
@@ -224,6 +254,11 @@ export type BackgroundRequest =
   | SettingsListModelsRequest;
 
 export type ChatSendResponse = AsyncResponse<{
+  assistantMessage: ChatMessage;
+  usage?: TokenUsage;
+}>;
+
+export type AutomationRunResponse = AsyncResponse<{
   assistantMessage: ChatMessage;
   usage?: TokenUsage;
 }>;

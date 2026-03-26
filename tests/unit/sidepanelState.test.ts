@@ -4,6 +4,7 @@ import {
   appendDraftAttachment,
   appendSelectionAttachment,
   hasPageTextAttachment,
+  hasPageStructureAttachment,
   removeDraftAttachment,
 } from '../../src/sidepanel/utils/attachmentState';
 import type { ChatSession, ContextAttachment } from '../../src/shared/models';
@@ -97,5 +98,22 @@ describe('attachmentState', () => {
 
     expect(hasPageTextAttachment(attachments)).toBe(true);
     expect(removeDraftAttachment(attachments, 'selection-1')).toEqual([pageAttachment]);
+  });
+
+  it('reports page structure attachments', () => {
+    const structureAttachment: Extract<ContextAttachment, { kind: 'pageStructure' }> = {
+      id: 'structure-1',
+      kind: 'pageStructure',
+      text: 'Visible interactive elements:\n1. selector=button',
+      source: {
+        title: 'Example',
+        url: 'https://example.com',
+        hostname: 'example.com',
+        pathname: '/',
+        capturedAt: '2026-03-13T00:00:00.000Z',
+      },
+    };
+
+    expect(hasPageStructureAttachment([structureAttachment])).toBe(true);
   });
 });

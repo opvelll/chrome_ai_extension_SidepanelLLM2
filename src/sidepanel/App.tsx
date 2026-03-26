@@ -84,6 +84,7 @@ export function App() {
           draft={sidepanel.draft}
           loading={sidepanel.loading}
           autoAttachPage={sidepanel.autoAttachPage}
+          automationMode={sidepanel.automationMode}
           composerPlaceholder={sidepanel.composerPlaceholder}
           contextError={sidepanel.contextError}
           error={sidepanel.error}
@@ -93,6 +94,7 @@ export function App() {
           onCapturePage={() => void sidepanel.capturePage()}
           onCaptureScreenshot={() => void sidepanel.captureScreenshot()}
           onToggleAutoAttachPage={(nextValue) => void sidepanel.updateAutoAttachPage(nextValue)}
+          onToggleAutomationMode={sidepanel.setAutomationMode}
           onPreviewAttachment={sidepanel.setPreviewAttachment}
           onDeleteAttachment={sidepanel.removeDraftAttachment}
           onDraftChange={sidepanel.setDraft}

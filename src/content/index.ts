@@ -2,6 +2,7 @@ const globalState = window as Window & {
   __sidepanelContentScriptInstalled__?: boolean;
   __sidepanelLastSelection__?: string;
   __sidepanelAreaCaptureCleanup__?: (() => void) | null;
+  __sidepanelAutomationElementCounter__?: number;
 };
 
 if (!globalState.__sidepanelContentScriptInstalled__) {
@@ -15,6 +16,212 @@ if (!globalState.__sidepanelContentScriptInstalled__) {
     const article = document.querySelector('main, article, [role="main"]');
     const source = article?.textContent || document.body?.innerText || '';
     return normalizeText(source).slice(0, 12000);
+  }
+
+  function getAutomationSelector(element: Element): string {
+    const existingId = element.getAttribute('data-sidepanel-automation-id');
+    if (existingId) {
+      return `[data-sidepanel-automation-id="${existingId}"]`;
+    }
+
+    const nextId = `sp-auto-${globalState.__sidepanelAutomationElementCounter__ ?? 0}`;
+    globalState.__sidepanelAutomationElementCounter__ = (globalState.__sidepanelAutomationElementCounter__ ?? 0) + 1;
+    element.setAttribute('data-sidepanel-automation-id', nextId);
+    return `[data-sidepanel-automation-id="${nextId}"]`;
+  }
+
+  function isVisibleElement(element: Element): element is HTMLElement {
+    if (!(element instanceof HTMLElement)) {
+      return false;
+    }
+
+    const style = window.getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    return (
+      style.visibility !== 'hidden' &&
+      style.display !== 'none' &&
+      rect.width > 0 &&
+      rect.height > 0
+    );
+  }
+
+  function describeElementRole(element: HTMLElement): string {
+    const explicitRole = element.getAttribute('role');
+    if (explicitRole) {
+      return explicitRole;
+    }
+
+    if (element instanceof HTMLAnchorElement) {
+      return 'link';
+    }
+    if (element instanceof HTMLButtonElement) {
+      return 'button';
+    }
+    if (element instanceof HTMLInputElement) {
+      return element.type || 'input';
+    }
+    if (element instanceof HTMLTextAreaElement) {
+      return 'textarea';
+    }
+    if (element.isContentEditable) {
+      return 'contenteditable';
+    }
+
+    return element.tagName.toLowerCase();
+  }
+
+  function describeElementText(element: HTMLElement): string {
+    if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+      return normalizeText(element.value || element.placeholder || '');
+    }
+
+    return normalizeText(element.innerText || element.textContent || '');
+  }
+
+  function getAccessibleLabel(element: HTMLElement): string {
+    const ariaLabel = element.getAttribute('aria-label');
+    if (ariaLabel) {
+      return normalizeText(ariaLabel);
+    }
+
+    const labelledBy = element.getAttribute('aria-labelledby');
+    if (labelledBy) {
+      const text = labelledBy
+        .split(/\s+/)
+        .map((id) => document.getElementById(id)?.textContent ?? '')
+        .join(' ');
+      const normalized = normalizeText(text);
+      if (normalized) {
+        return normalized;
+      }
+    }
+
+    if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+      const label = element.labels?.[0]?.textContent;
+      if (label) {
+        return normalizeText(label);
+      }
+    }
+
+    return '';
+  }
+
+  function getInteractiveElements(maxElements = 30) {
+    const selector = [
+      'button',
+      'a[href]',
+      'input',
+      'textarea',
+      'select',
+      '[role="button"]',
+      '[role="link"]',
+      '[role="tab"]',
+      '[role="menuitem"]',
+      '[contenteditable="true"]',
+      '[tabindex]',
+    ].join(',');
+
+    return Array.from(document.querySelectorAll(selector))
+      .filter(isVisibleElement)
+      .filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-disabled') !== 'true')
+      .slice(0, maxElements)
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          selector: getAutomationSelector(element),
+          tag: element.tagName.toLowerCase(),
+          role: describeElementRole(element),
+          text: describeElementText(element).slice(0, 120),
+          label: getAccessibleLabel(element).slice(0, 120),
+          placeholder:
+            element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement
+              ? element.placeholder.slice(0, 120)
+              : '',
+          href: element instanceof HTMLAnchorElement ? element.href : '',
+          disabled: Boolean((element as HTMLInputElement | HTMLButtonElement).disabled),
+          rect: {
+            x: Math.round(rect.x),
+            y: Math.round(rect.y),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+          },
+        };
+      });
+  }
+
+  function buildPageSnapshot(maxElements?: number) {
+    return {
+      title: document.title,
+      url: window.location.href,
+      readyState: document.readyState,
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        scrollY: Math.round(window.scrollY),
+        scrollHeight: Math.round(document.documentElement.scrollHeight),
+      },
+      selectionText: normalizeText(window.getSelection()?.toString() ?? '').slice(0, 400),
+      elements: getInteractiveElements(maxElements),
+    };
+  }
+
+  function getPageStructureText(maxElements = 24): string {
+    const snapshot = buildPageSnapshot(maxElements);
+    const lines = [
+      `Title: ${snapshot.title}`,
+      `URL: ${snapshot.url}`,
+      `Ready state: ${snapshot.readyState}`,
+      `Viewport: ${snapshot.viewport.width}x${snapshot.viewport.height}`,
+      `Scroll Y: ${snapshot.viewport.scrollY}`,
+      `Visible interactive elements:`,
+    ];
+
+    snapshot.elements.forEach((element, index) => {
+      lines.push(
+        [
+          `${index + 1}. selector=${element.selector}`,
+          `role=${element.role}`,
+          element.label ? `label=${element.label}` : '',
+          element.text ? `text=${element.text}` : '',
+          element.placeholder ? `placeholder=${element.placeholder}` : '',
+          element.href ? `href=${element.href}` : '',
+        ].filter(Boolean).join(' | '),
+      );
+    });
+
+    if (snapshot.selectionText) {
+      lines.push(`Current selection: ${snapshot.selectionText}`);
+    }
+
+    return lines.join('\n').slice(0, 12000);
+  }
+
+  function getTargetElement(selector: string): HTMLElement {
+    const element = document.querySelector(selector);
+    if (!element || !isVisibleElement(element)) {
+      throw new Error(`Element not found or not visible for selector: ${selector}`);
+    }
+    return element;
+  }
+
+  function triggerKeyboardEvent(target: EventTarget | null, type: 'keydown' | 'keyup', key: string) {
+    target?.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true, cancelable: true }));
+  }
+
+  async function waitForCondition(
+    predicate: () => boolean,
+    timeoutMs: number,
+  ): Promise<boolean> {
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < timeoutMs) {
+      if (predicate()) {
+        return true;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 100));
+    }
+
+    return predicate();
   }
 
   function installAreaCapture() {
@@ -231,6 +438,147 @@ if (!globalState.__sidepanelContentScriptInstalled__) {
 
     if (request?.type === 'content.getPageText') {
       sendResponse({ text: getPageText() });
+      return;
+    }
+
+    if (request?.type === 'content.getPageStructure') {
+      sendResponse({ text: getPageStructureText() });
+      return;
+    }
+
+    if (request?.type === 'content.automationInspectPage') {
+      sendResponse(buildPageSnapshot(request.payload?.maxElements));
+      return;
+    }
+
+    if (request?.type === 'content.automationClick') {
+      try {
+        const element = getTargetElement(request.payload.selector);
+        element.scrollIntoView({ block: 'center', inline: 'center' });
+        element.focus();
+        element.click();
+        sendResponse({
+          ok: true,
+          selector: request.payload.selector,
+          title: document.title,
+          url: window.location.href,
+        });
+      } catch (error) {
+        sendResponse({
+          ok: false,
+          error: error instanceof Error ? error.message : 'Unable to click the requested element.',
+        });
+      }
+      return;
+    }
+
+    if (request?.type === 'content.automationType') {
+      try {
+        const element = getTargetElement(request.payload.selector);
+        element.scrollIntoView({ block: 'center', inline: 'center' });
+        element.focus();
+
+        const shouldClear = request.payload.clear ?? true;
+        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+          if (shouldClear) {
+            element.value = '';
+          }
+          element.value += request.payload.text;
+          element.dispatchEvent(new Event('input', { bubbles: true }));
+          element.dispatchEvent(new Event('change', { bubbles: true }));
+          if (request.payload.submit) {
+            if (element.form) {
+              element.form.requestSubmit();
+            } else {
+              triggerKeyboardEvent(element, 'keydown', 'Enter');
+              triggerKeyboardEvent(element, 'keyup', 'Enter');
+            }
+          }
+        } else if (element.isContentEditable) {
+          if (shouldClear) {
+            element.textContent = '';
+          }
+          element.textContent = `${element.textContent ?? ''}${request.payload.text}`;
+          element.dispatchEvent(new InputEvent('input', { bubbles: true, data: request.payload.text, inputType: 'insertText' }));
+          if (request.payload.submit) {
+            triggerKeyboardEvent(element, 'keydown', 'Enter');
+            triggerKeyboardEvent(element, 'keyup', 'Enter');
+          }
+        } else {
+          throw new Error('Target element does not accept typed input.');
+        }
+
+        sendResponse({
+          ok: true,
+          selector: request.payload.selector,
+          value:
+            element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement
+              ? element.value
+              : normalizeText(element.textContent ?? ''),
+        });
+      } catch (error) {
+        sendResponse({
+          ok: false,
+          error: error instanceof Error ? error.message : 'Unable to type into the requested element.',
+        });
+      }
+      return;
+    }
+
+    if (request?.type === 'content.automationScroll') {
+      const amount = request.payload.amount ?? 600;
+      const direction = request.payload.direction === 'up' ? -1 : 1;
+      window.scrollBy({
+        top: direction * amount,
+        left: 0,
+        behavior: 'instant',
+      });
+      sendResponse({
+        ok: true,
+        scrollY: Math.round(window.scrollY),
+      });
+      return;
+    }
+
+    if (request?.type === 'content.automationPressKey') {
+      const target = (document.activeElement as HTMLElement | null) ?? document.body;
+      triggerKeyboardEvent(target, 'keydown', request.payload.key);
+      triggerKeyboardEvent(target, 'keyup', request.payload.key);
+      sendResponse({
+        ok: true,
+        key: request.payload.key,
+        activeTag: target?.tagName?.toLowerCase() ?? '',
+      });
+      return;
+    }
+
+    if (request?.type === 'content.automationWait') {
+      const timeoutMs = request.payload.timeoutMs ?? 1500;
+      void waitForCondition(() => {
+        if (request.payload.selector) {
+          const selectorMatch = document.querySelector(request.payload.selector);
+          if (!selectorMatch || !isVisibleElement(selectorMatch)) {
+            return false;
+          }
+        }
+
+        if (request.payload.text) {
+          const pageText = normalizeText(document.body?.innerText ?? '');
+          if (!pageText.includes(normalizeText(request.payload.text))) {
+            return false;
+          }
+        }
+
+        return true;
+      }, timeoutMs).then((matched) => {
+        sendResponse({
+          ok: matched,
+          matched,
+          title: document.title,
+          url: window.location.href,
+        });
+      });
+      return true;
     }
   });
 }

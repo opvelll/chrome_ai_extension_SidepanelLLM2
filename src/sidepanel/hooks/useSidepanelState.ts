@@ -12,6 +12,7 @@ import {
   getSessionListActiveId,
   getSettings,
   listSessions,
+  runAutomationMessage,
   saveSettings,
   sendChatMessage,
   type CaptureRequestType,
@@ -19,6 +20,7 @@ import {
 import {
   appendDraftAttachment,
   hasPageTextAttachment,
+  hasPageStructureAttachment,
   removeDraftAttachment,
 } from '../utils/attachmentState';
 import { useAttachmentPreview } from './useAttachmentPreview';
@@ -36,13 +38,20 @@ export function useSidepanelState() {
   const [contextError, setContextError] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [autoAttachPage, setAutoAttachPage] = useState(false);
+  const [automationMode, setAutomationMode] = useState(false);
   const [scrollTargetMessageId, setScrollTargetMessageId] = useState('');
   const preview = useAttachmentPreview();
   const t = getTranslations(settings);
 
   const composerPlaceholder = useMemo(
-    () => (autoAttachPage ? t.sidepanel.composerPlaceholderAuto : t.sidepanel.composerPlaceholder),
-    [autoAttachPage, t],
+    () => {
+      if (automationMode) {
+        return t.sidepanel.composerPlaceholderAutomation;
+      }
+
+      return autoAttachPage ? t.sidepanel.composerPlaceholderAuto : t.sidepanel.composerPlaceholder;
+    },
+    [autoAttachPage, automationMode, t],
   );
   const apiKeyMissing = !settings?.apiKey.trim();
 
@@ -234,6 +243,21 @@ export function useSidepanelState() {
       let nextAttachments = [...attachments];
 
       if (
+        automationMode &&
+        messages.length === 0 &&
+        !hasPageStructureAttachment(nextAttachments)
+      ) {
+        const structureResponse = await requestCaptureAttachment('context.capturePageStructure');
+
+        if (!structureResponse.ok) {
+          setContextError(structureResponse.error.message);
+          return;
+        }
+
+        nextAttachments = [...nextAttachments, structureResponse.data.attachment];
+      }
+
+      if (
         autoAttachPage &&
         messages.length === 0 &&
         !hasPageTextAttachment(nextAttachments)
@@ -248,9 +272,17 @@ export function useSidepanelState() {
         nextAttachments = [...nextAttachments, pageResponse.data.attachment];
       }
 
-      const response = await sendChatMessage(sessionId, draft.trim(), nextAttachments);
+      const response = automationMode
+        ? await runAutomationMessage(sessionId, draft.trim(), nextAttachments)
+        : await sendChatMessage(sessionId, draft.trim(), nextAttachments);
 
       if (!response.ok) {
+        if (response.error.code === 'provider_error') {
+          setDraft('');
+          setAttachments([]);
+          await loadSessions();
+          await loadSession(sessionId);
+        }
         setError(response.error.message);
         return;
       }
@@ -280,6 +312,7 @@ export function useSidepanelState() {
     contextError,
     historyOpen,
     autoAttachPage,
+    automationMode,
     scrollTargetMessageId,
     composerPlaceholder,
     previewAttachment: preview.previewAttachment,
@@ -306,6 +339,7 @@ export function useSidepanelState() {
       setAttachments((current) => removeDraftAttachment(current, attachmentId));
     },
     updateAutoAttachPage,
+    setAutomationMode,
     captureSelection() {
       return captureAttachment('context.captureSelection');
     },

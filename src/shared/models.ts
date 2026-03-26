@@ -1,4 +1,4 @@
-export type AttachmentKind = 'selectionText' | 'pageText' | 'screenshot';
+export type AttachmentKind = 'selectionText' | 'pageText' | 'pageStructure' | 'screenshot';
 
 export type TabSource = {
   title: string;
@@ -19,6 +19,12 @@ export type ContextAttachment =
   | {
       id: string;
       kind: 'pageText';
+      text: string;
+      source: TabSource;
+    }
+  | {
+      id: string;
+      kind: 'pageStructure';
       text: string;
       source: TabSource;
     }
@@ -58,6 +64,7 @@ export type Settings = {
   responseTool: 'none' | 'web_search';
   reasoningEffort: 'default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
   systemPrompt: string;
+  automationSystemPrompt: string;
   locale: 'auto' | 'en' | 'ja';
   includeCurrentDateTime: boolean;
   includeResponseLanguageInstruction: boolean;

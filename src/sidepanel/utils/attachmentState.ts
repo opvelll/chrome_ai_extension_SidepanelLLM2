@@ -44,3 +44,7 @@ export function removeDraftAttachment(current: ContextAttachment[], attachmentId
 export function hasPageTextAttachment(attachments: ContextAttachment[]) {
   return attachments.some((attachment) => attachment.kind === 'pageText');
 }
+
+export function hasPageStructureAttachment(attachments: ContextAttachment[]) {
+  return attachments.some((attachment) => attachment.kind === 'pageStructure');
+}
