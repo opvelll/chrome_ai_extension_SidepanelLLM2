@@ -4,6 +4,7 @@ import { attachmentSourceDetails } from '../../lib/attachments';
 import { attachmentLabel } from '../../lib/i18n';
 import type { ChatMessage, ContextAttachment, Settings } from '../../shared/models';
 import { attachmentIcon, isAttachmentActivationKey } from '../utils/attachments';
+import { groupMessagesForDisplay } from '../utils/messageGroups';
 
 type MessageListProps = {
   messages: ChatMessage[];
@@ -27,6 +28,7 @@ export function MessageList({
   onPreviewAttachment,
 }: MessageListProps) {
   const messageRefs = useRef<Record<string, HTMLElement | null>>({});
+  const groups = groupMessagesForDisplay(messages);
 
   useEffect(() => {
     if (!scrollTargetMessageId) {
@@ -38,76 +40,104 @@ export function MessageList({
       return;
     }
 
+    if (target instanceof HTMLDetailsElement) {
+      target.open = true;
+    }
+
     target.scrollIntoView({ block: 'start', behavior: 'auto' });
     onScrollTargetHandled();
-  }, [messages, onScrollTargetHandled, scrollTargetMessageId]);
+  }, [groups, onScrollTargetHandled, scrollTargetMessageId]);
 
   return (
     <section className="flex min-h-0 min-w-0 flex-col gap-1.5 overflow-x-hidden overflow-y-auto rounded-[20px] border border-stone-200/50 bg-white/78 p-2 shadow-inner shadow-stone-900/4 backdrop-blur-sm">
-      {messages.map((message) => (
-        message.role === 'log' && message.log ? (
-          <details
-            key={message.id}
-            ref={(element) => {
-              messageRefs.current[message.id] = element;
-            }}
-            className={`message log group max-w-full self-stretch overflow-hidden rounded-[16px] border px-2.5 py-2 text-[11px] shadow-sm ${
-              getLogTone(message).container
-            }`}
-            open={message.log.expandedByDefault}
-          >
-            <summary className="flex cursor-pointer list-none items-start gap-2 [&::-webkit-details-marker]:hidden">
-              <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${getLogTone(message).icon}`}>
-                {logIcon(message)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start gap-1.5">
-                  <span className={`mt-0.5 transition group-open:rotate-90 ${getLogTone(message).chevron}`}>
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold">{message.log.title}</div>
-                    <div className={`mt-0.5 whitespace-pre-wrap break-words ${getLogTone(message).summary}`}>
-                      {message.log.summary || message.content}
-                    </div>
+      {groups.map((group) => {
+        if (group.type === 'log-group') {
+          return (
+            <details
+              key={group.key}
+              ref={(element) => {
+                for (const message of group.messages) {
+                  messageRefs.current[message.id] = element;
+                }
+              }}
+              className="message log group max-w-full self-stretch overflow-hidden rounded-[16px] border border-amber-200 bg-amber-50/75 text-amber-950 shadow-sm"
+              open={group.expandedByDefault}
+            >
+              <summary className="flex cursor-pointer list-none items-center gap-2 px-2.5 py-2 text-[11px] [&::-webkit-details-marker]:hidden">
+                <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                  <TerminalSquare className="h-3.5 w-3.5" />
+                </span>
+                <span className="transition group-open:rotate-90 text-amber-500">
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold">
+                    {t.sidepanel.logGroupTitle} ({group.messages.length})
+                  </div>
+                  <div className="mt-0.5 truncate text-amber-700">
+                    {group.messages[0]?.log?.summary || group.messages[0]?.log?.title}
                   </div>
                 </div>
-              </div>
-              <button
-                type="button"
-                className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition ${getLogTone(message).delete}`}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onDeleteMessage(message.id);
-                }}
-                aria-label={t.common.delete}
-                title={t.common.delete}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </summary>
-            <div className="mt-2 space-y-2 border-t border-current/10 pt-2">
-              {message.log.body ? (
-                <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-[12px] bg-black/[0.04] px-2 py-1.5 font-mono text-[10px] leading-4">
-                  {message.log.body}
-                </pre>
-              ) : null}
-              {message.log.details?.length ? (
-                <div className="flex flex-col gap-1">
-                  {message.log.details.map((detail) => (
-                    <div key={`${detail.label}:${detail.value}`} className="rounded-[12px] bg-black/[0.04] px-2 py-1.5">
-                      <div className="font-medium">{detail.label}</div>
-                      <div className="mt-0.5 whitespace-pre-wrap break-words text-[10px] leading-4">{detail.value}</div>
+              </summary>
+              <div className="border-t border-amber-200/70 px-2 py-2">
+                <div className="max-h-48 space-y-1 overflow-y-auto pr-1">
+                  {group.messages.map((message, index) => (
+                  <div
+                    key={message.id}
+                    className={`rounded-[12px] border px-2 py-1.5 text-[11px] shadow-sm ${getLogTone(message).container}`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="min-w-[22px] pt-0.5 text-[10px] font-medium text-current/55">{index + 1}</span>
+                      <span
+                        className={`mt-0.5 inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full ${getLogTone(message).icon}`}
+                      >
+                        {logIcon(message)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline gap-1.5">
+                          <div className="shrink-0 font-semibold">{message.log?.title}</div>
+                          <div className={`min-w-0 flex-1 whitespace-pre-wrap break-words ${getLogTone(message).summary}`}>
+                            {message.log?.summary || message.content}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  ))}
+                    {message.log?.body || message.log?.details?.length ? (
+                      <div className="ml-[30px] mt-1.5 space-y-1.5 border-t border-current/10 pt-1.5">
+                        {message.log.body ? (
+                          <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-[10px] bg-black/[0.04] px-2 py-1.5 font-mono text-[10px] leading-4">
+                            {message.log.body}
+                          </pre>
+                        ) : null}
+                        {message.log.details?.length ? (
+                          <div className="flex flex-wrap gap-1">
+                            {message.log.details.map((detail) => (
+                              <div
+                                key={`${detail.label}:${detail.value}`}
+                                className="rounded-full bg-black/[0.04] px-2 py-1 text-[10px] leading-4"
+                                title={detail.value}
+                              >
+                                <span className="font-medium">{detail.label}</span>
+                                <span className="text-current/60">: </span>
+                                <span className="whitespace-pre-wrap break-words">{detail.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
                 </div>
-              ) : null}
-            </div>
-          </details>
-        ) : (
+              </div>
+            </details>
+          );
+        }
+
+        const { message } = group;
+        return (
           <article
-            key={message.id}
+            key={group.key}
             ref={(element) => {
               messageRefs.current[message.id] = element;
             }}
@@ -201,8 +231,8 @@ export function MessageList({
               </div>
             ) : null}
           </article>
-        )
-      ))}
+        );
+      })}
       {messages.length === 0 ? <div className="m-auto h-full min-h-24" /> : null}
     </section>
   );
@@ -215,7 +245,6 @@ function getLogTone(message: ChatMessage) {
       icon: 'bg-rose-100 text-rose-700',
       chevron: 'text-rose-500',
       summary: 'text-rose-700',
-      delete: 'text-rose-400 hover:bg-rose-100 hover:text-rose-700',
     };
   }
 
@@ -225,7 +254,6 @@ function getLogTone(message: ChatMessage) {
       icon: 'bg-amber-100 text-amber-700',
       chevron: 'text-amber-500',
       summary: 'text-amber-700',
-      delete: 'text-amber-400 hover:bg-amber-100 hover:text-amber-700',
     };
   }
 
@@ -234,7 +262,6 @@ function getLogTone(message: ChatMessage) {
     icon: 'bg-white text-stone-600',
     chevron: 'text-stone-500',
     summary: 'text-stone-600',
-    delete: 'text-stone-400 hover:bg-white hover:text-rose-600',
   };
 }
 

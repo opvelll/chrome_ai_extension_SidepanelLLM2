@@ -1,4 +1,4 @@
-import { Camera, FileText, LoaderCircle, Send, Type } from 'lucide-react';
+import { Bot, Camera, FileText, LoaderCircle, Repeat2, Send, Sparkles, Type } from 'lucide-react';
 import type { ContextAttachment, Settings } from '../../shared/models';
 import { AttachmentCard } from './AttachmentCard';
 import { primaryButtonClassName, subtleButtonClassName } from '../styles';
@@ -47,8 +47,8 @@ export function ComposerPanel({
   onSubmit,
 }: ComposerPanelProps) {
   const hasAttachments = attachments.length > 0;
-  const switchClassName =
-    'relative inline-flex h-8 min-w-[58px] shrink-0 items-center rounded-full border transition focus-within:ring-2 focus-within:ring-offset-2';
+  const modeLabel = automationMode ? t.sidepanel.automationModeShort : t.sidepanel.chatModeShort;
+  const modeIcon = automationMode ? <Sparkles className="h-4 w-4" /> : <Bot className="h-4 w-4" />;
 
   return (
     <section className="sticky bottom-0 z-10 rounded-[20px] border border-stone-200/70 bg-white/92 p-2 shadow-md shadow-stone-900/6 backdrop-blur-xl">
@@ -96,36 +96,6 @@ export function ComposerPanel({
                 <Camera className="h-4.5 w-4.5" />
               </button>
             </div>
-            <label
-              className={`ml-auto inline-flex items-center gap-1.5 text-[10px] font-medium ${
-                automationMode ? 'text-amber-700' : 'text-stone-700'
-              }`}
-              aria-label={t.sidepanel.automationMode}
-            >
-              <input
-                type="checkbox"
-                className="peer sr-only"
-                checked={automationMode}
-                onChange={(event) => onToggleAutomationMode(event.target.checked)}
-              />
-              <span
-                className={`${switchClassName} ${
-                  automationMode
-                    ? 'border-amber-300 bg-amber-100/90 focus-within:ring-amber-300'
-                    : 'border-stone-200 bg-stone-100 focus-within:ring-stone-300'
-                }`}
-                title={t.sidepanel.automationMode}
-              >
-                <span
-                  className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full shadow-sm transition-transform ${
-                    automationMode
-                      ? 'translate-x-[28px] bg-amber-500'
-                      : 'translate-x-0 bg-white'
-                  }`}
-                />
-              </span>
-              <span>{t.sidepanel.automationModeShort}</span>
-            </label>
           </div>
 
           {contextError ? (
@@ -183,6 +153,34 @@ export function ComposerPanel({
             >
               {loading ? <LoaderCircle className="h-4.5 w-4.5 animate-spin" /> : <Send className="h-4.5 w-4.5" />}
             </button>
+          </div>
+          <div className="mt-1.5 flex items-center justify-start">
+            <div
+              className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-1 text-[11px] font-medium ${
+                automationMode
+                  ? 'border-amber-200 bg-amber-50 text-amber-800'
+                  : 'border-stone-200 bg-stone-50 text-stone-700'
+              }`}
+            >
+              <span className="px-1 text-stone-500">{t.sidepanel.currentMode}</span>
+              <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5">
+                {modeIcon}
+                <span>{modeLabel}</span>
+              </span>
+              <button
+                type="button"
+                className={`inline-flex h-7 w-7 items-center justify-center rounded-full border transition ${
+                  automationMode
+                    ? 'border-amber-300 bg-amber-100 text-amber-800 hover:border-amber-400 hover:bg-amber-200'
+                    : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-100'
+                }`}
+                onClick={() => onToggleAutomationMode(!automationMode)}
+                aria-label={t.sidepanel.automationMode}
+                title={t.sidepanel.automationMode}
+              >
+                <Repeat2 className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

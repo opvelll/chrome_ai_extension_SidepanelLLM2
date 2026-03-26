@@ -730,7 +730,7 @@ test('sends a chat request with ctrl+enter from the composer', async () => {
   }
 });
 
-test('runs browser automation mode from the composer toggle', async () => {
+test('runs browser automation mode from the composer mode button', async () => {
   const { context, extensionId, userDataDir } = await launchExtension();
   let responseCount = 0;
   const requestBodies: string[] = [];
@@ -894,7 +894,7 @@ test('runs browser automation mode from the composer toggle', async () => {
     const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
     await waitForSidepanelReady(sidepanelPage);
 
-    await sidepanelPage.getByLabel('Automatic browser actions').check();
+    await sidepanelPage.getByRole('button', { name: 'Automatic browser actions' }).click();
     await sidepanelPage.getByPlaceholder('Describe what to do on this page...').fill('Type penguin into the search box and run it.');
     await fixturePage.bringToFront();
     await clickButtonInBackground(sidepanelPage, 'Send');

@@ -44,6 +44,9 @@ type TranslationDictionary = {
     captureScreenshot: string;
     autoAttachPage: string;
     autoAttachPageShort: string;
+    logGroupTitle: string;
+    currentMode: string;
+    chatModeShort: string;
     automationMode: string;
     automationModeShort: string;
     attachedItems: string;
@@ -151,6 +154,9 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       captureScreenshot: 'Capture screenshot',
       autoAttachPage: 'Auto attach full page on first message',
       autoAttachPageShort: 'Auto',
+      logGroupTitle: 'Logs',
+      currentMode: 'Mode',
+      chatModeShort: 'Chat',
       automationMode: 'Automatic browser actions',
       automationModeShort: 'Automatic',
       attachedItems: 'Attached items',
@@ -258,6 +264,9 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       captureScreenshot: 'スクリーンショットを取得',
       autoAttachPage: '最初の送信時にページ全文を自動添付',
       autoAttachPageShort: 'Auto',
+      logGroupTitle: 'ログ',
+      currentMode: '現在のモード',
+      chatModeShort: 'チャット',
       automationMode: '自動操作モード',
       automationModeShort: '自動操作',
       attachedItems: '添付中の項目',
