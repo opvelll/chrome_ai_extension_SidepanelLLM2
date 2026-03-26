@@ -937,7 +937,7 @@ test('runs browser automation mode from the composer mode button', async () => {
     await expect(fixturePage.locator('#search-result')).toContainText('Search submitted: penguin');
     expect(responseCount).toBe(3);
     expect(requestBodies[0]).toContain('Attachment type: Page structure');
-    expect(requestBodies[0]).toContain('"type":"computer"');
+    expect(requestBodies[0]).not.toContain('"type":"computer"');
     expect(requestBodies[0]).not.toContain('"type":"web_search_preview"');
   } finally {
     await closeExtension(context, userDataDir);

@@ -327,13 +327,17 @@ describe('sendChatCompletion', () => {
     const firstRequest = createMock.create.mock.calls[0]?.[0];
     expect(firstRequest.tools).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ type: 'computer' }),
         expect.objectContaining({ type: 'function', name: 'browser_inspect_page' }),
         expect.objectContaining({ type: 'function', name: 'browser_click' }),
       ]),
     );
     expect(firstRequest.instructions).toContain('You are an autonomous browser operator');
     expect(firstRequest.instructions).toContain('Interpret the user request as something they want accomplished on the current page');
+    expect(firstRequest.tools).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'computer' }),
+      ]),
+    );
 
     const secondRequest = createMock.create.mock.calls[1]?.[0];
     expect(secondRequest.previous_response_id).toBe('resp_auto_1');

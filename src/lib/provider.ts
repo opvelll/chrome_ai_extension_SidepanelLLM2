@@ -344,7 +344,7 @@ function formatAutomationLogResult(result: unknown): unknown {
 
 function getResponseTools(settings: Settings, options?: { includeAutomation?: boolean }): Tool[] | undefined {
   if (options?.includeAutomation) {
-    return [{ type: 'computer' }, ...getAutomationTools()];
+    return getAutomationTools();
   }
 
   const tools: Tool[] = [];
