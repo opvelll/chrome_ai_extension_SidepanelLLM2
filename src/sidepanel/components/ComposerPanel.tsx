@@ -156,29 +156,23 @@ export function ComposerPanel({
           </div>
           <div className="mt-1.5 flex items-center justify-start">
             <div
-              className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-1 text-[11px] font-medium ${
-                automationMode
-                  ? 'border-amber-200 bg-amber-50 text-amber-800'
-                  : 'border-stone-200 bg-stone-50 text-stone-700'
-              }`}
+              className="inline-flex items-center gap-1 rounded-full border border-stone-200 px-1.5 py-0.5 text-[11px] font-medium text-stone-700"
             >
               <span className="px-1 text-stone-500">{t.sidepanel.currentMode}</span>
-              <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5">
-                {modeIcon}
-                <span>{modeLabel}</span>
-              </span>
               <button
                 type="button"
-                className={`inline-flex h-7 w-7 items-center justify-center rounded-full border transition ${
-                  automationMode
-                    ? 'border-amber-300 bg-amber-100 text-amber-800 hover:border-amber-400 hover:bg-amber-200'
-                    : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-100'
-                }`}
+                className="group inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-inherit transition-colors hover:bg-stone-100"
                 onClick={() => onToggleAutomationMode(!automationMode)}
                 aria-label={t.sidepanel.automationMode}
                 title={t.sidepanel.automationMode}
               >
-                <Repeat2 className="h-4 w-4" />
+                <span className="relative inline-flex h-4 w-4 items-center justify-center">
+                  <span className="transition-opacity duration-150 group-hover:opacity-0">
+                    {modeIcon}
+                  </span>
+                  <Repeat2 className="absolute h-3.5 w-3.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
+                </span>
+                <span>{modeLabel}</span>
               </button>
             </div>
           </div>
