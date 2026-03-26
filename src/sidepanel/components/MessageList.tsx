@@ -78,52 +78,57 @@ export function MessageList({
               <div className="border-t border-stone-200 px-2 py-2">
                 <div className="max-h-48 space-y-1 overflow-y-auto pr-1">
                   {group.messages.map((message, index) => (
-                  <div
-                    key={message.id}
-                    className={`rounded-[12px] border px-2 py-1.5 text-[11px] shadow-sm ${getLogTone(message).container}`}
-                  >
-                    <div className="flex items-start gap-2">
-                      <span className="min-w-[22px] pt-0.5 text-[10px] font-medium text-current/55">{index + 1}</span>
-                      <span
-                        className={`mt-0.5 inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full ${getLogTone(message).icon}`}
-                      >
-                        {logIcon(message)}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-baseline gap-1.5">
-                          <div className="shrink-0 font-semibold">{message.log?.title}</div>
-                          <div className={`min-w-0 flex-1 whitespace-pre-wrap break-words ${getLogTone(message).summary}`}>
-                            {message.log?.summary || message.content}
+                    <details
+                      key={message.id}
+                      ref={(element) => {
+                        messageRefs.current[message.id] = element;
+                      }}
+                      className={`group/item rounded-[12px] border text-[11px] shadow-sm ${getLogTone(message).container}`}
+                      open
+                    >
+                      <summary className="group/item-summary flex cursor-pointer list-none items-start gap-2 px-2 py-1.5 [&::-webkit-details-marker]:hidden">
+                        <span className="min-w-[22px] pt-0.5 text-[10px] font-medium text-current/55">{index + 1}</span>
+                        <span className="mt-0.5 inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center text-current/70 group-hover/item-summary:hidden group-open/item:hidden">
+                          {logIcon(message)}
+                        </span>
+                        <span className="mt-0.5 hidden h-4.5 w-4.5 shrink-0 items-center justify-center text-current/55 group-hover/item-summary:inline-flex group-open/item:inline-flex">
+                          <ChevronRight className="h-3.5 w-3.5 transition group-open/item:rotate-90" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-1.5">
+                            <div className="shrink-0 font-semibold">{message.log?.title}</div>
+                            <div className={`min-w-0 flex-1 whitespace-pre-wrap break-words ${getLogTone(message).summary}`}>
+                              {message.log?.summary || message.content}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                    {message.log?.body || message.log?.details?.length ? (
-                      <div className="ml-[30px] mt-1.5 space-y-1.5 border-t border-current/10 pt-1.5">
-                        {message.log.body ? (
-                          <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-[10px] bg-black/[0.04] px-2 py-1.5 font-mono text-[10px] leading-4">
-                            {message.log.body}
-                          </pre>
-                        ) : null}
-                        {message.log.details?.length ? (
-                          <div className="flex flex-wrap gap-1">
-                            {message.log.details.map((detail) => (
-                              <div
-                                key={`${detail.label}:${detail.value}`}
-                                className="rounded-full bg-black/[0.04] px-2 py-1 text-[10px] leading-4"
-                                title={detail.value}
-                              >
-                                <span className="font-medium">{detail.label}</span>
-                                <span className="text-current/60">: </span>
-                                <span className="whitespace-pre-wrap break-words">{detail.value}</span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
+                      </summary>
+                      {message.log?.body || message.log?.details?.length ? (
+                        <div className="ml-[30px] mt-1.5 space-y-1.5 border-t border-current/10 px-2 pb-1.5 pt-1.5">
+                          {message.log.body ? (
+                            <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-[10px] bg-black/[0.04] px-2 py-1.5 font-mono text-[10px] leading-4">
+                              {message.log.body}
+                            </pre>
+                          ) : null}
+                          {message.log.details?.length ? (
+                            <div className="flex flex-wrap gap-1">
+                              {message.log.details.map((detail) => (
+                                <div
+                                  key={`${detail.label}:${detail.value}`}
+                                  className="rounded-full bg-black/[0.04] px-2 py-1 text-[10px] leading-4"
+                                  title={detail.value}
+                                >
+                                  <span className="font-medium">{detail.label}</span>
+                                  <span className="text-current/60">: </span>
+                                  <span className="whitespace-pre-wrap break-words">{detail.value}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </details>
+                  ))}
                 </div>
               </div>
             </details>
@@ -237,7 +242,7 @@ export function MessageList({
 function getLogTone(message: ChatMessage) {
   return {
     container: 'border-stone-200 bg-white text-stone-800',
-    icon: 'bg-stone-100 text-stone-500',
+    icon: 'text-stone-500',
     chevron: 'text-stone-500',
     summary: 'text-stone-500',
   };

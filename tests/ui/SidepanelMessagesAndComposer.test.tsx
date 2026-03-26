@@ -69,12 +69,19 @@ describe('MessageList', () => {
     expect(screen.getByText('Tool call')).toBeTruthy();
     expect(screen.getByText('Tool result')).toBeTruthy();
 
-    const logRegion = document.querySelector('details');
-    expect(logRegion).toBeTruthy();
-    expect((logRegion as HTMLElement).textContent).toContain('2');
-    expect((logRegion as HTMLElement).textContent).toContain('browser_inspect_page');
-    expect((logRegion as HTMLDetailsElement).hasAttribute('open')).toBe(false);
-    expect(within(logRegion as HTMLElement).queryByRole('button', { name: 'Delete' })).toBeNull();
+    const logDetails = document.querySelectorAll('details');
+    expect(logDetails).toHaveLength(3);
+
+    const logRegion = logDetails[0] as HTMLDetailsElement;
+    expect(logRegion.textContent).toContain('2');
+    expect(logRegion.textContent).toContain('browser_inspect_page');
+    expect(logRegion.hasAttribute('open')).toBe(false);
+    expect(within(logRegion).queryByRole('button', { name: 'Delete' })).toBeNull();
+
+    const firstLogItem = logDetails[1] as HTMLDetailsElement;
+    const secondLogItem = logDetails[2] as HTMLDetailsElement;
+    expect(firstLogItem.hasAttribute('open')).toBe(true);
+    expect(secondLogItem.hasAttribute('open')).toBe(true);
   });
 });
 
