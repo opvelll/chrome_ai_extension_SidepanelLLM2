@@ -16,6 +16,7 @@ function createSettings(overrides: Partial<Settings> = {}): Settings {
     includeCurrentDateTime: true,
     includeResponseLanguageInstruction: true,
     autoAttachPage: false,
+    automationMode: false,
     ...overrides,
   };
 }

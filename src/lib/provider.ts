@@ -16,10 +16,12 @@ import {
   parseAutomationToolCall,
 } from './automation';
 import { buildSystemInstructions } from './defaultSystemPrompt';
-import type { ChatMessage, ChatMessageToolUsage, ContextAttachment, Settings, TokenUsage } from '../shared/models';
+import { resolveLocale } from './i18n';
+import type { ChatLogData, ChatMessage, ChatMessageToolUsage, ContextAttachment, Settings, TokenUsage } from '../shared/models';
 
 type ProviderResult = {
   assistantMessage: ChatMessage;
+  logMessages: ChatMessage[];
   usage?: TokenUsage;
 };
 
@@ -50,6 +52,7 @@ export async function listAvailableModels(apiKey: string): Promise<string[]> {
     includeCurrentDateTime: true,
     includeResponseLanguageInstruction: true,
     autoAttachPage: false,
+    automationMode: false,
   });
 
   const response = await client.models.list();
@@ -91,6 +94,7 @@ export async function sendChatCompletion(input: {
   }
 
   return {
+    logMessages: extractResponseLogMessages(response, settings),
     assistantMessage: {
       id: crypto.randomUUID(),
       role: 'assistant',
@@ -121,6 +125,7 @@ export async function runAutomationCompletion(input: {
   const client = createClient(settings);
   const tools = getResponseTools(settings, { includeAutomation: true });
   const instructions = buildSystemInstructions(settings, settings.automationSystemPrompt);
+  const logMessages: ChatMessage[] = [];
   let response = await client.responses.create({
     model: modelId || settings.modelId,
     input: buildInputMessages(history, userMessage, attachments),
@@ -133,6 +138,7 @@ export async function runAutomationCompletion(input: {
 
   for (let step = 0; step < AUTOMATION_MAX_STEPS; step += 1) {
     const functionCalls = response.output.filter((item): item is ResponseFunctionToolCall => item.type === 'function_call');
+    logMessages.push(...extractResponseLogMessages(response, settings, { step: step + 1, includeFunctionCalls: true }));
 
     if (functionCalls.length === 0) {
       const content = extractResponseText(response);
@@ -141,6 +147,7 @@ export async function runAutomationCompletion(input: {
       }
 
       return {
+        logMessages,
         assistantMessage: {
           id: crypto.randomUUID(),
           role: 'assistant',
@@ -158,9 +165,22 @@ export async function runAutomationCompletion(input: {
     const toolOutputs: ResponseInputItem[] = [];
 
     for (const functionCall of functionCalls) {
+      const toolCall = parseAutomationToolCall(functionCall.name, functionCall.arguments);
       try {
-        parseAutomationToolCall(functionCall.name, functionCall.arguments);
         const result = await executeToolCall(functionCall);
+        logMessages.push(
+          createLogMessage({
+            title: translate(settings, 'toolResultTitle'),
+            summary: toolCall.name,
+            body: safePrettyJson(result),
+            level: 'success',
+            category: 'result',
+            details: [
+              { label: translate(settings, 'stepLabel'), value: String(step + 1) },
+              { label: translate(settings, 'statusLabel'), value: translate(settings, 'statusSuccess') },
+            ],
+          }),
+        );
         toolOutputs.push({
           type: 'function_call_output',
           call_id: functionCall.call_id,
@@ -170,6 +190,20 @@ export async function runAutomationCompletion(input: {
           }),
         });
       } catch (error) {
+        logMessages.push(
+          createLogMessage({
+            title: translate(settings, 'toolResultTitle'),
+            summary: toolCall.name,
+            body: error instanceof Error ? error.message : 'Automation tool execution failed.',
+            level: 'error',
+            category: 'error',
+            expandedByDefault: true,
+            details: [
+              { label: translate(settings, 'stepLabel'), value: String(step + 1) },
+              { label: translate(settings, 'statusLabel'), value: translate(settings, 'statusFailed') },
+            ],
+          }),
+        );
         toolOutputs.push({
           type: 'function_call_output',
           call_id: functionCall.call_id,
@@ -201,11 +235,13 @@ function buildInputMessages(
   userMessage: ChatMessage,
   attachments: ContextAttachment[],
 ): EasyInputMessage[] {
-  const messages: EasyInputMessage[] = history.map((message) => ({
-    type: 'message',
-    role: message.role,
-    content: message.content,
-  }));
+  const messages: EasyInputMessage[] = history
+    .filter((message): message is ChatMessage & { role: 'system' | 'user' | 'assistant' } => message.role !== 'log')
+    .map((message) => ({
+      type: 'message',
+      role: message.role,
+      content: message.content,
+    }));
 
   const contentParts: ResponseInputContent[] = [
     {
@@ -313,3 +349,179 @@ function extractToolUsage(response: Response): ChatMessageToolUsage {
     webSearchQueries,
   };
 }
+
+function extractResponseLogMessages(
+  response: Response,
+  settings: Settings,
+  options?: { step?: number; includeFunctionCalls?: boolean },
+): ChatMessage[] {
+  const logs: ChatMessage[] = [];
+
+  for (const item of response.output) {
+    if (item.type === 'reasoning') {
+      const summary = extractReasoningSummary(item);
+      if (summary) {
+        logs.push(
+          createLogMessage({
+            title: translate(settings, 'reasoningTitle'),
+            summary: options?.step ? `${translate(settings, 'stepLabel')} ${options.step}` : undefined,
+            body: summary,
+            level: 'info',
+            category: 'reasoning',
+          }),
+        );
+      }
+      continue;
+    }
+
+    if (item.type === 'web_search_call') {
+      const queries = Array.from(new Set(getWebSearchQueries(item))).filter(Boolean);
+      logs.push(
+        createLogMessage({
+          title: translate(settings, 'webSearchTitle'),
+          summary: queries[0] || translate(settings, 'webSearchNoQuery'),
+          level: 'info',
+          category: 'tool',
+          details: [
+            ...(options?.step ? [{ label: translate(settings, 'stepLabel'), value: String(options.step) }] : []),
+            { label: translate(settings, 'statusLabel'), value: String(item.status ?? 'completed') },
+            ...(queries.length > 0
+              ? [{ label: translate(settings, 'queriesLabel'), value: queries.join('\n') }]
+              : []),
+          ],
+        }),
+      );
+      continue;
+    }
+
+    if (options?.includeFunctionCalls && item.type === 'function_call') {
+      logs.push(
+        createLogMessage({
+          title: translate(settings, 'toolCallTitle'),
+          summary: item.name,
+          body: formatToolArguments(item.arguments),
+          level: 'info',
+          category: 'tool',
+          details: [
+            ...(options?.step ? [{ label: translate(settings, 'stepLabel'), value: String(options.step) }] : []),
+            { label: translate(settings, 'callIdLabel'), value: item.call_id },
+            { label: translate(settings, 'statusLabel'), value: String(item.status ?? 'completed') },
+          ],
+          expandedByDefault: true,
+        }),
+      );
+    }
+  }
+
+  return logs;
+}
+
+function createLogMessage(log: ChatLogData): ChatMessage {
+  return {
+    id: crypto.randomUUID(),
+    role: 'log',
+    content: log.summary || log.title,
+    createdAt: new Date().toISOString(),
+    log,
+  };
+}
+
+export function createErrorLogMessage(settings: Settings, error: unknown, summary?: string): ChatMessage {
+  const message = error instanceof Error ? error.message : 'Request failed.';
+  return createLogMessage({
+    title: translate(settings, 'errorTitle'),
+    summary,
+    body: message,
+    level: 'error',
+    category: 'error',
+    expandedByDefault: true,
+  });
+}
+
+function extractReasoningSummary(item: Extract<Response['output'][number], { type: 'reasoning' }>): string {
+  const candidate = 'summary' in item ? item.summary : undefined;
+  if (!Array.isArray(candidate)) {
+    return '';
+  }
+
+  return candidate
+    .map((summaryItem) => {
+      if (!summaryItem || typeof summaryItem !== 'object') {
+        return '';
+      }
+
+      const text = 'text' in summaryItem ? summaryItem.text : undefined;
+      return typeof text === 'string' ? text.trim() : '';
+    })
+    .filter(Boolean)
+    .join('\n')
+    .trim();
+}
+
+function getWebSearchQueries(item: Extract<Response['output'][number], { type: 'web_search_call' }>): string[] {
+  const action = item.action as unknown as Record<string, unknown>;
+  const queries = Array.isArray(action.queries) ? action.queries.filter((value): value is string => typeof value === 'string') : [];
+
+  if (queries.length > 0) {
+    return queries;
+  }
+
+  return typeof action.query === 'string' ? [action.query] : [];
+}
+
+function formatToolArguments(rawArguments: string): string {
+  if (!rawArguments.trim()) {
+    return '';
+  }
+
+  try {
+    return safePrettyJson(JSON.parse(rawArguments));
+  } catch {
+    return rawArguments;
+  }
+}
+
+function safePrettyJson(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function translate(settings: Settings, key: ProviderTranslationKey): string {
+  return providerTranslations[key][resolveLocale(settings)];
+}
+
+type ProviderTranslationKey =
+  | 'reasoningTitle'
+  | 'webSearchTitle'
+  | 'webSearchNoQuery'
+  | 'toolCallTitle'
+  | 'toolResultTitle'
+  | 'errorTitle'
+  | 'queriesLabel'
+  | 'statusLabel'
+  | 'callIdLabel'
+  | 'stepLabel'
+  | 'statusSuccess'
+  | 'statusFailed';
+
+const providerTranslations: Record<ProviderTranslationKey, Record<'en' | 'ja', string>> = {
+  reasoningTitle: { en: 'Reasoning', ja: 'Reasoning' },
+  webSearchTitle: { en: 'Web search', ja: 'Web 検索' },
+  webSearchNoQuery: { en: 'Search request', ja: '検索リクエスト' },
+  toolCallTitle: { en: 'Tool call', ja: 'Tool 呼び出し' },
+  toolResultTitle: { en: 'Tool result', ja: 'Tool 実行結果' },
+  errorTitle: { en: 'Error', ja: 'エラー' },
+  queriesLabel: { en: 'Queries', ja: 'Queries' },
+  statusLabel: { en: 'Status', ja: 'Status' },
+  callIdLabel: { en: 'Call ID', ja: 'Call ID' },
+  stepLabel: { en: 'Step', ja: 'Step' },
+  statusSuccess: { en: 'success', ja: 'success' },
+  statusFailed: { en: 'failed', ja: 'failed' },
+};

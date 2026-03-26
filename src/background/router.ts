@@ -24,7 +24,7 @@ import {
   listSessions,
   saveSettings,
 } from '../lib/storage';
-import { listAvailableModels, runAutomationCompletion, sendChatCompletion } from '../lib/provider';
+import { createErrorLogMessage, listAvailableModels, runAutomationCompletion, sendChatCompletion } from '../lib/provider';
 import { executeAutomationToolCall } from './browserAutomation';
 import {
   captureAreaScreenshot,
@@ -95,7 +95,7 @@ async function handleChatSend(rawRequest: unknown) {
       modelId: request.payload.modelId,
     });
 
-    await appendMessages(session.id, [result.assistantMessage]);
+    await appendMessages(session.id, [...result.logMessages, result.assistantMessage]);
     return {
       ok: true,
       data: {
@@ -104,6 +104,9 @@ async function handleChatSend(rawRequest: unknown) {
       },
     };
   } catch (error) {
+    await appendMessages(session.id, [
+      createErrorLogMessage(settings, error, 'chat.send'),
+    ]);
     return errorResponse(
       error instanceof Error ? error.message : 'Chat request failed.',
       'provider_error',
@@ -142,7 +145,7 @@ async function handleAutomationRun(rawRequest: unknown) {
       executeToolCall: (toolCall) => executeAutomationToolCall(toolCall.name, toolCall.arguments),
     });
 
-    await appendMessages(session.id, [result.assistantMessage]);
+    await appendMessages(session.id, [...result.logMessages, result.assistantMessage]);
     return {
       ok: true,
       data: {
@@ -151,6 +154,9 @@ async function handleAutomationRun(rawRequest: unknown) {
       },
     };
   } catch (error) {
+    await appendMessages(session.id, [
+      createErrorLogMessage(settings, error, 'automation.run'),
+    ]);
     return errorResponse(
       error instanceof Error ? error.message : 'Automation request failed.',
       'provider_error',
@@ -305,6 +311,7 @@ async function handleSettingsTestConnection(rawRequest: unknown): Promise<Messag
       includeCurrentDateTime: true,
       includeResponseLanguageInstruction: true,
       autoAttachPage: false,
+      automationMode: false,
     },
     userMessage,
     history: [],

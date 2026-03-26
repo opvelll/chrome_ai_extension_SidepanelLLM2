@@ -35,7 +35,26 @@ export type ContextAttachment =
       source: TabSource;
     };
 
-export type ChatRole = 'system' | 'user' | 'assistant';
+export type ChatRole = 'system' | 'user' | 'assistant' | 'log';
+
+export type ChatLogLevel = 'info' | 'success' | 'warning' | 'error';
+
+export type ChatLogCategory = 'event' | 'reasoning' | 'tool' | 'result' | 'error';
+
+export type ChatLogDetail = {
+  label: string;
+  value: string;
+};
+
+export type ChatLogData = {
+  title: string;
+  summary?: string;
+  body?: string;
+  level: ChatLogLevel;
+  category: ChatLogCategory;
+  details?: ChatLogDetail[];
+  expandedByDefault?: boolean;
+};
 
 export type ChatMessageToolUsage = {
   webSearchUsed?: boolean;
@@ -49,6 +68,7 @@ export type ChatMessage = {
   createdAt: string;
   attachments?: ContextAttachment[];
   toolUsage?: ChatMessageToolUsage;
+  log?: ChatLogData;
 };
 
 export type ChatSession = {
@@ -69,6 +89,7 @@ export type Settings = {
   includeCurrentDateTime: boolean;
   includeResponseLanguageInstruction: boolean;
   autoAttachPage: boolean;
+  automationMode: boolean;
 };
 
 export type TokenUsage = {

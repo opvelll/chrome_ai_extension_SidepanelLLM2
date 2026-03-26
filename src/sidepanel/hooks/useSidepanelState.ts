@@ -62,6 +62,7 @@ export function useSidepanelState() {
     if (response.ok) {
       setSettings(response.data.settings);
       setAutoAttachPage(response.data.settings.autoAttachPage);
+      setAutomationMode(response.data.settings.automationMode);
     }
   }
 
@@ -133,6 +134,25 @@ export function useSidepanelState() {
 
     setSettings(response.data.settings);
     setAutoAttachPage(response.data.settings.autoAttachPage);
+  }
+
+  async function updateAutomationMode(nextValue: boolean) {
+    setAutomationMode(nextValue);
+    setSettings((current) => (current ? { ...current, automationMode: nextValue } : current));
+
+    if (!settings) {
+      return;
+    }
+
+    const response = await saveSettings({ ...settings, automationMode: nextValue });
+
+    if (!response.ok) {
+      setError(response.error.message);
+      return;
+    }
+
+    setSettings(response.data.settings);
+    setAutomationMode(response.data.settings.automationMode);
   }
 
   async function ensureSession() {
@@ -339,7 +359,7 @@ export function useSidepanelState() {
       setAttachments((current) => removeDraftAttachment(current, attachmentId));
     },
     updateAutoAttachPage,
-    setAutomationMode,
+    updateAutomationMode,
     captureSelection() {
       return captureAttachment('context.captureSelection');
     },

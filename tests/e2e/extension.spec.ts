@@ -619,6 +619,9 @@ test('sends a chat request with mocked provider response', async () => {
       timeout: 10_000,
     });
     await expect(sidepanelPage.locator('.message.assistant')).toContainText('Web search used');
+    await expect(sidepanelPage.locator('.message.log')).toContainText('Web search');
+    await sidepanelPage.locator('.message.log').filter({ hasText: 'Web search' }).click();
+    await expect(sidepanelPage.locator('.message.log')).toContainText('fixture article');
     expect(lastRequestBody).toContain('Attachment type: Page text');
     expect(lastRequestBody).toContain('Source details:');
     expect(lastRequestBody).toContain('URL: http://127.0.0.1');
@@ -896,7 +899,13 @@ test('runs browser automation mode from the composer toggle', async () => {
     await fixturePage.bringToFront();
     await clickButtonInBackground(sidepanelPage, 'Send');
 
+    const logMessages = sidepanelPage.locator('.message.log');
     await expect(sidepanelPage.locator('.message.user')).toContainText('Type penguin into the search box and run it.');
+    await expect(logMessages.filter({ hasText: 'Tool call' }).first()).toBeVisible();
+    await expect(logMessages.filter({ hasText: 'browser_inspect_page' }).first()).toBeVisible();
+    await expect(logMessages.filter({ hasText: 'browser_type' }).first()).toBeVisible();
+    await expect(logMessages.filter({ hasText: 'browser_click' }).first()).toBeVisible();
+    await expect(logMessages.filter({ hasText: 'Tool result' }).first()).toBeVisible();
     await expect(sidepanelPage.locator('.message.assistant')).toContainText('Completed the browser task.', {
       timeout: 10_000,
     });
@@ -948,7 +957,9 @@ test('keeps the user message visible when the provider returns an error', async 
     await clickButtonInBackground(sidepanelPage, 'Send');
 
     await expect(sidepanelPage.locator('.message.user')).toContainText('This should remain visible');
-    await expect(sidepanelPage.getByText('Mocked provider failure.')).toBeVisible();
+    await expect(sidepanelPage.locator('.message.log')).toContainText('Mocked provider failure.');
+    await expect(sidepanelPage.locator('.message.log')).toContainText('chat.send');
+    await expect(sidepanelPage.locator('div.text-rose-600')).toContainText('Mocked provider failure.');
   } finally {
     await closeExtension(context, userDataDir);
   }

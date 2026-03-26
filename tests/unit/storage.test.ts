@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { appendMessages, deleteMessage, deleteMessageAttachment, listMessages, listSessions } from '../../src/lib/storage';
+import {
+  appendMessages,
+  deleteMessage,
+  deleteMessageAttachment,
+  getSettings,
+  listMessages,
+  listSessions,
+  saveSettings,
+} from '../../src/lib/storage';
 import type { ChatMessage, ChatSession } from '../../src/shared/models';
 
 type LocalStore = Record<string, unknown>;
@@ -117,5 +125,20 @@ describe('storage session syncing', () => {
     expect(nextMessages[0]?.attachments).toEqual([]);
     expect(session.title).toBe('Pinned title');
     expect(session.updatedAt).toBe(FIXED_NOW);
+  });
+
+  it('defaults automation mode to off and restores saved values from storage', async () => {
+    expect((await getSettings()).automationMode).toBe(false);
+
+    await saveSettings({
+      ...(await getSettings()),
+      autoAttachPage: true,
+      automationMode: true,
+    });
+
+    await expect(getSettings()).resolves.toMatchObject({
+      autoAttachPage: true,
+      automationMode: true,
+    });
   });
 });

@@ -12,6 +12,7 @@ const DEV_DEFAULT_SETTINGS: Settings = {
   includeCurrentDateTime: true,
   includeResponseLanguageInstruction: true,
   autoAttachPage: false,
+  automationMode: false,
 };
 
 export function getDefaultSettings(): Settings {

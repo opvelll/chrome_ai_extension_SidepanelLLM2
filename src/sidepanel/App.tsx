@@ -94,7 +94,7 @@ export function App() {
           onCapturePage={() => void sidepanel.capturePage()}
           onCaptureScreenshot={() => void sidepanel.captureScreenshot()}
           onToggleAutoAttachPage={(nextValue) => void sidepanel.updateAutoAttachPage(nextValue)}
-          onToggleAutomationMode={sidepanel.setAutomationMode}
+          onToggleAutomationMode={(nextValue) => void sidepanel.updateAutomationMode(nextValue)}
           onPreviewAttachment={sidepanel.setPreviewAttachment}
           onDeleteAttachment={sidepanel.removeDraftAttachment}
           onDraftChange={sidepanel.setDraft}
