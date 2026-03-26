@@ -52,6 +52,7 @@ export function MessageList({
     <section className="flex min-h-0 min-w-0 flex-col gap-1.5 overflow-x-hidden overflow-y-auto rounded-[20px] border border-stone-200/50 bg-white/78 p-2 shadow-inner shadow-stone-900/4 backdrop-blur-sm">
       {groups.map((group) => {
         if (group.type === 'log-group') {
+          const firstLogLabel = group.messages[0]?.log?.summary || group.messages[0]?.log?.title;
           return (
             <details
               key={group.key}
@@ -60,26 +61,21 @@ export function MessageList({
                   messageRefs.current[message.id] = element;
                 }
               }}
-              className="message log group max-w-full self-stretch overflow-hidden rounded-[16px] border border-amber-200 bg-amber-50/75 text-amber-950 shadow-sm"
-              open={group.expandedByDefault}
+              className="message log group/logs max-w-full self-stretch overflow-hidden rounded-[16px] border border-stone-200 bg-stone-50/80 text-stone-800 shadow-sm"
             >
-              <summary className="flex cursor-pointer list-none items-center gap-2 px-2.5 py-2 text-[11px] [&::-webkit-details-marker]:hidden">
-                <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+              <summary className="group/summary flex cursor-pointer list-none items-center gap-2 px-2.5 py-2 text-[11px] [&::-webkit-details-marker]:hidden">
+                <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center text-stone-500 group-hover/summary:hidden group-open/logs:hidden">
                   <TerminalSquare className="h-3.5 w-3.5" />
                 </span>
-                <span className="transition group-open:rotate-90 text-amber-500">
-                  <ChevronRight className="h-3.5 w-3.5" />
+                <span className="hidden h-5 w-5 shrink-0 items-center justify-center text-stone-400 group-hover/summary:inline-flex group-open/logs:inline-flex">
+                  <ChevronRight className="h-3.5 w-3.5 transition group-open/logs:rotate-90" />
                 </span>
-                <div className="min-w-0 flex-1">
-                  <div className="font-semibold">
-                    {t.sidepanel.logGroupTitle} ({group.messages.length})
-                  </div>
-                  <div className="mt-0.5 truncate text-amber-700">
-                    {group.messages[0]?.log?.summary || group.messages[0]?.log?.title}
-                  </div>
+                <div className="min-w-0 flex-1 truncate font-medium text-stone-600">
+                  <span className="font-semibold text-stone-700">{group.messages.length}</span>
+                  {firstLogLabel ? <span className="ml-1.5 truncate text-stone-500">{firstLogLabel}</span> : null}
                 </div>
               </summary>
-              <div className="border-t border-amber-200/70 px-2 py-2">
+              <div className="border-t border-stone-200 px-2 py-2">
                 <div className="max-h-48 space-y-1 overflow-y-auto pr-1">
                   {group.messages.map((message, index) => (
                   <div
@@ -239,29 +235,11 @@ export function MessageList({
 }
 
 function getLogTone(message: ChatMessage) {
-  if (message.log?.level === 'error') {
-    return {
-      container: 'border-rose-200 bg-rose-50/90 text-rose-950',
-      icon: 'bg-rose-100 text-rose-700',
-      chevron: 'text-rose-500',
-      summary: 'text-rose-700',
-    };
-  }
-
-  if (message.log?.category === 'tool' || message.log?.category === 'result') {
-    return {
-      container: 'border-amber-200 bg-amber-50/80 text-amber-950',
-      icon: 'bg-amber-100 text-amber-700',
-      chevron: 'text-amber-500',
-      summary: 'text-amber-700',
-    };
-  }
-
   return {
-    container: 'border-stone-200 bg-stone-100/80 text-stone-900',
-    icon: 'bg-white text-stone-600',
+    container: 'border-stone-200 bg-white text-stone-800',
+    icon: 'bg-stone-100 text-stone-500',
     chevron: 'text-stone-500',
-    summary: 'text-stone-600',
+    summary: 'text-stone-500',
   };
 }
 

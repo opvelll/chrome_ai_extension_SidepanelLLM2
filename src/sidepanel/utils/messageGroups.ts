@@ -10,7 +10,6 @@ export type MessageListGroup =
       type: 'log-group';
       key: string;
       messages: ChatMessage[];
-      expandedByDefault: boolean;
     };
 
 export function groupMessagesForDisplay(messages: ChatMessage[]): MessageListGroup[] {
@@ -26,7 +25,6 @@ export function groupMessagesForDisplay(messages: ChatMessage[]): MessageListGro
       type: 'log-group',
       key: pendingLogs.map((message) => message.id).join(':'),
       messages: pendingLogs,
-      expandedByDefault: pendingLogs.some((message) => message.log?.expandedByDefault),
     });
     pendingLogs = [];
   };

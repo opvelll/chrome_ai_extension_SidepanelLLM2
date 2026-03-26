@@ -65,12 +65,15 @@ describe('MessageList', () => {
       />,
     );
 
-    expect(screen.getByText('Logs (2)')).toBeTruthy();
+    expect(screen.queryByText('Logs (2)')).toBeNull();
     expect(screen.getByText('Tool call')).toBeTruthy();
     expect(screen.getByText('Tool result')).toBeTruthy();
 
-    const logRegion = screen.getByText('Logs (2)').closest('details');
+    const logRegion = document.querySelector('details');
     expect(logRegion).toBeTruthy();
+    expect((logRegion as HTMLElement).textContent).toContain('2');
+    expect((logRegion as HTMLElement).textContent).toContain('browser_inspect_page');
+    expect((logRegion as HTMLDetailsElement).hasAttribute('open')).toBe(false);
     expect(within(logRegion as HTMLElement).queryByRole('button', { name: 'Delete' })).toBeNull();
   });
 });

@@ -26,7 +26,7 @@ describe('groupMessagesForDisplay', () => {
         id: 'log-2',
         role: 'log',
         content: 'result',
-        log: { title: 'Tool result', summary: 'ok', level: 'success', category: 'result', expandedByDefault: true },
+        log: { title: 'Tool result', summary: 'ok', level: 'success', category: 'result' },
       }),
       createMessage({ id: 'assistant-1', role: 'assistant', content: 'done' }),
     ];
@@ -38,7 +38,6 @@ describe('groupMessagesForDisplay', () => {
     expect(groups[1]).toMatchObject({
       type: 'log-group',
       messages: [{ id: 'log-1' }, { id: 'log-2' }],
-      expandedByDefault: true,
     });
     expect(groups[2]).toMatchObject({ type: 'message', key: 'assistant-1' });
   });
