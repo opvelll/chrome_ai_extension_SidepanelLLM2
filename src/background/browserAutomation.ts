@@ -1,3 +1,4 @@
+import { captureScreenshot } from './contextCapture';
 import { parseAutomationToolCall } from '../lib/automation';
 
 type AutomationContentRequest =
@@ -140,6 +141,8 @@ export async function executeAutomationToolCall(name: string, rawArguments: stri
         type: 'content.automationPressKey',
         payload: toolCall.args,
       });
+    case 'browser_capture_screenshot':
+      return captureScreenshot();
     case 'browser_wait':
       return sendAutomationRequest({
         type: 'content.automationWait',

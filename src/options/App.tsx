@@ -435,7 +435,49 @@ export function App() {
                     autoAttachPage: event.target.checked,
                   }))
                 }
+                />
+            </label>
+
+            <label className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50">
+              <FileText className="h-4 w-4 shrink-0 text-amber-600" />
+              <span className="min-w-0 flex-1 font-medium">{t.options.autoAttachPageStructureOnAutomation}</span>
+              <input
+                className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                type="checkbox"
+                disabled={!hydrated}
+                checked={settings.autoAttachPageStructureOnAutomation}
+                onChange={(event) =>
+                  setSettings((current) => ({
+                    ...current,
+                    autoAttachPageStructureOnAutomation: event.target.checked,
+                  }))
+                }
               />
+            </label>
+
+            <label className="mt-4 flex flex-col gap-2.5">
+              <span className="inline-flex items-center gap-2 text-sm font-medium">
+                <Wrench className="h-4 w-4 text-amber-600" />
+                {t.options.automationMaxSteps}
+              </span>
+              <input
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50 outline-none transition focus:border-amber-300 focus:bg-white"
+                type="text"
+                inputMode="numeric"
+                aria-label={t.options.automationMaxSteps}
+                disabled={!hydrated}
+                value={String(settings.automationMaxSteps)}
+                onChange={(event) =>
+                  setSettings((current) => ({
+                    ...current,
+                    automationMaxSteps: Math.max(
+                      1,
+                      Math.min(50, Number.parseInt(event.target.value.replace(/[^\d]/g, '') || '1', 10) || 1),
+                    ),
+                  }))
+                }
+              />
+              <div className="text-xs leading-5 text-slate-500">{t.options.automationMaxStepsHelp}</div>
             </label>
 
             {error && <div className="mt-4 text-sm text-rose-700">{error}</div>}

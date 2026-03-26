@@ -52,6 +52,8 @@ export async function listAvailableModels(apiKey: string): Promise<string[]> {
     includeCurrentDateTime: true,
     includeResponseLanguageInstruction: true,
     autoAttachPage: false,
+    autoAttachPageStructureOnAutomation: true,
+    automationMaxSteps: AUTOMATION_MAX_STEPS,
     automationMode: false,
   });
 
@@ -136,7 +138,9 @@ export async function runAutomationCompletion(input: {
     parallel_tool_calls: false,
   });
 
-  for (let step = 0; step < AUTOMATION_MAX_STEPS; step += 1) {
+  const automationMaxSteps = Math.max(1, settings.automationMaxSteps || AUTOMATION_MAX_STEPS);
+
+  for (let step = 0; step < automationMaxSteps; step += 1) {
     const functionCalls = response.output.filter((item): item is ResponseFunctionToolCall => item.type === 'function_call');
     logMessages.push(...extractResponseLogMessages(response, settings, { step: step + 1, includeFunctionCalls: true }));
 
@@ -172,7 +176,7 @@ export async function runAutomationCompletion(input: {
           createLogMessage({
             title: translate(settings, 'toolResultTitle'),
             summary: toolCall.name,
-            body: safePrettyJson(result),
+            body: safePrettyJson(formatAutomationLogResult(result)),
             level: 'success',
             category: 'result',
             details: [
@@ -184,11 +188,12 @@ export async function runAutomationCompletion(input: {
         toolOutputs.push({
           type: 'function_call_output',
           call_id: functionCall.call_id,
-          output: formatAutomationResult({
-            ok: true,
-            result,
-          }),
+          output: formatAutomationResult(createAutomationToolOutput(result)),
         });
+        const toolResultMessage = buildAutomationToolResultMessage(result);
+        if (toolResultMessage) {
+          toolOutputs.push(toolResultMessage);
+        }
       } catch (error) {
         logMessages.push(
           createLogMessage({
@@ -227,7 +232,7 @@ export async function runAutomationCompletion(input: {
     });
   }
 
-  throw new Error(`Automation stopped after reaching the ${AUTOMATION_MAX_STEPS}-step limit.`);
+  throw new Error(`Automation stopped after reaching the ${automationMaxSteps}-step limit.`);
 }
 
 function buildInputMessages(
@@ -251,23 +256,7 @@ function buildInputMessages(
   ];
 
   for (const attachment of attachments) {
-    if (attachment.kind === 'screenshot') {
-      contentParts.push({
-        type: 'input_text',
-        text: attachmentPromptText(attachment),
-      });
-      contentParts.push({
-        type: 'input_image',
-        detail: 'auto',
-        image_url: attachment.imageDataUrl,
-      });
-      continue;
-    }
-
-    contentParts.push({
-      type: 'input_text',
-      text: attachmentPromptText(attachment),
-    });
+    contentParts.push(...buildAttachmentContentParts(attachment));
   }
 
   messages.push({
@@ -277,6 +266,80 @@ function buildInputMessages(
   });
 
   return messages;
+}
+
+function buildAttachmentContentParts(attachment: ContextAttachment): ResponseInputContent[] {
+  if (attachment.kind === 'screenshot') {
+    return [
+      {
+        type: 'input_text',
+        text: attachmentPromptText(attachment),
+      },
+      {
+        type: 'input_image',
+        detail: 'auto',
+        image_url: attachment.imageDataUrl,
+      },
+    ];
+  }
+
+  return [
+    {
+      type: 'input_text',
+      text: attachmentPromptText(attachment),
+    },
+  ];
+}
+
+function isScreenshotAttachment(value: unknown): value is Extract<ContextAttachment, { kind: 'screenshot' }> {
+  return Boolean(
+    value
+      && typeof value === 'object'
+      && 'kind' in value
+      && (value as { kind?: unknown }).kind === 'screenshot'
+      && 'imageDataUrl' in value,
+  );
+}
+
+function createAutomationToolOutput(result: unknown): { ok: true; result: unknown } {
+  if (isScreenshotAttachment(result)) {
+    return {
+      ok: true,
+      result: {
+        kind: result.kind,
+        source: result.source,
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    result,
+  };
+}
+
+function buildAutomationToolResultMessage(result: unknown): ResponseInputItem | null {
+  if (!isScreenshotAttachment(result)) {
+    return null;
+  }
+
+  return {
+    type: 'message',
+    role: 'user',
+    content: buildAttachmentContentParts(result),
+  };
+}
+
+function formatAutomationLogResult(result: unknown): unknown {
+  if (isScreenshotAttachment(result)) {
+    return {
+      kind: result.kind,
+      source: result.source,
+      imageDataUrl: '[omitted]',
+    };
+  }
+
+  return result;
 }
 
 function getResponseTools(settings: Settings, options?: { includeAutomation?: boolean }): Tool[] | undefined {

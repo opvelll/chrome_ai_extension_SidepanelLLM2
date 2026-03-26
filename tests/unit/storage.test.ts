@@ -127,17 +127,23 @@ describe('storage session syncing', () => {
     expect(session.updatedAt).toBe(FIXED_NOW);
   });
 
-  it('defaults automation mode to off and restores saved values from storage', async () => {
+  it('defaults automation settings and restores saved values from storage', async () => {
     expect((await getSettings()).automationMode).toBe(false);
+    expect((await getSettings()).autoAttachPageStructureOnAutomation).toBe(true);
+    expect((await getSettings()).automationMaxSteps).toBe(12);
 
     await saveSettings({
       ...(await getSettings()),
       autoAttachPage: true,
+      autoAttachPageStructureOnAutomation: false,
+      automationMaxSteps: 7,
       automationMode: true,
     });
 
     await expect(getSettings()).resolves.toMatchObject({
       autoAttachPage: true,
+      autoAttachPageStructureOnAutomation: false,
+      automationMaxSteps: 7,
       automationMode: true,
     });
   });

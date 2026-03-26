@@ -264,6 +264,7 @@ export function useSidepanelState() {
 
       if (
         automationMode &&
+        settings?.autoAttachPageStructureOnAutomation &&
         messages.length === 0 &&
         !hasPageStructureAttachment(nextAttachments)
       ) {

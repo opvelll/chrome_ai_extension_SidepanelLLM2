@@ -96,6 +96,8 @@ function optionsFields(page: Page) {
     includeCurrentDateTime: page.getByLabel(/^(Include current date and time|現在日時を含める)$/),
     includeResponseLanguageInstruction: page.getByLabel(/^(Include response language instruction|返答言語の指示を含める)$/),
     autoAttachPage: page.getByLabel(/^(Auto attach full page on first message|最初の送信時にページ全文を自動添付)$/),
+    autoAttachPageStructureOnAutomation: page.getByLabel(/^(Auto attach page structure on first automation message|自動操作モードの初回送信時にページ構造を自動添付)$/),
+    automationMaxSteps: page.getByLabel(/^(Automation step limit|自動操作のステップ上限)$/),
   };
 }
 
@@ -145,6 +147,8 @@ async function saveSettings(
     includeCurrentDateTime?: boolean;
     includeResponseLanguageInstruction?: boolean;
     autoAttachPage?: boolean;
+    autoAttachPageStructureOnAutomation?: boolean;
+    automationMaxSteps?: number;
   },
 ) {
   const fields = optionsFields(page);
@@ -209,6 +213,21 @@ async function saveSettings(
       await fields.autoAttachPage.uncheck();
       await expect(fields.autoAttachPage).not.toBeChecked();
     }
+  }
+
+  if (settings?.autoAttachPageStructureOnAutomation !== undefined) {
+    if (settings.autoAttachPageStructureOnAutomation) {
+      await fields.autoAttachPageStructureOnAutomation.check();
+      await expect(fields.autoAttachPageStructureOnAutomation).toBeChecked();
+    } else {
+      await fields.autoAttachPageStructureOnAutomation.uncheck();
+      await expect(fields.autoAttachPageStructureOnAutomation).not.toBeChecked();
+    }
+  }
+
+  if (settings?.automationMaxSteps !== undefined) {
+    await fields.automationMaxSteps.fill(String(settings.automationMaxSteps));
+    await expect(fields.automationMaxSteps).toHaveValue(String(settings.automationMaxSteps));
   }
 
   await page.getByRole('button', { name: /^(Save|保存)$/ }).click();
@@ -310,6 +329,8 @@ test('loads the extension options page and saves settings', async () => {
       systemPrompt: 'Be concise.',
       automationSystemPrompt: 'Use tools aggressively.',
       autoAttachPage: true,
+      autoAttachPageStructureOnAutomation: false,
+      automationMaxSteps: 9,
     });
 
     await page.close();
@@ -325,6 +346,8 @@ test('loads the extension options page and saves settings', async () => {
     await expect(reloadedFields.systemPrompt).toHaveValue('Be concise.');
     await expect(reloadedFields.automationSystemPrompt).toHaveValue('Use tools aggressively.');
     await expect(reloadedFields.autoAttachPage).toBeChecked();
+    await expect(reloadedFields.autoAttachPageStructureOnAutomation).not.toBeChecked();
+    await expect(reloadedFields.automationMaxSteps).toHaveValue('9');
   } finally {
     await closeExtension(context, userDataDir);
   }

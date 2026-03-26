@@ -311,6 +311,8 @@ async function handleSettingsTestConnection(rawRequest: unknown): Promise<Messag
       includeCurrentDateTime: true,
       includeResponseLanguageInstruction: true,
       autoAttachPage: false,
+      autoAttachPageStructureOnAutomation: true,
+      automationMaxSteps: 12,
       automationMode: false,
     },
     userMessage,

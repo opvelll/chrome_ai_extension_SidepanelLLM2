@@ -26,7 +26,7 @@ vi.mock('openai', () => {
 });
 
 function createSettings(overrides: Partial<Settings> = {}): Settings {
-  return {
+  const defaults: Settings = {
     apiKey: 'test-key',
     modelId: 'gpt-4.1-mini',
     responseTool: 'none',
@@ -37,9 +37,12 @@ function createSettings(overrides: Partial<Settings> = {}): Settings {
     includeCurrentDateTime: true,
     includeResponseLanguageInstruction: true,
     autoAttachPage: false,
+    autoAttachPageStructureOnAutomation: true,
+    automationMaxSteps: 12,
     automationMode: false,
-    ...overrides,
   };
+
+  return { ...defaults, ...overrides };
 }
 
 function createSource() {
@@ -350,5 +353,147 @@ describe('sendChatCompletion', () => {
     ]);
 
     expect(result.assistantMessage.content).toBe('Completed the browser task.');
+  });
+
+  it('uses the configured automation step limit in the stop condition', async () => {
+    createMock.create.mockResolvedValue({
+      id: 'resp_auto_limit',
+      output_text: '',
+      output: [
+        {
+          id: 'fc_limit',
+          type: 'function_call',
+          call_id: 'call_limit',
+          name: 'browser_wait',
+          arguments: '{"timeoutMs":100,"selector":null,"text":null}',
+          status: 'completed',
+        },
+      ],
+      usage: {
+        input_tokens: 5,
+        output_tokens: 2,
+        total_tokens: 7,
+      },
+    });
+
+    await expect(runAutomationCompletion({
+      settings: createSettings({ automationMaxSteps: 2 }),
+      userMessage: {
+        id: 'message-limit-1',
+        role: 'user',
+        content: 'Keep going.',
+        createdAt: '2026-03-13T00:00:00.000Z',
+      },
+      history: [],
+      attachments: [],
+      executeToolCall: vi.fn().mockResolvedValue({ ok: true }),
+    })).rejects.toThrow('Automation stopped after reaching the 2-step limit.');
+  });
+
+  it('feeds captured screenshots back into the automation loop as an image input', async () => {
+    createMock.create
+      .mockResolvedValueOnce({
+        id: 'resp_auto_shot_1',
+        output_text: '',
+        output: [
+          {
+            id: 'fc_shot_1',
+            type: 'function_call',
+            call_id: 'call_shot_1',
+            name: 'browser_capture_screenshot',
+            arguments: '{}',
+            status: 'completed',
+          },
+        ],
+        usage: {
+          input_tokens: 20,
+          output_tokens: 5,
+          total_tokens: 25,
+        },
+      })
+      .mockResolvedValueOnce({
+        id: 'resp_auto_shot_2',
+        output_text: 'Checked the screenshot.',
+        output: [
+          {
+            id: 'msg_shot_2',
+            type: 'message',
+            role: 'assistant',
+            status: 'completed',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Checked the screenshot.',
+                annotations: [],
+              },
+            ],
+          },
+        ],
+        usage: {
+          input_tokens: 8,
+          output_tokens: 3,
+          total_tokens: 11,
+        },
+      });
+
+    const screenshotAttachment: ContextAttachment = {
+      id: 'attachment-shot-1',
+      kind: 'screenshot',
+      imageDataUrl: 'data:image/png;base64,shot',
+      source: createSource(),
+    };
+
+    await runAutomationCompletion({
+      settings: createSettings(),
+      userMessage: {
+        id: 'message-shot-1',
+        role: 'user',
+        content: 'Check what is visible.',
+        createdAt: '2026-03-13T00:00:00.000Z',
+      },
+      history: [],
+      attachments: [],
+      executeToolCall: vi.fn().mockResolvedValue(screenshotAttachment),
+    });
+
+    const secondRequest = createMock.create.mock.calls[1]?.[0];
+    expect(secondRequest.input).toEqual([
+      {
+        type: 'function_call_output',
+        call_id: 'call_shot_1',
+        output: JSON.stringify({
+          ok: true,
+          result: {
+            kind: 'screenshot',
+            source: createSource(),
+          },
+        }),
+      },
+      {
+        type: 'message',
+        role: 'user',
+        content: [
+          {
+            type: 'input_text',
+            text: [
+              'Attachment type: Screenshot',
+              'Source details:',
+              'Title: Fixture Article',
+              'URL: https://example.com/articles/fixture',
+              'Hostname: example.com',
+              'Path: /articles/fixture',
+              'Captured at: 2026-03-13T00:00:00.000Z',
+              'Tab ID: 42',
+              'Content: Screenshot image attached separately.',
+            ].join('\n'),
+          },
+          {
+            type: 'input_image',
+            detail: 'auto',
+            image_url: 'data:image/png;base64,shot',
+          },
+        ],
+      },
+    ]);
   });
 });

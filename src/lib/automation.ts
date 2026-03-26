@@ -27,6 +27,8 @@ const pressKeyArgsSchema = z.object({
   key: z.string().min(1),
 });
 
+const captureScreenshotArgsSchema = z.object({});
+
 const waitArgsSchema = z.object({
   timeoutMs: z.number().int().min(100).max(10000).nullish(),
   selector: z.string().min(1).nullish(),
@@ -55,6 +57,10 @@ export type AutomationToolCall =
       args: z.infer<typeof pressKeyArgsSchema>;
     }
   | {
+      name: 'browser_capture_screenshot';
+      args: z.infer<typeof captureScreenshotArgsSchema>;
+    }
+  | {
       name: 'browser_wait';
       args: z.infer<typeof waitArgsSchema>;
     };
@@ -71,6 +77,7 @@ const automationToolSchemas = {
   browser_type: typeArgsSchema,
   browser_scroll: scrollArgsSchema,
   browser_press_key: pressKeyArgsSchema,
+  browser_capture_screenshot: captureScreenshotArgsSchema,
   browser_wait: waitArgsSchema,
 } as const;
 
@@ -178,6 +185,18 @@ export function getAutomationTools(): FunctionTool[] {
           },
         },
         required: ['key'],
+        additionalProperties: false,
+      },
+      strict: true,
+    },
+    {
+      type: 'function',
+      name: 'browser_capture_screenshot',
+      description: 'Capture a screenshot of the current visible viewport and return it for visual inspection.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
         additionalProperties: false,
       },
       strict: true,

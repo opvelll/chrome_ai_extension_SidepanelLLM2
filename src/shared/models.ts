@@ -89,6 +89,8 @@ export type Settings = {
   includeCurrentDateTime: boolean;
   includeResponseLanguageInstruction: boolean;
   autoAttachPage: boolean;
+  autoAttachPageStructureOnAutomation: boolean;
+  automationMaxSteps: number;
   automationMode: boolean;
 };
 

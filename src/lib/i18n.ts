@@ -93,6 +93,9 @@ type TranslationDictionary = {
     includeResponseLanguageInstruction: string;
     language: string;
     autoAttachPage: string;
+    autoAttachPageStructureOnAutomation: string;
+    automationMaxSteps: string;
+    automationMaxStepsHelp: string;
     languageAuto: string;
     languageEn: string;
     languageJa: string;
@@ -205,6 +208,9 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       includeResponseLanguageInstruction: 'Include response language instruction',
       language: 'Language',
       autoAttachPage: 'Auto attach full page on first message',
+      autoAttachPageStructureOnAutomation: 'Auto attach page structure on first automation message',
+      automationMaxSteps: 'Automation step limit',
+      automationMaxStepsHelp: 'Maximum number of tool loop steps allowed in automation mode before stopping.',
       languageAuto: 'Auto',
       languageEn: 'English',
       languageJa: 'Japanese',
@@ -315,6 +321,9 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       includeResponseLanguageInstruction: '返答言語の指示を含める',
       language: '表示言語',
       autoAttachPage: '最初の送信時にページ全文を自動添付',
+      autoAttachPageStructureOnAutomation: '自動操作モードの初回送信時にページ構造を自動添付',
+      automationMaxSteps: '自動操作のステップ上限',
+      automationMaxStepsHelp: '自動操作モードで停止するまでに許可するツールループ回数の上限です。',
       languageAuto: '自動',
       languageEn: '英語',
       languageJa: '日本語',

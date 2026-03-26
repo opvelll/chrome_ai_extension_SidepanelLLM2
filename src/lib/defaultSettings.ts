@@ -12,6 +12,8 @@ const DEV_DEFAULT_SETTINGS: Settings = {
   includeCurrentDateTime: true,
   includeResponseLanguageInstruction: true,
   autoAttachPage: false,
+  autoAttachPageStructureOnAutomation: true,
+  automationMaxSteps: 12,
   automationMode: false,
 };
 
