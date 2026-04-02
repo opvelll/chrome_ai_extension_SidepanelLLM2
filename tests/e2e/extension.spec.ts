@@ -10,11 +10,25 @@ const extensionPath = path.resolve(process.cwd(), 'dist');
 let fixtureServer: http.Server;
 let fixtureBaseUrl = '';
 
+function resolveHeadlessMode() {
+  const override = process.env.E2E_HEADLESS;
+
+  if (override === '1' || override === 'true') {
+    return true;
+  }
+
+  if (override === '0' || override === 'false') {
+    return false;
+  }
+
+  return !!process.env.CI;
+}
+
 async function launchExtension() {
   const userDataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sidepanel-llm-pw-'));
   const context = await chromium.launchPersistentContext(userDataDir, {
     channel: 'chromium',
-    headless: !!process.env.CI,
+    headless: resolveHeadlessMode(),
     args: [
       '--disable-gpu',
       '--use-angle=swiftshader',

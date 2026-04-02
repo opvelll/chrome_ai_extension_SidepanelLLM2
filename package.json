@@ -22,7 +22,9 @@
     "test:unit:logic": "vitest run --config vitest.unit.config.ts",
     "test:unit:integration": "vitest run --config vitest.integration.config.ts",
     "test:unit:ui": "vitest run --config vitest.ui.config.ts",
-    "test:e2e": "pnpm build && playwright test"
+    "test:e2e": "pnpm build && playwright test",
+    "test:e2e:headed": "pnpm build && E2E_HEADLESS=0 playwright test",
+    "test:e2e:headless": "pnpm build && E2E_HEADLESS=1 playwright test"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.1",

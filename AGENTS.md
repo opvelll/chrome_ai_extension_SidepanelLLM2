@@ -6,6 +6,7 @@
 - Run `pnpm test:unit` after code changes.
 - Run `pnpm build` after code changes that affect the extension bundle.
 - Run `pnpm test:e2e` after UI, extension flow, or test-related changes.
+- Use `pnpm test:e2e:headed` for visible browser debugging and `pnpm test:e2e:headless` for headless runs.
 
 ## Test Layout
 
