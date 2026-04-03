@@ -65,7 +65,7 @@ export function MessageList({
                   messageRefs.current[message.id] = element;
                 }
               }}
-              className="message log group/logs max-w-full self-stretch overflow-hidden rounded-[16px] border border-stone-200 bg-stone-50/80 text-stone-800 shadow-sm"
+              className="message log group/logs max-w-full shrink-0 self-stretch overflow-hidden rounded-[16px] border border-stone-200 bg-stone-50/80 text-stone-800 shadow-sm"
             >
               <summary className="group/summary flex cursor-pointer list-none items-center gap-2 px-2.5 py-2 text-[11px] [&::-webkit-details-marker]:hidden">
                 <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center text-stone-500 group-hover/summary:hidden group-open/logs:hidden">
@@ -80,7 +80,10 @@ export function MessageList({
                 </div>
               </summary>
               <div className="border-t border-stone-200 px-2 py-2">
-                <div className="max-h-48 space-y-1 overflow-y-auto pr-1">
+                <div
+                  data-testid="log-group-panel"
+                  className="h-32 min-h-[112px] max-h-[50vh] space-y-1 overflow-auto resize-y pr-1"
+                >
                   {group.messages.map((message, index) => (
                     <details
                       key={message.id}
@@ -146,7 +149,7 @@ export function MessageList({
             ref={(element) => {
               messageRefs.current[message.id] = element;
             }}
-            className={`message group ${message.role} max-w-[95%] rounded-[18px] px-2.5 py-2 shadow-sm ${
+            className={`message group ${message.role} max-w-[95%] shrink-0 rounded-[18px] px-2.5 py-2 shadow-sm ${
               message.role === 'user'
                 ? 'self-end bg-teal-700 text-white shadow-teal-900/20'
                 : 'border border-stone-200 bg-white text-stone-900 shadow-stone-900/5'

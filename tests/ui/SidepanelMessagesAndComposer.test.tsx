@@ -131,6 +131,9 @@ describe('MessageList', () => {
     expect(logRegion.textContent).toContain('browser_inspect_page');
     expect(logRegion.hasAttribute('open')).toBe(false);
     expect(within(logRegion).queryByRole('button', { name: 'Delete' })).toBeNull();
+    expect(logRegion.className).toContain('shrink-0');
+    expect(within(logRegion).getByTestId('log-group-panel').className).toContain('min-h-[112px]');
+    expect(within(logRegion).getByTestId('log-group-panel').className).toContain('resize-y');
 
     const firstLogItem = logDetails[1] as HTMLDetailsElement;
     const secondLogItem = logDetails[2] as HTMLDetailsElement;
