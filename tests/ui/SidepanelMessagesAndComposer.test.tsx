@@ -35,6 +35,33 @@ function createMessage(overrides: Partial<ChatMessage>): ChatMessage {
 }
 
 describe('MessageList', () => {
+  it('renders assistant messages as markdown', () => {
+    const translations = getTranslations({ locale: 'en' });
+
+    render(
+      <MessageList
+        messages={[
+          createMessage({
+            id: 'assistant-1',
+            role: 'assistant',
+            content: '**Bold** item\n\n- First\n- Second\n\n`const x = 1`',
+          }),
+        ]}
+        settings={createSettings()}
+        translations={translations}
+        scrollTargetMessageId=""
+        onScrollTargetHandled={() => undefined}
+        onDeleteMessage={() => undefined}
+        onDeleteAttachment={() => undefined}
+        onPreviewAttachment={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('Bold').tagName).toBe('STRONG');
+    expect(screen.getByText('First').closest('li')).toBeTruthy();
+    expect(screen.getByText('const x = 1').tagName).toBe('CODE');
+  });
+
   it('renders consecutive logs inside a single collapsible group without per-log delete buttons', () => {
     const translations = getTranslations({ locale: 'en' });
 

@@ -579,7 +579,7 @@ test('sends a chat request with mocked provider response', async () => {
           object: 'response',
           created_at: 1735689600,
           model: 'gpt-4.1-mini',
-          output_text: 'Mocked assistant reply.',
+          output_text: '**Mocked** assistant reply.\n\n- First result\n- Second result\n\n`fixture article`',
           error: null,
           incomplete_details: null,
           instructions: null,
@@ -604,7 +604,7 @@ test('sends a chat request with mocked provider response', async () => {
               content: [
                 {
                   type: 'output_text',
-                  text: 'Mocked assistant reply.',
+                  text: '**Mocked** assistant reply.\n\n- First result\n- Second result\n\n`fixture article`',
                   annotations: [],
                 },
               ],
@@ -655,6 +655,9 @@ test('sends a chat request with mocked provider response', async () => {
     await expect(sidepanelPage.locator('.message.assistant')).toContainText('Mocked assistant reply.', {
       timeout: 10_000,
     });
+    await expect(sidepanelPage.locator('.message.assistant strong')).toContainText('Mocked');
+    await expect(sidepanelPage.locator('.message.assistant li')).toHaveCount(2);
+    await expect(sidepanelPage.locator('.message.assistant code')).toContainText('fixture article');
     await expect(sidepanelPage.locator('.message.assistant')).toContainText('Web search used');
     await expect(sidepanelPage.locator('.message.log')).toContainText('Web search');
     await sidepanelPage.locator('.message.log').filter({ hasText: 'Web search' }).click();
