@@ -132,6 +132,9 @@ describe('MessageList', () => {
     expect(logRegion.hasAttribute('open')).toBe(false);
     expect(within(logRegion).queryByRole('button', { name: 'Delete' })).toBeNull();
     expect(logRegion.className).toContain('shrink-0');
+    expect(logRegion.className).not.toContain('rounded-[16px]');
+    expect(logRegion.className).not.toContain('border-stone-200');
+    expect(logRegion.querySelector('summary')?.className).not.toContain('border-b');
     expect(within(logRegion).getByTestId('log-group-panel').className).toContain('min-h-[112px]');
     expect(within(logRegion).getByTestId('log-group-panel').className).toContain('resize-y');
 

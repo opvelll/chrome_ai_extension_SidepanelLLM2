@@ -65,9 +65,9 @@ export function MessageList({
                   messageRefs.current[message.id] = element;
                 }
               }}
-              className="message log group/logs max-w-full shrink-0 self-stretch overflow-hidden rounded-[16px] border border-stone-200 bg-stone-50/80 text-stone-800 shadow-sm"
+              className="message log group/logs max-w-full shrink-0 self-stretch overflow-hidden text-stone-700"
             >
-              <summary className="group/summary flex cursor-pointer list-none items-center gap-2 px-2.5 py-2 text-[11px] [&::-webkit-details-marker]:hidden">
+              <summary className="group/summary flex cursor-pointer list-none items-center gap-2 px-1 py-1.5 text-[11px] [&::-webkit-details-marker]:hidden">
                 <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center text-stone-500 group-hover/summary:hidden group-open/logs:hidden">
                   <TerminalSquare className="h-3.5 w-3.5" />
                 </span>
@@ -79,10 +79,10 @@ export function MessageList({
                   {firstLogLabel ? <span className="ml-1.5 truncate text-stone-500">{firstLogLabel}</span> : null}
                 </div>
               </summary>
-              <div className="border-t border-stone-200 px-2 py-2">
+              <div className="mt-0.5 border-l border-stone-300/70 pl-2.5">
                 <div
                   data-testid="log-group-panel"
-                  className="h-32 min-h-[112px] max-h-[50vh] space-y-1 overflow-auto resize-y pr-1"
+                  className="h-32 min-h-[112px] max-h-[50vh] space-y-0.5 overflow-auto resize-y pr-1"
                 >
                   {group.messages.map((message, index) => (
                     <details
@@ -90,10 +90,10 @@ export function MessageList({
                       ref={(element) => {
                         messageRefs.current[message.id] = element;
                       }}
-                      className={`group/item rounded-[12px] border text-[11px] shadow-sm ${getLogTone(message).container}`}
+                      className={`group/item pl-1 text-[11px] ${getLogTone(message).summary}`}
                       open
                     >
-                      <summary className="group/item-summary flex cursor-pointer list-none items-start gap-2 px-2 py-1.5 [&::-webkit-details-marker]:hidden">
+                      <summary className="group/item-summary flex cursor-pointer list-none items-start gap-2 px-1 py-1.5 [&::-webkit-details-marker]:hidden">
                         <span className="min-w-[22px] pt-0.5 text-[10px] font-medium text-current/55">{index + 1}</span>
                         <span className="mt-0.5 inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center text-current/70 group-hover/item-summary:hidden group-open/item:hidden">
                           {logIcon(message)}
@@ -103,17 +103,17 @@ export function MessageList({
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline gap-1.5">
-                            <div className="shrink-0 font-semibold">{message.log?.title}</div>
-                            <div className={`min-w-0 flex-1 whitespace-pre-wrap break-words ${getLogTone(message).summary}`}>
+                            <div className="shrink-0 font-semibold text-current/80">{message.log?.title}</div>
+                            <div className="min-w-0 flex-1 whitespace-pre-wrap break-words">
                               {message.log?.summary || message.content}
                             </div>
                           </div>
                         </div>
                       </summary>
                       {message.log?.body || message.log?.details?.length ? (
-                        <div className="ml-[30px] mt-1.5 space-y-1.5 border-t border-current/10 px-2 pb-1.5 pt-1.5">
+                        <div className="ml-[30px] mt-1.5 space-y-1.5 border-l-2 border-current/15 px-2 pb-1.5 pt-0.5">
                           {message.log.body ? (
-                            <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-[10px] bg-black/[0.04] px-2 py-1.5 font-mono text-[10px] leading-4">
+                            <pre className="overflow-x-auto whitespace-pre-wrap break-words border-l-2 border-current/20 pl-2 font-mono text-[10px] leading-4">
                               {message.log.body}
                             </pre>
                           ) : null}
@@ -122,7 +122,7 @@ export function MessageList({
                               {message.log.details.map((detail) => (
                                 <div
                                   key={`${detail.label}:${detail.value}`}
-                                  className="rounded-full bg-black/[0.04] px-2 py-1 text-[10px] leading-4"
+                                  className="text-[10px] leading-4 text-current/75"
                                   title={detail.value}
                                 >
                                   <span className="font-medium">{detail.label}</span>
