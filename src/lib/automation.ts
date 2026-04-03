@@ -18,6 +18,16 @@ const typeArgsSchema = z.object({
   submit: z.boolean().nullish(),
 });
 
+const getValueArgsSchema = z.object({
+  selector: z.string().min(1),
+});
+
+const setValueArgsSchema = z.object({
+  selector: z.string().min(1),
+  text: z.string(),
+  clear: z.boolean().nullish(),
+});
+
 const scrollArgsSchema = z.object({
   direction: z.enum(['up', 'down']),
   amount: z.number().int().min(80).max(3000).nullish(),
@@ -49,6 +59,14 @@ export type AutomationToolCall =
       args: z.infer<typeof typeArgsSchema>;
     }
   | {
+      name: 'browser_get_value';
+      args: z.infer<typeof getValueArgsSchema>;
+    }
+  | {
+      name: 'browser_set_value';
+      args: z.infer<typeof setValueArgsSchema>;
+    }
+  | {
       name: 'browser_scroll';
       args: z.infer<typeof scrollArgsSchema>;
     }
@@ -75,6 +93,8 @@ const automationToolSchemas = {
   browser_inspect_page: inspectPageArgsSchema,
   browser_click: clickArgsSchema,
   browser_type: typeArgsSchema,
+  browser_get_value: getValueArgsSchema,
+  browser_set_value: setValueArgsSchema,
   browser_scroll: scrollArgsSchema,
   browser_press_key: pressKeyArgsSchema,
   browser_capture_screenshot: captureScreenshotArgsSchema,
@@ -145,6 +165,48 @@ export function getAutomationTools(): FunctionTool[] {
           },
         },
         required: ['selector', 'text', 'clear', 'submit'],
+        additionalProperties: false,
+      },
+      strict: true,
+    },
+    {
+      type: 'function',
+      name: 'browser_get_value',
+      description: 'Read the current value or text content of an input, textarea, or contenteditable element identified by CSS selector.',
+      parameters: {
+        type: 'object',
+        properties: {
+          selector: {
+            type: 'string',
+            description: 'CSS selector returned by browser_inspect_page.',
+          },
+        },
+        required: ['selector'],
+        additionalProperties: false,
+      },
+      strict: true,
+    },
+    {
+      type: 'function',
+      name: 'browser_set_value',
+      description: 'Replace or append text in an input, textarea, or contenteditable element identified by CSS selector and return the resulting value.',
+      parameters: {
+        type: 'object',
+        properties: {
+          selector: {
+            type: 'string',
+            description: 'CSS selector returned by browser_inspect_page.',
+          },
+          text: {
+            type: 'string',
+            description: 'Text to write.',
+          },
+          clear: {
+            type: ['boolean', 'null'],
+            description: 'Clear any existing value before setting text. Defaults to true.',
+          },
+        },
+        required: ['selector', 'text', 'clear'],
         additionalProperties: false,
       },
       strict: true,

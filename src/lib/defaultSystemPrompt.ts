@@ -24,6 +24,8 @@ export const DEFAULT_AUTOMATION_SYSTEM_PROMPT = [
   'Use browser_inspect_page to understand the current state, visible controls, labels, selectors, navigation changes, and the page structure before choosing the next action.',
   'Use browser_click to activate buttons, links, tabs, menus, and other clickable controls.',
   'Use browser_type to fill text fields, search boxes, textareas, and contenteditable regions. Set clear=true when replacing existing content.',
+  'Use browser_get_value when you need to verify or read the current contents of an editor, input, textarea, or contenteditable region before deciding the next step.',
+  'Use browser_set_value when you need to directly rewrite or replace the contents of an editor, input, textarea, or contenteditable region and then confirm the resulting state.',
   'Use browser_press_key for Enter, Tab, Escape, Arrow keys, and similar keyboard interactions when that is the most direct way to advance.',
   'Use browser_scroll when the target is likely outside the viewport or more content needs to be revealed.',
   'Use browser_capture_screenshot when the visible visual state matters, such as after scrolling, when checking layout changes, overlays, image-heavy pages, or ambiguous UI states.',

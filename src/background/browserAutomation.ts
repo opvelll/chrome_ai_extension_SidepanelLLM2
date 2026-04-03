@@ -24,6 +24,20 @@ type AutomationContentRequest =
       };
     }
   | {
+      type: 'content.automationGetValue';
+      payload: {
+        selector: string;
+      };
+    }
+  | {
+      type: 'content.automationSetValue';
+      payload: {
+        selector: string;
+        text: string;
+        clear?: boolean;
+      };
+    }
+  | {
       type: 'content.automationScroll';
       payload: {
         direction: 'up' | 'down';
@@ -126,6 +140,22 @@ export async function executeAutomationToolCall(name: string, rawArguments: stri
           text: toolCall.args.text,
           clear: toolCall.args.clear ?? undefined,
           submit: toolCall.args.submit ?? undefined,
+        },
+      });
+    case 'browser_get_value':
+      return sendAutomationRequest({
+        type: 'content.automationGetValue',
+        payload: {
+          selector: toolCall.args.selector,
+        },
+      });
+    case 'browser_set_value':
+      return sendAutomationRequest({
+        type: 'content.automationSetValue',
+        payload: {
+          selector: toolCall.args.selector,
+          text: toolCall.args.text,
+          clear: toolCall.args.clear ?? undefined,
         },
       });
     case 'browser_scroll':

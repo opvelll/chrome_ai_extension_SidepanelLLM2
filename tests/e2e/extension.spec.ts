@@ -858,14 +858,22 @@ test('runs browser automation mode from the composer mode button', async () => {
                 id: 'fc_auto_2',
                 type: 'function_call',
                 call_id: 'call_auto_2',
-                name: 'browser_type',
-                arguments: '{"selector":"[data-sidepanel-automation-id=\\"sp-auto-0\\"]","text":"penguin","clear":true,"submit":false}',
+                name: 'browser_set_value',
+                arguments: '{"selector":"[data-sidepanel-automation-id=\\"sp-auto-0\\"]","text":"penguin","clear":true}',
                 status: 'completed',
               },
               {
                 id: 'fc_auto_3',
                 type: 'function_call',
                 call_id: 'call_auto_3',
+                name: 'browser_get_value',
+                arguments: '{"selector":"[data-sidepanel-automation-id=\\"sp-auto-0\\"]"}',
+                status: 'completed',
+              },
+              {
+                id: 'fc_auto_4',
+                type: 'function_call',
+                call_id: 'call_auto_4',
                 name: 'browser_click',
                 arguments: '{"selector":"[data-sidepanel-automation-id=\\"sp-auto-1\\"]"}',
                 status: 'completed',
@@ -959,7 +967,8 @@ test('runs browser automation mode from the composer mode button', async () => {
     await expect(sidepanelPage.locator('.message.user')).toContainText('Type penguin into the search box and run it.');
     await expect(logMessages.filter({ hasText: 'Tool call' }).first()).toBeVisible();
     await expect(logMessages.filter({ hasText: 'browser_inspect_page' }).first()).toBeVisible();
-    await expect(logMessages.filter({ hasText: 'browser_type' }).first()).toBeVisible();
+    await expect(logMessages.filter({ hasText: 'browser_set_value' }).first()).toBeVisible();
+    await expect(logMessages.filter({ hasText: 'browser_get_value' }).first()).toBeVisible();
     await expect(logMessages.filter({ hasText: 'browser_click' }).first()).toBeVisible();
     await expect(logMessages.filter({ hasText: 'Tool result' }).first()).toBeVisible();
     await expect(sidepanelPage.locator('.message.assistant')).toContainText('Completed the browser task.', {
@@ -970,8 +979,11 @@ test('runs browser automation mode from the composer mode button', async () => {
     await expect(fixturePage.locator('#search-result')).toContainText('Search submitted: penguin');
     expect(responseCount).toBe(3);
     expect(requestBodies[0]).toContain('Attachment type: Page structure');
+    expect(requestBodies[0]).toContain('"name":"browser_get_value"');
+    expect(requestBodies[0]).toContain('"name":"browser_set_value"');
     expect(requestBodies[0]).not.toContain('"type":"computer"');
     expect(requestBodies[0]).not.toContain('"type":"web_search_preview"');
+    expect(requestBodies[2]).toContain('\\"value\\":\\"penguin\\"');
   } finally {
     await closeExtension(context, userDataDir);
   }

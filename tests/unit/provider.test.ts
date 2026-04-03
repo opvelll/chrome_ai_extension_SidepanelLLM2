@@ -349,10 +349,14 @@ describe('sendChatCompletion', () => {
       expect.arrayContaining([
         expect.objectContaining({ type: 'function', name: 'browser_inspect_page' }),
         expect.objectContaining({ type: 'function', name: 'browser_click' }),
+        expect.objectContaining({ type: 'function', name: 'browser_get_value' }),
+        expect.objectContaining({ type: 'function', name: 'browser_set_value' }),
       ]),
     );
     expect(firstRequest.instructions).toContain('You are an autonomous browser operator');
     expect(firstRequest.instructions).toContain('Interpret the user request as something they want accomplished on the current page');
+    expect(firstRequest.instructions).toContain('Use browser_get_value when you need to verify or read the current contents');
+    expect(firstRequest.instructions).toContain('Use browser_set_value when you need to directly rewrite or replace the contents');
     expect(firstRequest.tools).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ type: 'computer' }),

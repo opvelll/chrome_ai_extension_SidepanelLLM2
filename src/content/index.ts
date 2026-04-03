@@ -78,6 +78,78 @@ if (!globalState.__sidepanelContentScriptInstalled__) {
     return normalizeText(element.innerText || element.textContent || '');
   }
 
+  function getElementValue(element: HTMLElement): string {
+    if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+      return element.value;
+    }
+
+    if (element.isContentEditable) {
+      return element.innerText || element.textContent || '';
+    }
+
+    throw new Error('Target element does not expose an editable value.');
+  }
+
+  function setInputValue(element: HTMLInputElement | HTMLTextAreaElement, value: string) {
+    const prototype =
+      element instanceof HTMLTextAreaElement ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
+
+    if (descriptor?.set) {
+      descriptor.set.call(element, value);
+      return;
+    }
+
+    element.value = value;
+  }
+
+  function moveCaretToEnd(element: HTMLElement) {
+    const selection = window.getSelection();
+    if (!selection) {
+      return;
+    }
+
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  function setContentEditableValue(element: HTMLElement, value: string) {
+    moveCaretToEnd(element);
+    element.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, cancelable: true, data: value, inputType: 'insertText' }));
+    element.textContent = value;
+    moveCaretToEnd(element);
+  }
+
+  function writeEditableValue(
+    element: HTMLElement,
+    text: string,
+    options?: {
+      clear?: boolean;
+    },
+  ): string {
+    const shouldClear = options?.clear ?? true;
+
+    if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+      const currentValue = shouldClear ? '' : element.value;
+      setInputValue(element, `${currentValue}${text}`);
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+      element.dispatchEvent(new Event('change', { bubbles: true }));
+      return element.value;
+    }
+
+    if (element.isContentEditable) {
+      const currentValue = shouldClear ? '' : getElementValue(element);
+      setContentEditableValue(element, `${currentValue}${text}`);
+      element.dispatchEvent(new InputEvent('input', { bubbles: true, data: text, inputType: 'insertText' }));
+      return getElementValue(element);
+    }
+
+    throw new Error('Target element does not accept typed input.');
+  }
+
   function getAccessibleLabel(element: HTMLElement): string {
     const ariaLabel = element.getAttribute('aria-label');
     if (ariaLabel) {
@@ -132,6 +204,12 @@ if (!globalState.__sidepanelContentScriptInstalled__) {
           tag: element.tagName.toLowerCase(),
           role: describeElementRole(element),
           text: describeElementText(element).slice(0, 120),
+          currentValue:
+            element instanceof HTMLInputElement ||
+            element instanceof HTMLTextAreaElement ||
+            element.isContentEditable
+              ? normalizeText(getElementValue(element)).slice(0, 120)
+              : '',
           label: getAccessibleLabel(element).slice(0, 120),
           placeholder:
             element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement
@@ -182,6 +260,7 @@ if (!globalState.__sidepanelContentScriptInstalled__) {
           `${index + 1}. selector=${element.selector}`,
           `role=${element.role}`,
           element.label ? `label=${element.label}` : '',
+          element.currentValue ? `currentValue=${element.currentValue}` : '',
           element.text ? `text=${element.text}` : '',
           element.placeholder ? `placeholder=${element.placeholder}` : '',
           element.href ? `href=${element.href}` : '',
@@ -478,48 +557,73 @@ if (!globalState.__sidepanelContentScriptInstalled__) {
         element.scrollIntoView({ block: 'center', inline: 'center' });
         element.focus();
 
-        const shouldClear = request.payload.clear ?? true;
-        if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-          if (shouldClear) {
-            element.value = '';
-          }
-          element.value += request.payload.text;
-          element.dispatchEvent(new Event('input', { bubbles: true }));
-          element.dispatchEvent(new Event('change', { bubbles: true }));
-          if (request.payload.submit) {
+        const value = writeEditableValue(element, request.payload.text, {
+          clear: request.payload.clear,
+        });
+        if (request.payload.submit) {
+          if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
             if (element.form) {
               element.form.requestSubmit();
             } else {
               triggerKeyboardEvent(element, 'keydown', 'Enter');
               triggerKeyboardEvent(element, 'keyup', 'Enter');
             }
-          }
-        } else if (element.isContentEditable) {
-          if (shouldClear) {
-            element.textContent = '';
-          }
-          element.textContent = `${element.textContent ?? ''}${request.payload.text}`;
-          element.dispatchEvent(new InputEvent('input', { bubbles: true, data: request.payload.text, inputType: 'insertText' }));
-          if (request.payload.submit) {
+          } else if (element.isContentEditable) {
             triggerKeyboardEvent(element, 'keydown', 'Enter');
             triggerKeyboardEvent(element, 'keyup', 'Enter');
           }
-        } else {
-          throw new Error('Target element does not accept typed input.');
         }
 
         sendResponse({
           ok: true,
           selector: request.payload.selector,
-          value:
-            element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement
-              ? element.value
-              : normalizeText(element.textContent ?? ''),
+          value,
         });
       } catch (error) {
         sendResponse({
           ok: false,
           error: error instanceof Error ? error.message : 'Unable to type into the requested element.',
+        });
+      }
+      return;
+    }
+
+    if (request?.type === 'content.automationGetValue') {
+      try {
+        const element = getTargetElement(request.payload.selector);
+        element.scrollIntoView({ block: 'center', inline: 'center' });
+        element.focus();
+        sendResponse({
+          ok: true,
+          selector: request.payload.selector,
+          value: getElementValue(element),
+        });
+      } catch (error) {
+        sendResponse({
+          ok: false,
+          error: error instanceof Error ? error.message : 'Unable to read the requested element value.',
+        });
+      }
+      return;
+    }
+
+    if (request?.type === 'content.automationSetValue') {
+      try {
+        const element = getTargetElement(request.payload.selector);
+        element.scrollIntoView({ block: 'center', inline: 'center' });
+        element.focus();
+        const value = writeEditableValue(element, request.payload.text, {
+          clear: request.payload.clear,
+        });
+        sendResponse({
+          ok: true,
+          selector: request.payload.selector,
+          value,
+        });
+      } catch (error) {
+        sendResponse({
+          ok: false,
+          error: error instanceof Error ? error.message : 'Unable to set the requested element value.',
         });
       }
       return;
