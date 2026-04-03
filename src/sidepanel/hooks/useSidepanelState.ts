@@ -23,6 +23,7 @@ import {
   hasPageStructureAttachment,
   removeDraftAttachment,
 } from '../utils/attachmentState';
+import { serializeThreadExport } from '../utils/threadExport';
 import { useAttachmentPreview } from './useAttachmentPreview';
 import { usePendingSelection } from './usePendingSelection';
 
@@ -54,6 +55,10 @@ export function useSidepanelState() {
     [autoAttachPage, automationMode, t],
   );
   const apiKeyMissing = !settings?.apiKey.trim();
+  const activeSession = useMemo(
+    () => sessions.find((session) => session.id === activeSessionId) ?? null,
+    [activeSessionId, sessions],
+  );
 
   usePendingSelection({ setAttachments });
 
@@ -153,6 +158,38 @@ export function useSidepanelState() {
 
     setSettings(response.data.settings);
     setAutomationMode(response.data.settings.automationMode);
+  }
+
+  async function updateReasoningEffort(nextValue: Settings['reasoningEffort']) {
+    setError('');
+    setSettings((current) => (current ? { ...current, reasoningEffort: nextValue } : current));
+
+    if (!settings) {
+      return;
+    }
+
+    const response = await saveSettings({ ...settings, reasoningEffort: nextValue });
+
+    if (!response.ok) {
+      setError(response.error.message);
+      return;
+    }
+
+    setSettings(response.data.settings);
+  }
+
+  async function copyThreadData() {
+    setError('');
+
+    try {
+      const serialized = serializeThreadExport(activeSession, messages, settings);
+      await navigator.clipboard.writeText(serialized);
+    } catch {
+      setError(t.sidepanel.copyThreadDataFailed);
+      return false;
+    }
+
+    return true;
   }
 
   async function ensureSession() {
@@ -324,6 +361,7 @@ export function useSidepanelState() {
     t,
     sessions,
     activeSessionId,
+    activeSession,
     messages,
     attachments,
     draft,
@@ -361,6 +399,8 @@ export function useSidepanelState() {
     },
     updateAutoAttachPage,
     updateAutomationMode,
+    updateReasoningEffort,
+    copyThreadData,
     captureSelection() {
       return captureAttachment('context.captureSelection');
     },

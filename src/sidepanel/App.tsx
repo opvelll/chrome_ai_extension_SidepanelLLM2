@@ -64,6 +64,8 @@ export function App() {
           onOpenHistory={() => sidepanel.setHistoryOpen(true)}
           onCreateSession={() => void sidepanel.createNewSession()}
           onOpenSettings={() => chrome.runtime.openOptionsPage()}
+          onReasoningEffortChange={(value) => void sidepanel.updateReasoningEffort(value)}
+          onCopyThreadData={sidepanel.copyThreadData}
         />
 
         <MessageList

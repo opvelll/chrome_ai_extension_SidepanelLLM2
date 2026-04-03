@@ -52,6 +52,10 @@ type TranslationDictionary = {
     attachedItems: string;
     attachmentOpen: string;
     activeModel: string;
+    reasoningEffort: string;
+    copyThreadData: string;
+    copyThreadDataDone: string;
+    copyThreadDataFailed: string;
     messageCount: string;
     attachmentsCount: string;
     webSearchUsed: string;
@@ -166,6 +170,10 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       attachedItems: 'Attached items',
       attachmentOpen: 'Open attachment',
       activeModel: 'Active model',
+      reasoningEffort: 'Reasoning effort',
+      copyThreadData: 'Copy thread data',
+      copyThreadDataDone: 'Thread data copied.',
+      copyThreadDataFailed: 'Unable to copy thread data.',
       messageCount: 'Messages',
       attachmentsCount: 'Attachments',
       webSearchUsed: 'Web search used',
@@ -280,6 +288,10 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       attachedItems: '添付中の項目',
       attachmentOpen: '添付を開く',
       activeModel: '使用モデル',
+      reasoningEffort: 'Reasoning effort',
+      copyThreadData: 'スレッドデータをコピー',
+      copyThreadDataDone: 'スレッドデータをコピーしました。',
+      copyThreadDataFailed: 'スレッドデータをコピーできませんでした。',
       messageCount: 'メッセージ',
       attachmentsCount: '添付',
       webSearchUsed: 'Web 検索あり',

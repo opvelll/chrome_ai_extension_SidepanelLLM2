@@ -37,6 +37,8 @@ describe('SidepanelHeader', () => {
         onOpenHistory={onOpenHistory}
         onCreateSession={onCreateSession}
         onOpenSettings={onOpenSettings}
+        onReasoningEffortChange={() => undefined}
+        onCopyThreadData={async () => true}
       />,
     );
 
@@ -61,9 +63,36 @@ describe('SidepanelHeader', () => {
         onOpenHistory={() => undefined}
         onCreateSession={() => undefined}
         onOpenSettings={() => undefined}
+        onReasoningEffortChange={() => undefined}
+        onCopyThreadData={async () => true}
       />,
     );
 
     expect(screen.getByText(translations.sidepanel.modelNotConfigured)).toBeTruthy();
+  });
+
+  it('changes reasoning effort and copies thread data from the header controls', async () => {
+    const onReasoningEffortChange = vi.fn();
+    const onCopyThreadData = vi.fn(async () => true);
+
+    render(
+      <SidepanelHeader
+        settings={createSettings()}
+        translations={getTranslations({ locale: 'en' })}
+        onOpenHistory={() => undefined}
+        onCreateSession={() => undefined}
+        onOpenSettings={() => undefined}
+        onReasoningEffortChange={onReasoningEffortChange}
+        onCopyThreadData={onCopyThreadData}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Reasoning effort' }), {
+      target: { value: 'high' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Copy thread data' }));
+
+    expect(onReasoningEffortChange).toHaveBeenCalledWith('high');
+    expect(onCopyThreadData).toHaveBeenCalledOnce();
   });
 });
