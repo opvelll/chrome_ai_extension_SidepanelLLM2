@@ -109,6 +109,7 @@ function optionsFields(page: Page) {
     resetAutomationSystemPrompt: page.getByRole('button', { name: /^(Reset|リセット)$/ }).nth(1),
     includeCurrentDateTime: page.getByLabel(/^(Include current date and time|現在日時を含める)$/),
     includeResponseLanguageInstruction: page.getByLabel(/^(Include response language instruction|返答言語の指示を含める)$/),
+    preferLatexMathOutput: page.getByLabel(/^(Ask the model to format math with LaTeX \$ delimiters|数式は LaTeX の \$ 区切りで出力するよう促す)$/),
     autoAttachPage: page.getByLabel(/^(Auto attach full page on first message|最初の送信時にページ全文を自動添付)$/),
     autoAttachPageStructureOnAutomation: page.getByLabel(/^(Auto attach page structure on first automation message|自動操作モードの初回送信時にページ構造を自動添付)$/),
     automationMaxSteps: page.getByLabel(/^(Automation step limit|自動操作のステップ上限)$/),
@@ -160,6 +161,7 @@ async function saveSettings(
     locale?: 'auto' | 'en' | 'ja';
     includeCurrentDateTime?: boolean;
     includeResponseLanguageInstruction?: boolean;
+    preferLatexMathOutput?: boolean;
     autoAttachPage?: boolean;
     autoAttachPageStructureOnAutomation?: boolean;
     automationMaxSteps?: number;
@@ -216,6 +218,16 @@ async function saveSettings(
     } else {
       await fields.includeResponseLanguageInstruction.uncheck();
       await expect(fields.includeResponseLanguageInstruction).not.toBeChecked();
+    }
+  }
+
+  if (settings?.preferLatexMathOutput !== undefined) {
+    if (settings.preferLatexMathOutput) {
+      await fields.preferLatexMathOutput.check();
+      await expect(fields.preferLatexMathOutput).toBeChecked();
+    } else {
+      await fields.preferLatexMathOutput.uncheck();
+      await expect(fields.preferLatexMathOutput).not.toBeChecked();
     }
   }
 
@@ -342,6 +354,7 @@ test('loads the extension options page and saves settings', async () => {
       reasoningEffort: 'high',
       systemPrompt: 'Be concise.',
       automationSystemPrompt: 'Use tools aggressively.',
+      preferLatexMathOutput: true,
       autoAttachPage: true,
       autoAttachPageStructureOnAutomation: false,
       automationMaxSteps: 9,
@@ -359,6 +372,7 @@ test('loads the extension options page and saves settings', async () => {
     await expect(reloadedFields.reasoningEffort).toHaveValue('high');
     await expect(reloadedFields.systemPrompt).toHaveValue('Be concise.');
     await expect(reloadedFields.automationSystemPrompt).toHaveValue('Use tools aggressively.');
+    await expect(reloadedFields.preferLatexMathOutput).toBeChecked();
     await expect(reloadedFields.autoAttachPage).toBeChecked();
     await expect(reloadedFields.autoAttachPageStructureOnAutomation).not.toBeChecked();
     await expect(reloadedFields.automationMaxSteps).toHaveValue('9');
@@ -579,7 +593,7 @@ test('sends a chat request with mocked provider response', async () => {
           object: 'response',
           created_at: 1735689600,
           model: 'gpt-4.1-mini',
-          output_text: '**Mocked** assistant reply.\n\n- First result\n- Second result\n\n`fixture article`',
+          output_text: '**Mocked** assistant reply.\n\n- First result\n- Second result\n\nInline math $x^2$.\n\n$$N=p_1p_2\\cdots p_n+1$$\n\n`fixture article`',
           error: null,
           incomplete_details: null,
           instructions: null,
@@ -604,7 +618,7 @@ test('sends a chat request with mocked provider response', async () => {
               content: [
                 {
                   type: 'output_text',
-                  text: '**Mocked** assistant reply.\n\n- First result\n- Second result\n\n`fixture article`',
+                  text: '**Mocked** assistant reply.\n\n- First result\n- Second result\n\nInline math $x^2$.\n\n$$N=p_1p_2\\cdots p_n+1$$\n\n`fixture article`',
                   annotations: [],
                 },
               ],
@@ -658,6 +672,8 @@ test('sends a chat request with mocked provider response', async () => {
     await expect(sidepanelPage.locator('.message.assistant strong')).toContainText('Mocked');
     await expect(sidepanelPage.locator('.message.assistant li')).toHaveCount(2);
     await expect(sidepanelPage.locator('.message.assistant code')).toContainText('fixture article');
+    await expect(sidepanelPage.locator('.message.assistant .katex')).toHaveCount(2);
+    await expect(sidepanelPage.locator('.message.assistant')).not.toContainText('$$N=p_1p_2\\cdots p_n+1$$');
     await expect(sidepanelPage.locator('.message.assistant')).toContainText('Web search used');
     await expect(sidepanelPage.locator('.message.log')).toContainText('Web search');
     await sidepanelPage.locator('.message.log').filter({ hasText: 'Web search' }).click();

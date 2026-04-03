@@ -11,6 +11,7 @@ const DEV_DEFAULT_SETTINGS: Settings = {
   locale: 'auto',
   includeCurrentDateTime: true,
   includeResponseLanguageInstruction: true,
+  preferLatexMathOutput: false,
   autoAttachPage: false,
   autoAttachPageStructureOnAutomation: true,
   automationMaxSteps: 12,

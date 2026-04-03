@@ -419,6 +419,22 @@ export function App() {
                   }
                 />
               </label>
+
+              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50">
+                <span className="min-w-0 flex-1 font-medium">{t.options.preferLatexMathOutput}</span>
+                <input
+                  className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                  type="checkbox"
+                  disabled={!hydrated}
+                  checked={settings.preferLatexMathOutput}
+                  onChange={(event) =>
+                    setSettings((current) => ({
+                      ...current,
+                      preferLatexMathOutput: event.target.checked,
+                    }))
+                  }
+                />
+              </label>
             </div>
 
             <label className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-inner shadow-white/50">

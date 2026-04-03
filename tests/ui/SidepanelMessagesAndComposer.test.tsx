@@ -16,6 +16,7 @@ function createSettings(overrides: Partial<Settings> = {}): Settings {
     locale: 'en',
     includeCurrentDateTime: true,
     includeResponseLanguageInstruction: true,
+    preferLatexMathOutput: false,
     autoAttachPage: false,
     autoAttachPageStructureOnAutomation: true,
     automationMaxSteps: 12,
@@ -60,6 +61,32 @@ describe('MessageList', () => {
     expect(screen.getByText('Bold').tagName).toBe('STRONG');
     expect(screen.getByText('First').closest('li')).toBeTruthy();
     expect(screen.getByText('const x = 1').tagName).toBe('CODE');
+  });
+
+  it('renders latex math in assistant messages', () => {
+    const translations = getTranslations({ locale: 'en' });
+
+    render(
+      <MessageList
+        messages={[
+          createMessage({
+            id: 'assistant-math-1',
+            role: 'assistant',
+            content: 'Inline math $x^2$ and block math:\n\n$$N=p_1p_2\\cdots p_n+1$$',
+          }),
+        ]}
+        settings={createSettings({ preferLatexMathOutput: true })}
+        translations={translations}
+        scrollTargetMessageId=""
+        onScrollTargetHandled={() => undefined}
+        onDeleteMessage={() => undefined}
+        onDeleteAttachment={() => undefined}
+        onPreviewAttachment={() => undefined}
+      />,
+    );
+
+    expect(document.querySelectorAll('.message.assistant .katex')).toHaveLength(2);
+    expect(screen.queryByText('$$N=p_1p_2\\cdots p_n+1$$')).toBeNull();
   });
 
   it('renders consecutive logs inside a single collapsible group without per-log delete buttons', () => {

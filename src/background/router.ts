@@ -310,6 +310,7 @@ async function handleSettingsTestConnection(rawRequest: unknown): Promise<Messag
       locale: 'auto',
       includeCurrentDateTime: true,
       includeResponseLanguageInstruction: true,
+      preferLatexMathOutput: false,
       autoAttachPage: false,
       autoAttachPageStructureOnAutomation: true,
       automationMaxSteps: 12,

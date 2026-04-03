@@ -1,7 +1,9 @@
 import { ChevronRight, Info, Search, TerminalSquare, Trash2, TriangleAlert, X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import rehypeKatex from 'rehype-katex';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 import { attachmentSourceDetails } from '../../lib/attachments';
 import { attachmentLabel } from '../../lib/i18n';
 import type { ChatMessage, ContextAttachment, Settings } from '../../shared/models';
@@ -272,9 +274,10 @@ function logIcon(message: ChatMessage) {
 
 function MarkdownMessage({ content }: { content: string }) {
   return (
-    <div className="min-w-0 text-[13px] leading-5 text-inherit [&_a]:text-teal-700 [&_a]:underline [&_code]:rounded [&_code]:bg-stone-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[12px] [&_li]:ml-4 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-1 [&_p]:my-0 [&_p+*]:mt-2 [&_pre]:mt-2 [&_pre]:overflow-x-auto [&_pre]:rounded-[12px] [&_pre]:bg-stone-900 [&_pre]:p-2 [&_pre]:text-stone-50 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-[11px] [&_pre_code]:leading-4 [&_table]:mt-2 [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-[10px] [&_table]:text-left [&_td]:border [&_td]:border-stone-200 [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-stone-200 [&_th]:bg-stone-50 [&_th]:px-2 [&_th]:py-1 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-1">
+    <div className="min-w-0 text-[13px] leading-5 text-inherit [&_.katex-display]:my-2 [&_.katex-display]:overflow-x-auto [&_.katex]:max-w-full [&_.katex]:text-[1.05em] [&_a]:text-teal-700 [&_a]:underline [&_code]:rounded [&_code]:bg-stone-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[12px] [&_li]:ml-4 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-1 [&_p]:my-0 [&_p+*]:mt-2 [&_pre]:mt-2 [&_pre]:overflow-x-auto [&_pre]:rounded-[12px] [&_pre]:bg-stone-900 [&_pre]:p-2 [&_pre]:text-stone-50 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-[11px] [&_pre_code]:leading-4 [&_table]:mt-2 [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-[10px] [&_table]:text-left [&_td]:border [&_td]:border-stone-200 [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-stone-200 [&_th]:bg-stone-50 [&_th]:px-2 [&_th]:py-1 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-1">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
         components={{
           a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noreferrer" />,
         }}

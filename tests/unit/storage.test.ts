@@ -131,12 +131,14 @@ describe('storage session syncing', () => {
     expect((await getSettings()).automationMode).toBe(false);
     expect((await getSettings()).autoAttachPageStructureOnAutomation).toBe(true);
     expect((await getSettings()).automationMaxSteps).toBe(12);
+    expect((await getSettings()).preferLatexMathOutput).toBe(false);
 
     await saveSettings({
       ...(await getSettings()),
       autoAttachPage: true,
       autoAttachPageStructureOnAutomation: false,
       automationMaxSteps: 7,
+      preferLatexMathOutput: true,
       automationMode: true,
     });
 
@@ -144,6 +146,7 @@ describe('storage session syncing', () => {
       autoAttachPage: true,
       autoAttachPageStructureOnAutomation: false,
       automationMaxSteps: 7,
+      preferLatexMathOutput: true,
       automationMode: true,
     });
   });

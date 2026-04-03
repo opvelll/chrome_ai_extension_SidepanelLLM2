@@ -91,6 +91,7 @@ type TranslationDictionary = {
     promptContext: string;
     includeCurrentDateTime: string;
     includeResponseLanguageInstruction: string;
+    preferLatexMathOutput: string;
     language: string;
     autoAttachPage: string;
     autoAttachPageStructureOnAutomation: string;
@@ -206,6 +207,7 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       promptContext: 'Prompt context',
       includeCurrentDateTime: 'Include current date and time',
       includeResponseLanguageInstruction: 'Include response language instruction',
+      preferLatexMathOutput: 'Ask the model to format math with LaTeX $ delimiters',
       language: 'Language',
       autoAttachPage: 'Auto attach full page on first message',
       autoAttachPageStructureOnAutomation: 'Auto attach page structure on first automation message',
@@ -319,6 +321,7 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       promptContext: '埋め込みコンテキスト',
       includeCurrentDateTime: '現在日時を含める',
       includeResponseLanguageInstruction: '返答言語の指示を含める',
+      preferLatexMathOutput: '数式は LaTeX の $ 区切りで出力するよう促す',
       language: '表示言語',
       autoAttachPage: '最初の送信時にページ全文を自動添付',
       autoAttachPageStructureOnAutomation: '自動操作モードの初回送信時にページ構造を自動添付',

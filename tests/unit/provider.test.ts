@@ -36,6 +36,7 @@ function createSettings(overrides: Partial<Settings> = {}): Settings {
     locale: 'ja',
     includeCurrentDateTime: true,
     includeResponseLanguageInstruction: true,
+    preferLatexMathOutput: false,
     autoAttachPage: false,
     autoAttachPageStructureOnAutomation: true,
     automationMaxSteps: 12,
@@ -148,6 +149,25 @@ describe('sendChatCompletion', () => {
     expect(request.instructions).toContain('Current date and time:');
     expect(request.instructions).toContain('Respond to the user in English.');
     expect(request.instructions).not.toContain('Additional instructions:');
+  });
+
+  it('adds a latex math formatting instruction when enabled', async () => {
+    await sendChatCompletion({
+      settings: createSettings({
+        preferLatexMathOutput: true,
+      }),
+      userMessage: {
+        id: 'message-math-1',
+        role: 'user',
+        content: 'Explain the formula.',
+        createdAt: '2026-03-13T00:00:00.000Z',
+      },
+      history: [],
+      attachments: [],
+    });
+
+    const request = createMock.create.mock.calls[0]?.[0];
+    expect(request.instructions).toContain('Use $...$ for inline math and $$...$$ for block math.');
   });
 
   it('records whether web search actually ran', async () => {

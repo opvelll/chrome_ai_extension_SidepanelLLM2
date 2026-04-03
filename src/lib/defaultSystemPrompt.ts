@@ -40,7 +40,7 @@ export const DEFAULT_AUTOMATION_SYSTEM_PROMPT = [
 
 type InstructionSettings = Pick<
   Settings,
-  'locale' | 'includeCurrentDateTime' | 'includeResponseLanguageInstruction'
+  'locale' | 'includeCurrentDateTime' | 'includeResponseLanguageInstruction' | 'preferLatexMathOutput'
 >;
 
 export function buildSystemInstructions(
@@ -55,6 +55,12 @@ export function buildSystemInstructions(
 
   if (settings.includeResponseLanguageInstruction) {
     sections.push(getLanguageInstruction(settings.locale));
+  }
+
+  if (settings.preferLatexMathOutput) {
+    sections.push(
+      'When writing mathematical expressions, use LaTeX math delimiters. Use $...$ for inline math and $$...$$ for block math.',
+    );
   }
 
   return sections.join('\n\n').trim();

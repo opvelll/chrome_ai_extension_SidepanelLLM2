@@ -51,6 +51,7 @@ export async function listAvailableModels(apiKey: string): Promise<string[]> {
     locale: 'auto',
     includeCurrentDateTime: true,
     includeResponseLanguageInstruction: true,
+    preferLatexMathOutput: false,
     autoAttachPage: false,
     autoAttachPageStructureOnAutomation: true,
     automationMaxSteps: AUTOMATION_MAX_STEPS,

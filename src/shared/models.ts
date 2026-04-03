@@ -88,6 +88,7 @@ export type Settings = {
   locale: 'auto' | 'en' | 'ja';
   includeCurrentDateTime: boolean;
   includeResponseLanguageInstruction: boolean;
+  preferLatexMathOutput: boolean;
   autoAttachPage: boolean;
   autoAttachPageStructureOnAutomation: boolean;
   automationMaxSteps: number;

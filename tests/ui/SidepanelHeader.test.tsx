@@ -15,6 +15,7 @@ function createSettings(overrides: Partial<Settings> = {}): Settings {
     locale: 'en',
     includeCurrentDateTime: true,
     includeResponseLanguageInstruction: true,
+    preferLatexMathOutput: false,
     autoAttachPage: false,
     autoAttachPageStructureOnAutomation: true,
     automationMaxSteps: 12,
