@@ -12,6 +12,93 @@ if (!globalState.__sidepanelContentScriptInstalled__) {
     return value.replace(/\s+/g, ' ').trim();
   }
 
+  function hashString(value: string): string {
+    let hash = 2166136261;
+
+    for (let index = 0; index < value.length; index += 1) {
+      hash ^= value.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+
+    return (hash >>> 0).toString(16).padStart(8, '0');
+  }
+
+  function buildChangeFingerprint() {
+    const bodyText = normalizeText(document.body?.innerText ?? '').slice(0, 4000);
+    return {
+      url: window.location.href,
+      title: document.title,
+      textHash: hashString(bodyText),
+    };
+  }
+
+  async function waitForPageSettlement(options?: {
+    timeoutMs?: number;
+    quietWindowMs?: number;
+  }): Promise<{
+    mutationCount: number;
+    settled: boolean;
+  }> {
+    const timeoutMs = options?.timeoutMs ?? 1200;
+    const quietWindowMs = options?.quietWindowMs ?? 250;
+    const startedAt = Date.now();
+    let mutationCount = 0;
+    let lastMutationAt = startedAt;
+
+    const observer = new MutationObserver((mutations) => {
+      mutationCount += mutations.length;
+      lastMutationAt = Date.now();
+    });
+
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      characterData: true,
+    });
+
+    try {
+      while (Date.now() - startedAt < timeoutMs) {
+        if (Date.now() - lastMutationAt >= quietWindowMs) {
+          return {
+            mutationCount,
+            settled: true,
+          };
+        }
+
+        await new Promise((resolve) => window.setTimeout(resolve, 50));
+      }
+
+      return {
+        mutationCount,
+        settled: false,
+      };
+    } finally {
+      observer.disconnect();
+    }
+  }
+
+  async function capturePageChangeSummary<T>(action: () => T | Promise<T>) {
+    const before = buildChangeFingerprint();
+    const actionResult = await action();
+    const settlement = await waitForPageSettlement();
+    const after = buildChangeFingerprint();
+
+    return {
+      actionResult,
+      pageChange: {
+        before,
+        after,
+        urlChanged: before.url !== after.url,
+        titleChanged: before.title !== after.title,
+        textChanged: before.textHash !== after.textHash,
+        domChanged: settlement.mutationCount > 0 || before.textHash !== after.textHash,
+        mutationCount: settlement.mutationCount,
+        settled: settlement.settled,
+      },
+    };
+  }
+
   function getPageText(): string {
     const article = document.querySelector('main, article, [role="main"]');
     const source = article?.textContent || document.body?.innerText || '';
@@ -552,7 +639,7 @@ if (!globalState.__sidepanelContentScriptInstalled__) {
     }
 
     if (request?.type === 'content.automationType') {
-      try {
+      void capturePageChangeSummary(() => {
         const element = getTargetElement(request.payload.selector);
         element.scrollIntoView({ block: 'center', inline: 'center' });
         element.focus();
@@ -574,18 +661,21 @@ if (!globalState.__sidepanelContentScriptInstalled__) {
           }
         }
 
+        return value;
+      }).then(({ actionResult, pageChange }) => {
         sendResponse({
           ok: true,
           selector: request.payload.selector,
-          value,
+          value: actionResult,
+          pageChange,
         });
-      } catch (error) {
+      }).catch((error) => {
         sendResponse({
           ok: false,
           error: error instanceof Error ? error.message : 'Unable to type into the requested element.',
         });
-      }
-      return;
+      });
+      return true;
     }
 
     if (request?.type === 'content.automationGetValue') {
@@ -608,25 +698,27 @@ if (!globalState.__sidepanelContentScriptInstalled__) {
     }
 
     if (request?.type === 'content.automationSetValue') {
-      try {
+      void capturePageChangeSummary(() => {
         const element = getTargetElement(request.payload.selector);
         element.scrollIntoView({ block: 'center', inline: 'center' });
         element.focus();
-        const value = writeEditableValue(element, request.payload.text, {
+        return writeEditableValue(element, request.payload.text, {
           clear: request.payload.clear,
         });
+      }).then(({ actionResult, pageChange }) => {
         sendResponse({
           ok: true,
           selector: request.payload.selector,
-          value,
+          value: actionResult,
+          pageChange,
         });
-      } catch (error) {
+      }).catch((error) => {
         sendResponse({
           ok: false,
           error: error instanceof Error ? error.message : 'Unable to set the requested element value.',
         });
-      }
-      return;
+      });
+      return true;
     }
 
     if (request?.type === 'content.automationScroll') {

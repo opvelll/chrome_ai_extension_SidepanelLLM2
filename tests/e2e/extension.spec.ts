@@ -984,6 +984,7 @@ test('runs browser automation mode from the composer mode button', async () => {
     expect(requestBodies[0]).not.toContain('"type":"computer"');
     expect(requestBodies[0]).not.toContain('"type":"web_search_preview"');
     expect(requestBodies[2]).toContain('\\"value\\":\\"penguin\\"');
+    expect(requestBodies[2]).toContain('\\"pageChange\\":{');
   } finally {
     await closeExtension(context, userDataDir);
   }
