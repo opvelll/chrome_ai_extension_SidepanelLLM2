@@ -66,6 +66,14 @@ type TranslationDictionary = {
     description: string;
     storageNote: string;
     devNote: string;
+    autoSaveHint: string;
+    sectionNavigation: string;
+    sectionCommon: string;
+    sectionCommonDescription: string;
+    sectionChat: string;
+    sectionChatDescription: string;
+    sectionAutomation: string;
+    sectionAutomationDescription: string;
     apiKey: string;
     model: string;
     modelHelp: string;
@@ -74,6 +82,12 @@ type TranslationDictionary = {
     toolHelp: string;
     toolNone: string;
     toolWebSearch: string;
+    toolChatHelp: string;
+    toolAutomationHelp: string;
+    toolBuiltIn: string;
+    toolFunctionGroup: string;
+    toolFunctionGroupHelp: string;
+    toolManagedByMode: string;
     reasoning: string;
     reasoningHelp: string;
     reasoningDefault: string;
@@ -107,7 +121,15 @@ type TranslationDictionary = {
     testConnection: string;
     testingConnection: string;
     saved: string;
+    savedAutomatically: string;
     connectionOk: string;
+    manualSaveHint: string;
+    unsavedChanges: string;
+    saveApiKey: string;
+    saveModel: string;
+    saveSystemPrompt: string;
+    saveAutomationSystemPrompt: string;
+    saveAutomationMaxSteps: string;
   };
   attachments: {
     selection: string;
@@ -186,6 +208,14 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
         'Production builds require the user to enter an API key. Saved settings are stored in chrome.storage.local on this browser profile only.',
       devNote:
         'Development mode detected: the API key field was prefilled from .env. Saving will persist the current value to local extension storage.',
+      autoSaveHint: 'Selects and toggles save immediately. Text fields keep a nearby Save button so unfinished edits are not committed too early.',
+      sectionNavigation: 'Settings sections',
+      sectionCommon: 'Common settings',
+      sectionCommonDescription: 'Language, API key, model, and connection checks.',
+      sectionChat: 'Chat mode',
+      sectionChatDescription: 'Responses API behavior and prompt defaults for normal chat.',
+      sectionAutomation: 'Automation mode',
+      sectionAutomationDescription: 'Prompt, auto-attach behavior, and action step limits.',
       apiKey: 'API key',
       model: 'Model',
       modelHelp: 'Load the latest model list from the API, or enter a model ID manually if needed.',
@@ -194,6 +224,12 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       toolHelp: 'Choose the built-in Responses API tool to allow during generation.',
       toolNone: 'None',
       toolWebSearch: 'Web search',
+      toolChatHelp: 'Chat mode can use the built-in web search tool when enabled.',
+      toolAutomationHelp: 'Automation mode always has internal function tools available. Web search can be enabled in addition.',
+      toolBuiltIn: 'Built-in tool',
+      toolFunctionGroup: 'Internal function tools',
+      toolFunctionGroupHelp: 'This represents the extension-owned browser action tools used by automation mode.',
+      toolManagedByMode: 'Always enabled in automation mode.',
       reasoning: 'Reasoning',
       reasoningHelp: 'Set Responses API reasoning effort. Leave as default unless the model supports and needs a specific level.',
       reasoningDefault: 'Model default',
@@ -227,7 +263,15 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       testConnection: 'Test OpenAI API connection',
       testingConnection: 'Testing OpenAI API...',
       saved: 'Saved.',
+      savedAutomatically: 'Saved automatically.',
       connectionOk: 'Connection ok:',
+      manualSaveHint: 'Text changes are saved only when you press Save.',
+      unsavedChanges: 'Unsaved changes.',
+      saveApiKey: 'Save API key',
+      saveModel: 'Save model',
+      saveSystemPrompt: 'Save system prompt',
+      saveAutomationSystemPrompt: 'Save automation prompt',
+      saveAutomationMaxSteps: 'Save automation step limit',
     },
     attachments: {
       selection: 'Selection',
@@ -304,6 +348,14 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
         '本番ビルドでは API キーの入力が必要です。保存した設定はこのブラウザープロファイルの chrome.storage.local にのみ保存されます。',
       devNote:
         '開発モードを検出しました。API キー欄には .env の値が初期入力されています。保存すると現在の値が拡張機能のローカルストレージに保持されます。',
+      autoSaveHint: '選択項目とトグルは変更時に自動保存します。テキスト入力だけは途中入力を守るため近くの保存ボタンで確定します。',
+      sectionNavigation: '設定セクション',
+      sectionCommon: '共通設定',
+      sectionCommonDescription: '表示言語、API キー、モデル、接続確認をまとめます。',
+      sectionChat: 'チャットモード',
+      sectionChatDescription: '通常チャット時の Responses API 挙動とプロンプトを設定します。',
+      sectionAutomation: '自動操作モード',
+      sectionAutomationDescription: '自動操作時のプロンプト、添付ルール、ステップ制限を設定します。',
       apiKey: 'API キー',
       model: 'モデル',
       modelHelp: 'API から最新のモデル一覧を取得します。必要なら手入力にも切り替えられます。',
@@ -312,6 +364,12 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       toolHelp: 'Responses API で利用を許可する組み込み tool を選びます。',
       toolNone: 'なし',
       toolWebSearch: 'Web 検索',
+      toolChatHelp: 'チャットモードでは、ON にすると組み込みの Web 検索 tool を使えます。',
+      toolAutomationHelp: '自動操作モードでは、内製 function tools は常時有効です。追加で Web 検索だけ ON/OFF できます。',
+      toolBuiltIn: '組み込み tool',
+      toolFunctionGroup: '内製 function tools',
+      toolFunctionGroupHelp: '拡張機能側が持つブラウザ操作用ツール群を、説明上は 1 つのまとまりとして表示します。',
+      toolManagedByMode: '自動操作モードでは常に有効です。',
       reasoning: 'Reasoning',
       reasoningHelp: 'Responses API の reasoning effort を設定します。特定レベルが必要なモデル以外は既定値のままにしてください。',
       reasoningDefault: 'Model default',
@@ -345,7 +403,15 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       testConnection: 'OpenAI API 接続テスト',
       testingConnection: 'OpenAI API 接続確認中...',
       saved: '保存しました。',
+      savedAutomatically: '自動保存しました。',
       connectionOk: '接続成功:',
+      manualSaveHint: 'テキスト入力は保存ボタンを押したときだけ反映します。',
+      unsavedChanges: '未保存の変更があります。',
+      saveApiKey: 'API キーを保存',
+      saveModel: 'モデルを保存',
+      saveSystemPrompt: 'システムプロンプトを保存',
+      saveAutomationSystemPrompt: '自動操作モード用プロンプトを保存',
+      saveAutomationMaxSteps: '自動操作のステップ上限を保存',
     },
     attachments: {
       selection: '選択範囲',

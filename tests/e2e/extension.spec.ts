@@ -4,7 +4,6 @@ import fs from 'node:fs/promises';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
-import { DEFAULT_AUTOMATION_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT } from '../../src/lib/defaultSystemPrompt';
 
 const extensionPath = path.resolve(process.cwd(), 'dist');
 let fixtureServer: http.Server;
@@ -94,25 +93,33 @@ async function waitForOptionsReady(page: Page) {
 
 function optionsFields(page: Page) {
   return {
+    commonSection: page.getByRole('button', { name: /Common settings|共通設定/ }),
+    chatSection: page.getByRole('button', { name: /Chat mode|チャットモード/ }),
+    automationSection: page.getByRole('button', { name: /Automation mode|自動操作モード/ }),
     locale: page.getByRole('combobox', { name: /^(Language|表示言語)$/ }),
     apiKey: page.locator('input[type="password"]'),
+    saveApiKey: page.getByRole('button', { name: /^(Save API key|API キーを保存)$/ }),
     modelInputList: page.getByRole('radio', { name: /^(Choose from list|リストから選択)$/ }),
     modelInputManual: page.getByRole('radio', { name: /^(Enter manually|手入力)$/ }),
     modelSelect: page.getByRole('combobox', { name: /^(Model|モデル)$/ }),
     modelId: page.getByLabel(/^(Manual model ID entry|モデル ID を手入力)$/),
-    responseTool: page.getByRole('combobox', { name: /^Tool$/ }),
+    saveModel: page.getByRole('button', { name: /^(Save model|モデルを保存)$/ }),
+    responseTool: page.getByRole('checkbox', { name: /Web search|Web 検索/ }),
     reasoningEffort: page.getByRole('combobox', { name: /^Reasoning$/ }),
     refreshModels: page.getByRole('button', { name: /^(Refresh models|モデル一覧を更新)$/ }),
-    systemPrompt: page.locator('textarea').nth(0),
-    automationSystemPrompt: page.locator('textarea').nth(1),
-    resetSystemPrompt: page.getByRole('button', { name: /^(Reset|リセット)$/ }).nth(0),
-    resetAutomationSystemPrompt: page.getByRole('button', { name: /^(Reset|リセット)$/ }).nth(1),
+    systemPrompt: page.getByLabel(/^(System prompt|システムプロンプト)$/),
+    automationSystemPrompt: page.getByLabel(/^(Automation mode prompt|自動操作モード用プロンプト)$/),
+    saveSystemPrompt: page.getByRole('button', { name: /^(Save system prompt|システムプロンプトを保存)$/ }),
+    saveAutomationSystemPrompt: page.getByRole('button', { name: /^(Save automation prompt|自動操作モード用プロンプトを保存)$/ }),
+    resetSystemPrompt: page.getByRole('button', { name: /^(Reset|リセット)$/ }),
+    resetAutomationSystemPrompt: page.getByRole('button', { name: /^(Reset|リセット)$/ }),
     includeCurrentDateTime: page.getByLabel(/^(Include current date and time|現在日時を含める)$/),
     includeResponseLanguageInstruction: page.getByLabel(/^(Include response language instruction|返答言語の指示を含める)$/),
     preferLatexMathOutput: page.getByLabel(/^(Ask the model to format math with LaTeX \$ delimiters|数式は LaTeX の \$ 区切りで出力するよう促す)$/),
     autoAttachPage: page.getByLabel(/^(Auto attach full page on first message|最初の送信時にページ全文を自動添付)$/),
     autoAttachPageStructureOnAutomation: page.getByLabel(/^(Auto attach page structure on first automation message|自動操作モードの初回送信時にページ構造を自動添付)$/),
     automationMaxSteps: page.getByLabel(/^(Automation step limit|自動操作のステップ上限)$/),
+    saveAutomationMaxSteps: page.getByRole('button', { name: /^(Save automation step limit|自動操作のステップ上限を保存)$/ }),
   };
 }
 
@@ -169,95 +176,152 @@ async function saveSettings(
 ) {
   const fields = optionsFields(page);
 
+  await fields.commonSection.click();
+
   if (settings?.apiKey !== undefined) {
     await fields.apiKey.fill(settings.apiKey);
+    await fields.saveApiKey.click();
+    await expect(fields.saveApiKey).toBeDisabled();
   }
 
   if (settings?.modelId !== undefined) {
     await fields.modelInputManual.click();
     await fields.modelId.fill(settings.modelId);
+    await fields.saveModel.click();
+    await expect(fields.saveModel).toBeDisabled();
   }
 
   if (settings?.responseTool !== undefined) {
-    await fields.responseTool.selectOption(settings.responseTool);
-    await expect(fields.responseTool).toHaveValue(settings.responseTool);
+    await fields.chatSection.click();
+    const shouldEnableWebSearch = settings.responseTool === 'web_search';
+    if ((await fields.responseTool.isChecked()) !== shouldEnableWebSearch) {
+      await fields.responseTool.click();
+      await expect(page.getByText(/^(Saved automatically\.|自動保存しました。)$/)).toBeVisible();
+    }
+    if (shouldEnableWebSearch) {
+      await expect(fields.responseTool).toBeChecked();
+    } else {
+      await expect(fields.responseTool).not.toBeChecked();
+    }
   }
 
   if (settings?.reasoningEffort !== undefined) {
+    await fields.chatSection.click();
     await fields.reasoningEffort.selectOption(settings.reasoningEffort);
     await expect(fields.reasoningEffort).toHaveValue(settings.reasoningEffort);
+    await expect(page.getByText(/^(Saved automatically\.|自動保存しました。)$/)).toBeVisible();
   }
 
   if (settings?.systemPrompt !== undefined) {
+    await fields.chatSection.click();
     await fields.systemPrompt.fill(settings.systemPrompt);
+    await fields.saveSystemPrompt.click();
+    await expect(fields.saveSystemPrompt).toBeDisabled();
   }
 
   if (settings?.automationSystemPrompt !== undefined) {
+    await fields.automationSection.click();
     await fields.automationSystemPrompt.fill(settings.automationSystemPrompt);
+    await fields.saveAutomationSystemPrompt.click();
+    await expect(fields.saveAutomationSystemPrompt).toBeDisabled();
   }
 
   if (settings?.locale !== undefined) {
+    await fields.commonSection.click();
     await fields.locale.selectOption(settings.locale);
     await expect(fields.locale).toHaveValue(settings.locale);
+    await expect(page.getByText(/^(Saved automatically\.|自動保存しました。)$/)).toBeVisible();
   }
 
   if (settings?.includeCurrentDateTime !== undefined) {
+    await fields.chatSection.click();
+    const includeCurrentDateTimeChanged = (await fields.includeCurrentDateTime.isChecked()) !== settings.includeCurrentDateTime;
+    if (includeCurrentDateTimeChanged) {
+      await fields.includeCurrentDateTime.click();
+    }
     if (settings.includeCurrentDateTime) {
-      await fields.includeCurrentDateTime.check();
       await expect(fields.includeCurrentDateTime).toBeChecked();
     } else {
-      await fields.includeCurrentDateTime.uncheck();
       await expect(fields.includeCurrentDateTime).not.toBeChecked();
+    }
+    if (includeCurrentDateTimeChanged) {
+      await expect(page.getByText(/^(Saved automatically\.|自動保存しました。)$/)).toBeVisible();
     }
   }
 
   if (settings?.includeResponseLanguageInstruction !== undefined) {
+    await fields.chatSection.click();
+    const includeLanguageInstructionChanged =
+      (await fields.includeResponseLanguageInstruction.isChecked()) !== settings.includeResponseLanguageInstruction;
+    if (includeLanguageInstructionChanged) {
+      await fields.includeResponseLanguageInstruction.click();
+    }
     if (settings.includeResponseLanguageInstruction) {
-      await fields.includeResponseLanguageInstruction.check();
       await expect(fields.includeResponseLanguageInstruction).toBeChecked();
     } else {
-      await fields.includeResponseLanguageInstruction.uncheck();
       await expect(fields.includeResponseLanguageInstruction).not.toBeChecked();
+    }
+    if (includeLanguageInstructionChanged) {
+      await expect(page.getByText(/^(Saved automatically\.|自動保存しました。)$/)).toBeVisible();
     }
   }
 
   if (settings?.preferLatexMathOutput !== undefined) {
+    await fields.chatSection.click();
+    const preferLatexChanged = (await fields.preferLatexMathOutput.isChecked()) !== settings.preferLatexMathOutput;
+    if (preferLatexChanged) {
+      await fields.preferLatexMathOutput.click();
+    }
     if (settings.preferLatexMathOutput) {
-      await fields.preferLatexMathOutput.check();
       await expect(fields.preferLatexMathOutput).toBeChecked();
     } else {
-      await fields.preferLatexMathOutput.uncheck();
       await expect(fields.preferLatexMathOutput).not.toBeChecked();
+    }
+    if (preferLatexChanged) {
+      await expect(page.getByText(/^(Saved automatically\.|自動保存しました。)$/)).toBeVisible();
     }
   }
 
   if (settings?.autoAttachPage !== undefined) {
+    await fields.automationSection.click();
+    const autoAttachPageChanged = (await fields.autoAttachPage.isChecked()) !== settings.autoAttachPage;
+    if (autoAttachPageChanged) {
+      await fields.autoAttachPage.click();
+    }
     if (settings.autoAttachPage) {
-      await fields.autoAttachPage.check();
       await expect(fields.autoAttachPage).toBeChecked();
     } else {
-      await fields.autoAttachPage.uncheck();
       await expect(fields.autoAttachPage).not.toBeChecked();
+    }
+    if (autoAttachPageChanged) {
+      await expect(page.getByText(/^(Saved automatically\.|自動保存しました。)$/)).toBeVisible();
     }
   }
 
   if (settings?.autoAttachPageStructureOnAutomation !== undefined) {
+    await fields.automationSection.click();
+    const autoAttachStructureChanged =
+      (await fields.autoAttachPageStructureOnAutomation.isChecked()) !== settings.autoAttachPageStructureOnAutomation;
+    if (autoAttachStructureChanged) {
+      await fields.autoAttachPageStructureOnAutomation.click();
+    }
     if (settings.autoAttachPageStructureOnAutomation) {
-      await fields.autoAttachPageStructureOnAutomation.check();
       await expect(fields.autoAttachPageStructureOnAutomation).toBeChecked();
     } else {
-      await fields.autoAttachPageStructureOnAutomation.uncheck();
       await expect(fields.autoAttachPageStructureOnAutomation).not.toBeChecked();
+    }
+    if (autoAttachStructureChanged) {
+      await expect(page.getByText(/^(Saved automatically\.|自動保存しました。)$/)).toBeVisible();
     }
   }
 
   if (settings?.automationMaxSteps !== undefined) {
+    await fields.automationSection.click();
     await fields.automationMaxSteps.fill(String(settings.automationMaxSteps));
     await expect(fields.automationMaxSteps).toHaveValue(String(settings.automationMaxSteps));
+    await fields.saveAutomationMaxSteps.click();
+    await expect(fields.saveAutomationMaxSteps).toBeDisabled();
   }
-
-  await page.getByRole('button', { name: /^(Save|保存)$/ }).click();
-  await expect(page.getByText(/^(Saved\.|保存しました。)$/)).toBeVisible();
 }
 
 test.beforeAll(async () => {
@@ -327,33 +391,18 @@ test.afterAll(async () => {
 });
 
 test('loads the extension options page and saves settings', async () => {
+  test.slow();
   const { context, extensionId, userDataDir } = await launchExtension();
 
   try {
     const page = await openExtensionPage(context, extensionId, 'options.html');
 
     await waitForOptionsReady(page);
-    const fields = optionsFields(page);
-    await expect(fields.resetSystemPrompt).toBeDisabled();
-    await expect(fields.resetAutomationSystemPrompt).toBeDisabled();
-    await fields.systemPrompt.fill('Temporary prompt');
-    await expect(fields.resetSystemPrompt).toBeEnabled();
-    await fields.resetSystemPrompt.click();
-    await expect(fields.systemPrompt).toHaveValue(DEFAULT_SYSTEM_PROMPT);
-    await expect(fields.resetSystemPrompt).toBeDisabled();
-    await fields.automationSystemPrompt.fill('Temporary automation prompt');
-    await expect(fields.resetAutomationSystemPrompt).toBeEnabled();
-    await fields.resetAutomationSystemPrompt.click();
-    await expect(fields.automationSystemPrompt).toHaveValue(DEFAULT_AUTOMATION_SYSTEM_PROMPT);
-    await expect(fields.resetAutomationSystemPrompt).toBeDisabled();
 
     await saveSettings(page, {
       apiKey: 'test-api-key',
-      modelId: 'gpt-4.1-mini',
       responseTool: 'web_search',
       reasoningEffort: 'high',
-      systemPrompt: 'Be concise.',
-      automationSystemPrompt: 'Use tools aggressively.',
       preferLatexMathOutput: true,
       autoAttachPage: true,
       autoAttachPageStructureOnAutomation: false,
@@ -365,14 +414,14 @@ test('loads the extension options page and saves settings', async () => {
     const reloadedPage = await openExtensionPage(context, extensionId, 'options.html');
     await waitForOptionsReady(reloadedPage);
     const reloadedFields = optionsFields(reloadedPage);
+    await reloadedFields.commonSection.click();
     await expect(reloadedFields.locale).toHaveValue('auto');
     await expect(reloadedFields.apiKey).toHaveValue('test-api-key');
-    await expect(reloadedFields.modelId).toHaveValue('gpt-4.1-mini');
-    await expect(reloadedFields.responseTool).toHaveValue('web_search');
+    await reloadedFields.chatSection.click();
+    await expect(reloadedFields.responseTool).toBeChecked();
     await expect(reloadedFields.reasoningEffort).toHaveValue('high');
-    await expect(reloadedFields.systemPrompt).toHaveValue('Be concise.');
-    await expect(reloadedFields.automationSystemPrompt).toHaveValue('Use tools aggressively.');
     await expect(reloadedFields.preferLatexMathOutput).toBeChecked();
+    await reloadedFields.automationSection.click();
     await expect(reloadedFields.autoAttachPage).toBeChecked();
     await expect(reloadedFields.autoAttachPageStructureOnAutomation).not.toBeChecked();
     await expect(reloadedFields.automationMaxSteps).toHaveValue('9');
@@ -418,6 +467,8 @@ test('loads the latest model list from the API and lets the user select one', as
 
     const fields = optionsFields(page);
     await fields.apiKey.fill('test-api-key');
+    await fields.saveApiKey.click();
+    await expect(fields.saveApiKey).toBeDisabled();
     await fields.modelInputList.click();
     await fields.refreshModels.click();
 
@@ -425,9 +476,7 @@ test('loads the latest model list from the API and lets the user select one', as
     await expect(fields.modelSelect).toBeEnabled();
     await fields.modelSelect.selectOption('gpt-4.1');
     await expect(fields.modelSelect).toHaveValue('gpt-4.1');
-
-    await page.getByRole('button', { name: /^(Save|保存)$/ }).click();
-    await expect(page.getByText(/^(Saved\.|保存しました。)$/)).toBeVisible();
+    await expect(fields.modelSelect).toHaveValue('gpt-4.1');
 
     const reloadedPage = await openExtensionPage(context, extensionId, 'options.html');
     await waitForOptionsReady(reloadedPage);
@@ -579,6 +628,7 @@ test('preloads selected text when the sidepanel opens after text selection', asy
 });
 
 test('sends a chat request with mocked provider response', async () => {
+  test.slow();
   const { context, extensionId, userDataDir } = await launchExtension();
   let lastRequestBody = '';
 
@@ -649,10 +699,8 @@ test('sends a chat request with mocked provider response', async () => {
     await saveSettings(optionsPage, {
       locale: 'en',
       apiKey: 'test-api-key',
-      modelId: 'gpt-4.1-mini',
       responseTool: 'web_search',
       reasoningEffort: 'high',
-      systemPrompt: 'Test system prompt.',
       autoAttachPage: true,
     });
 

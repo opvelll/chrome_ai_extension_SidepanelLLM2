@@ -326,7 +326,7 @@ describe('sendChatCompletion', () => {
     });
 
     const result = await runAutomationCompletion({
-      settings: createSettings(),
+      settings: createSettings({ responseTool: 'web_search' }),
       userMessage: {
         id: 'message-1',
         role: 'user',
@@ -347,6 +347,7 @@ describe('sendChatCompletion', () => {
     const firstRequest = createMock.create.mock.calls[0]?.[0];
     expect(firstRequest.tools).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({ type: 'web_search_preview' }),
         expect.objectContaining({ type: 'function', name: 'browser_inspect_page' }),
         expect.objectContaining({ type: 'function', name: 'browser_click' }),
         expect.objectContaining({ type: 'function', name: 'browser_get_value' }),

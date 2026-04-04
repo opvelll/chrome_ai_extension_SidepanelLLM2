@@ -344,14 +344,15 @@ function formatAutomationLogResult(result: unknown): unknown {
 }
 
 function getResponseTools(settings: Settings, options?: { includeAutomation?: boolean }): Tool[] | undefined {
-  if (options?.includeAutomation) {
-    return getAutomationTools();
-  }
-
   const tools: Tool[] = [];
 
   if (settings.responseTool === 'web_search') {
     tools.push({ type: 'web_search_preview' });
+  }
+
+  if (options?.includeAutomation) {
+    tools.push(...getAutomationTools());
+    return tools.length > 0 ? tools : undefined;
   }
 
   return tools.length > 0 ? tools : undefined;
