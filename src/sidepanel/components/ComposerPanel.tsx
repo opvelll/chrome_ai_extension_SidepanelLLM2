@@ -51,7 +51,7 @@ export function ComposerPanel({
   const modeIcon = automationMode ? <Sparkles className="h-4 w-4" /> : <Bot className="h-4 w-4" />;
 
   return (
-    <section className="sticky bottom-0 z-10 rounded-[20px] border border-stone-200/70 bg-white/92 p-2 shadow-md shadow-stone-900/6 backdrop-blur-xl">
+    <section className="z-10 shrink-0 rounded-[20px] border border-stone-200/70 bg-white p-2 shadow-md shadow-stone-900/6">
       <div className="flex flex-col gap-2">
         <div>
           <div className="flex items-center gap-1.5">

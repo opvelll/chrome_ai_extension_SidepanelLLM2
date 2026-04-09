@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { chromium, type BrowserContext, type Page } from 'playwright';
+import { chromium, type BrowserContext, type Page, type Route } from 'playwright';
 import fs from 'node:fs/promises';
 import http from 'node:http';
 import os from 'node:os';
@@ -746,6 +746,129 @@ test('sends a chat request with mocked provider response', async () => {
     await expect(sidepanelPage.locator('.message.user')).toHaveCount(0);
     await sidepanelPage.getByRole('button', { name: 'Sessions', exact: true }).click();
     await expect(sidepanelPage.locator('.session-item').first()).toContainText('Hello from Playwright');
+  } finally {
+    await closeExtension(context, userDataDir);
+  }
+});
+
+test('keeps the composer stable while waiting for a chat response', async () => {
+  test.slow();
+  const { context, extensionId, userDataDir } = await launchExtension();
+  let resolvePendingRoute: ((route: Route) => void) | null = null;
+  const pendingRoutePromise = new Promise<Route>((resolve) => {
+    resolvePendingRoute = resolve;
+  });
+
+  try {
+    await context.route('**/v1/responses', async (route) => {
+      resolvePendingRoute?.(route);
+    });
+
+    const optionsPage = await openExtensionPage(context, extensionId, 'options.html');
+    await saveSettings(optionsPage, {
+      locale: 'en',
+      apiKey: 'test-api-key',
+      autoAttachPage: false,
+    });
+
+    const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
+    await waitForSidepanelReady(sidepanelPage);
+
+    const textarea = sidepanelPage.locator('textarea');
+    await textarea.fill('Check pending composer stability');
+
+    const before = await textarea.evaluate((element) => {
+      const composer = element.closest('section');
+      if (!(composer instanceof HTMLElement)) {
+        throw new Error('Composer section not found.');
+      }
+
+      (globalThis as typeof globalThis & { __composerTextarea?: HTMLTextAreaElement }).__composerTextarea =
+        element as HTMLTextAreaElement;
+
+      const rect = composer.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    });
+
+    await clickButtonInBackground(sidepanelPage, 'Send');
+
+    await expect(async () => {
+      expect(await sidepanelPage.getByRole('button', { name: 'Send' }).isDisabled()).toBe(true);
+    }).toPass();
+
+    const pending = await textarea.evaluate((element) => {
+      const composer = element.closest('section');
+      if (!(composer instanceof HTMLElement)) {
+        throw new Error('Composer section not found.');
+      }
+
+      const rect = composer.getBoundingClientRect();
+      const sameTextarea =
+        (globalThis as typeof globalThis & { __composerTextarea?: HTMLTextAreaElement }).__composerTextarea === element;
+
+      return {
+        sameTextarea,
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+      };
+    });
+
+    expect(pending.sameTextarea).toBe(true);
+    expect(pending.x).toBeCloseTo(before.x, 0);
+    expect(pending.y).toBeCloseTo(before.y, 0);
+    expect(pending.width).toBeCloseTo(before.width, 0);
+    expect(pending.height).toBeCloseTo(before.height, 0);
+
+    const pendingRoute = await pendingRoutePromise;
+    await pendingRoute.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 'resp_pending_state',
+        object: 'response',
+        created_at: 1735689600,
+        model: 'gpt-4.1-mini',
+        output_text: 'Pending state verified.',
+        error: null,
+        incomplete_details: null,
+        instructions: null,
+        metadata: {},
+        output: [
+          {
+            id: 'msg_pending_state',
+            type: 'message',
+            role: 'assistant',
+            status: 'completed',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Pending state verified.',
+                annotations: [],
+              },
+            ],
+          },
+        ],
+        parallel_tool_calls: false,
+        temperature: 1,
+        tool_choice: 'auto',
+        tools: [],
+        top_p: 1,
+        max_output_tokens: null,
+        previous_response_id: null,
+        reasoning: null,
+        status: 'completed',
+        usage: {
+          input_tokens: 8,
+          output_tokens: 4,
+          total_tokens: 12,
+        },
+      }),
+    });
+    await expect(sidepanelPage.locator('.message.assistant')).toContainText('Pending state verified.', {
+      timeout: 10_000,
+    });
   } finally {
     await closeExtension(context, userDataDir);
   }
