@@ -3,7 +3,10 @@
 Chrome のサイドパネルで使う OpenAI ベースのチャット拡張です。  
 閲覧中のページを文脈として添付しながら、そのまま横で質問できます。
 
-![Sidepanel LLM 2 gif](doc/sidepanel2llm.gif)
+![Sidepanel LLM 2 gif](doc/llm2all.gif)
+
+自動操作モード
+![alt text](doc/llm2auto.gif)
 
 ## 利用者向け
 
