@@ -533,29 +533,27 @@ export function App() {
                   {modelsError ? <div className="text-xs text-amber-700">{t.options.modelListUnavailable} {modelsError}</div> : null}
                 </div>
 
-                <div className="mt-2 flex flex-wrap items-center justify-end gap-3">
-                  <label className="flex flex-col gap-2.5">
-                    <span className="inline-flex items-center gap-2 text-sm font-medium">
-                      <Brain className="h-4 w-4 text-teal-600" />
-                      {t.options.reasoning}
-                    </span>
-                    <select
-                      className={inputClassName}
-                      aria-label={t.options.reasoning}
-                      disabled={!hydrated}
-                      value={settings.reasoningEffort}
-                      onChange={(event) => void persistImmediate('reasoningEffort', event.target.value as Settings['reasoningEffort'])}
-                    >
-                      <option value="default">{t.options.reasoningDefault}</option>
-                      <option value="none">{t.options.reasoningNone}</option>
-                      <option value="minimal">{t.options.reasoningMinimal}</option>
-                      <option value="low">{t.options.reasoningLow}</option>
-                      <option value="medium">{t.options.reasoningMedium}</option>
-                      <option value="high">{t.options.reasoningHigh}</option>
-                      <option value="xhigh">{t.options.reasoningXHigh}</option>
-                    </select>
-                    <div className="text-xs leading-5 text-slate-500">{t.options.reasoningHelp}</div>
-                  </label>
+                <div className="mt-2 flex flex-col gap-2.5">
+                  <span className="inline-flex items-center gap-2 text-sm font-medium">
+                    <Brain className="h-4 w-4 text-teal-600" />
+                    {t.options.reasoning}
+                  </span>
+                  <select
+                    className={`w-full ${inputClassName}`}
+                    aria-label={t.options.reasoning}
+                    disabled={!hydrated}
+                    value={settings.reasoningEffort}
+                    onChange={(event) => void persistImmediate('reasoningEffort', event.target.value as Settings['reasoningEffort'])}
+                  >
+                    <option value="default">{t.options.reasoningDefault}</option>
+                    <option value="none">{t.options.reasoningNone}</option>
+                    <option value="minimal">{t.options.reasoningMinimal}</option>
+                    <option value="low">{t.options.reasoningLow}</option>
+                    <option value="medium">{t.options.reasoningMedium}</option>
+                    <option value="high">{t.options.reasoningHigh}</option>
+                    <option value="xhigh">{t.options.reasoningXHigh}</option>
+                  </select>
+                  <div className="text-xs leading-5 text-slate-500">{t.options.reasoningHelp}</div>
                 </div>
 
                 <div className="mt-2 flex flex-wrap items-center justify-end gap-3">
