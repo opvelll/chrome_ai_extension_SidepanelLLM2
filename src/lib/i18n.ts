@@ -110,6 +110,10 @@ type TranslationDictionary = {
     includeCurrentDateTime: string;
     includeResponseLanguageInstruction: string;
     preferLatexMathOutput: string;
+    composerSubmitBehavior: string;
+    composerSubmitBehaviorHelp: string;
+    composerSubmitBehaviorEnterToSend: string;
+    composerSubmitBehaviorCtrlEnterToSend: string;
     language: string;
     autoAttachPage: string;
     autoAttachPageStructureOnAutomation: string;
@@ -252,6 +256,10 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       includeCurrentDateTime: 'Include current date and time',
       includeResponseLanguageInstruction: 'Include response language instruction',
       preferLatexMathOutput: 'Ask the model to format math with LaTeX $ delimiters',
+      composerSubmitBehavior: 'Input behavior',
+      composerSubmitBehaviorHelp: 'Choose whether Enter sends immediately or inserts a newline in the composer. On Mac, Cmd+Enter also sends in the shortcut mode.',
+      composerSubmitBehaviorEnterToSend: 'Enter sends, Shift+Enter inserts newline',
+      composerSubmitBehaviorCtrlEnterToSend: 'Enter inserts newline, Ctrl/Cmd+Enter sends',
       language: 'Language',
       autoAttachPage: 'Auto attach full page on first message',
       autoAttachPageStructureOnAutomation: 'Auto attach page structure on first automation message',
@@ -392,6 +400,10 @@ const translations: Record<SupportedLocale, TranslationDictionary> = {
       includeCurrentDateTime: '現在日時を含める',
       includeResponseLanguageInstruction: '返答言語の指示を含める',
       preferLatexMathOutput: '数式は LaTeX の $ 区切りで出力するよう促す',
+      composerSubmitBehavior: '入力動作',
+      composerSubmitBehaviorHelp: '入力欄で Enter を送信に使うか、改行に使うかを選びます。ショートカット方式では Mac の Cmd+Enter でも送信できます。',
+      composerSubmitBehaviorEnterToSend: 'Enter で送信、Shift+Enter で改行',
+      composerSubmitBehaviorCtrlEnterToSend: 'Enter で改行、Ctrl/Cmd+Enter で送信',
       language: '表示言語',
       autoAttachPage: '最初の送信時にページ全文を自動添付',
       autoAttachPageStructureOnAutomation: '自動操作モードの初回送信時にページ構造を自動添付',

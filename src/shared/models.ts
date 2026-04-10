@@ -78,6 +78,8 @@ export type ChatSession = {
   updatedAt: string;
 };
 
+export type ComposerSubmitBehavior = 'enter_to_send' | 'ctrl_enter_to_send';
+
 export type Settings = {
   apiKey: string;
   modelId: string;
@@ -89,6 +91,7 @@ export type Settings = {
   includeCurrentDateTime: boolean;
   includeResponseLanguageInstruction: boolean;
   preferLatexMathOutput: boolean;
+  composerSubmitBehavior: ComposerSubmitBehavior;
   autoAttachPage: boolean;
   autoAttachPageStructureOnAutomation: boolean;
   automationMaxSteps: number;

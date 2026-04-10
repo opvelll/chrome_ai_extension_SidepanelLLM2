@@ -17,6 +17,7 @@ function createSettings(overrides: Partial<Settings> = {}): Settings {
     includeCurrentDateTime: true,
     includeResponseLanguageInstruction: true,
     preferLatexMathOutput: false,
+    composerSubmitBehavior: 'ctrl_enter_to_send',
     autoAttachPage: false,
     autoAttachPageStructureOnAutomation: true,
     automationMaxSteps: 12,
@@ -179,5 +180,110 @@ describe('ComposerPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Automatic browser actions' }));
     expect(onToggleAutomationMode).toHaveBeenCalledWith(true);
+  });
+
+  it('submits with ctrl+enter by default and keeps enter for newlines', () => {
+    const translations = getTranslations({ locale: 'en' });
+    const onSubmit = vi.fn();
+
+    render(
+      <ComposerPanel
+        attachments={[]}
+        draft="Shortcut send"
+        loading={false}
+        autoAttachPage={false}
+        automationMode={false}
+        composerPlaceholder={translations.sidepanel.composerPlaceholder}
+        contextError=""
+        error=""
+        settings={createSettings()}
+        translations={translations}
+        onCaptureSelection={() => undefined}
+        onCapturePage={() => undefined}
+        onCaptureScreenshot={() => undefined}
+        onToggleAutoAttachPage={() => undefined}
+        onToggleAutomationMode={() => undefined}
+        onPreviewAttachment={() => undefined}
+        onDeleteAttachment={() => undefined}
+        onDraftChange={() => undefined}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    const composer = screen.getByPlaceholderText('Type a message...');
+    fireEvent.keyDown(composer, { key: 'Enter' });
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(composer, { key: 'Enter', ctrlKey: true });
+    expect(onSubmit).toHaveBeenCalledOnce();
+  });
+
+  it('submits with cmd+enter in ctrl_enter_to_send mode', () => {
+    const translations = getTranslations({ locale: 'en' });
+    const onSubmit = vi.fn();
+
+    render(
+      <ComposerPanel
+        attachments={[]}
+        draft="Shortcut send"
+        loading={false}
+        autoAttachPage={false}
+        automationMode={false}
+        composerPlaceholder={translations.sidepanel.composerPlaceholder}
+        contextError=""
+        error=""
+        settings={createSettings()}
+        translations={translations}
+        onCaptureSelection={() => undefined}
+        onCapturePage={() => undefined}
+        onCaptureScreenshot={() => undefined}
+        onToggleAutoAttachPage={() => undefined}
+        onToggleAutomationMode={() => undefined}
+        onPreviewAttachment={() => undefined}
+        onDeleteAttachment={() => undefined}
+        onDraftChange={() => undefined}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    const composer = screen.getByPlaceholderText('Type a message...');
+    fireEvent.keyDown(composer, { key: 'Enter', metaKey: true });
+    expect(onSubmit).toHaveBeenCalledOnce();
+  });
+
+  it('submits with enter when the behavior is set to enter_to_send', () => {
+    const translations = getTranslations({ locale: 'en' });
+    const onSubmit = vi.fn();
+
+    render(
+      <ComposerPanel
+        attachments={[]}
+        draft="Shortcut send"
+        loading={false}
+        autoAttachPage={false}
+        automationMode={false}
+        composerPlaceholder={translations.sidepanel.composerPlaceholder}
+        contextError=""
+        error=""
+        settings={createSettings({ composerSubmitBehavior: 'enter_to_send' })}
+        translations={translations}
+        onCaptureSelection={() => undefined}
+        onCapturePage={() => undefined}
+        onCaptureScreenshot={() => undefined}
+        onToggleAutoAttachPage={() => undefined}
+        onToggleAutomationMode={() => undefined}
+        onPreviewAttachment={() => undefined}
+        onDeleteAttachment={() => undefined}
+        onDraftChange={() => undefined}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    const composer = screen.getByPlaceholderText('Type a message...');
+    fireEvent.keyDown(composer, { key: 'Enter' });
+    expect(onSubmit).toHaveBeenCalledOnce();
+
+    fireEvent.keyDown(composer, { key: 'Enter', shiftKey: true });
+    expect(onSubmit).toHaveBeenCalledOnce();
   });
 });

@@ -132,6 +132,7 @@ describe('storage session syncing', () => {
     expect((await getSettings()).autoAttachPageStructureOnAutomation).toBe(true);
     expect((await getSettings()).automationMaxSteps).toBe(12);
     expect((await getSettings()).preferLatexMathOutput).toBe(false);
+    expect((await getSettings()).composerSubmitBehavior).toBe('ctrl_enter_to_send');
 
     await saveSettings({
       ...(await getSettings()),
@@ -139,6 +140,7 @@ describe('storage session syncing', () => {
       autoAttachPageStructureOnAutomation: false,
       automationMaxSteps: 7,
       preferLatexMathOutput: true,
+      composerSubmitBehavior: 'enter_to_send',
       automationMode: true,
     });
 
@@ -147,6 +149,7 @@ describe('storage session syncing', () => {
       autoAttachPageStructureOnAutomation: false,
       automationMaxSteps: 7,
       preferLatexMathOutput: true,
+      composerSubmitBehavior: 'enter_to_send',
       automationMode: true,
     });
   });

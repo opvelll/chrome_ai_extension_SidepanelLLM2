@@ -105,7 +105,7 @@ function optionsFields(page: Page) {
     modelId: page.getByLabel(/^(Manual model ID entry|モデル ID を手入力)$/),
     saveModel: page.getByRole('button', { name: /^(Save model|モデルを保存)$/ }),
     responseTool: page.getByRole('checkbox', { name: /Web search|Web 検索/ }),
-    reasoningEffort: page.getByRole('combobox', { name: /^Reasoning$/ }),
+    reasoningEffort: page.getByRole('combobox', { name: /^(Reasoning|Reasoning effort)$/ }),
     refreshModels: page.getByRole('button', { name: /^(Refresh models|モデル一覧を更新)$/ }),
     systemPrompt: page.getByLabel(/^(System prompt|システムプロンプト)$/),
     automationSystemPrompt: page.getByLabel(/^(Automation mode prompt|自動操作モード用プロンプト)$/),
@@ -116,6 +116,7 @@ function optionsFields(page: Page) {
     includeCurrentDateTime: page.getByLabel(/^(Include current date and time|現在日時を含める)$/),
     includeResponseLanguageInstruction: page.getByLabel(/^(Include response language instruction|返答言語の指示を含める)$/),
     preferLatexMathOutput: page.getByLabel(/^(Ask the model to format math with LaTeX \$ delimiters|数式は LaTeX の \$ 区切りで出力するよう促す)$/),
+    composerSubmitBehavior: page.getByRole('combobox', { name: /^(Input behavior|入力動作)$/ }),
     autoAttachPage: page.getByLabel(/^(Auto attach full page on first message|最初の送信時にページ全文を自動添付)$/),
     autoAttachPageStructureOnAutomation: page.getByLabel(/^(Auto attach page structure on first automation message|自動操作モードの初回送信時にページ構造を自動添付)$/),
     automationMaxSteps: page.getByLabel(/^(Automation step limit|自動操作のステップ上限)$/),
@@ -169,6 +170,7 @@ async function saveSettings(
     includeCurrentDateTime?: boolean;
     includeResponseLanguageInstruction?: boolean;
     preferLatexMathOutput?: boolean;
+    composerSubmitBehavior?: 'enter_to_send' | 'ctrl_enter_to_send';
     autoAttachPage?: boolean;
     autoAttachPageStructureOnAutomation?: boolean;
     automationMaxSteps?: number;
@@ -206,7 +208,7 @@ async function saveSettings(
   }
 
   if (settings?.reasoningEffort !== undefined) {
-    await fields.chatSection.click();
+    await fields.commonSection.click();
     await fields.reasoningEffort.selectOption(settings.reasoningEffort);
     await expect(fields.reasoningEffort).toHaveValue(settings.reasoningEffort);
     await expect(page.getByText(/^(Saved automatically\.|自動保存しました。)$/)).toBeVisible();
@@ -280,6 +282,13 @@ async function saveSettings(
     if (preferLatexChanged) {
       await expect(page.getByText(/^(Saved automatically\.|自動保存しました。)$/)).toBeVisible();
     }
+  }
+
+  if (settings?.composerSubmitBehavior !== undefined) {
+    await fields.commonSection.click();
+    await fields.composerSubmitBehavior.selectOption(settings.composerSubmitBehavior);
+    await expect(fields.composerSubmitBehavior).toHaveValue(settings.composerSubmitBehavior);
+    await expect(page.getByText(/^(Saved automatically\.|自動保存しました。)$/)).toBeVisible();
   }
 
   if (settings?.autoAttachPage !== undefined) {
@@ -417,9 +426,9 @@ test('loads the extension options page and saves settings', async () => {
     await reloadedFields.commonSection.click();
     await expect(reloadedFields.locale).toHaveValue('auto');
     await expect(reloadedFields.apiKey).toHaveValue('test-api-key');
+    await expect(reloadedFields.reasoningEffort).toHaveValue('high');
     await reloadedFields.chatSection.click();
     await expect(reloadedFields.responseTool).toBeChecked();
-    await expect(reloadedFields.reasoningEffort).toHaveValue('high');
     await expect(reloadedFields.preferLatexMathOutput).toBeChecked();
     await reloadedFields.automationSection.click();
     await expect(reloadedFields.autoAttachPage).toBeChecked();
@@ -480,8 +489,8 @@ test('loads the latest model list from the API and lets the user select one', as
 
     const reloadedPage = await openExtensionPage(context, extensionId, 'options.html');
     await waitForOptionsReady(reloadedPage);
-    await expect(optionsFields(reloadedPage).modelInputList).toHaveAttribute('aria-checked', 'true');
-    await expect(optionsFields(reloadedPage).modelSelect).toHaveValue('gpt-4.1');
+    await expect(optionsFields(reloadedPage).modelInputManual).toHaveAttribute('aria-checked', 'true');
+    await expect(optionsFields(reloadedPage).modelId).toHaveValue('gpt-4.1');
   } finally {
     await closeExtension(context, userDataDir);
   }
@@ -952,6 +961,164 @@ test('sends a chat request with ctrl+enter from the composer', async () => {
       timeout: 10_000,
     });
     await expect(sidepanelPage.locator('.message.assistant')).not.toContainText('Web search used');
+  } finally {
+    await closeExtension(context, userDataDir);
+  }
+});
+
+test('sends a chat request with cmd+enter from the composer', async () => {
+  const { context, extensionId, userDataDir } = await launchExtension();
+
+  try {
+    await context.route('**/v1/responses', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'resp_shortcut_meta_test',
+          object: 'response',
+          created_at: 1735689600,
+          model: 'gpt-4.1-mini',
+          output_text: 'Shortcut reply.',
+          error: null,
+          incomplete_details: null,
+          instructions: null,
+          metadata: {},
+          output: [
+            {
+              id: 'msg_shortcut_meta',
+              type: 'message',
+              role: 'assistant',
+              status: 'completed',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Shortcut reply.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          parallel_tool_calls: false,
+          temperature: 1,
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          max_output_tokens: null,
+          previous_response_id: null,
+          reasoning: null,
+          status: 'completed',
+          usage: {
+            input_tokens: 8,
+            output_tokens: 3,
+            total_tokens: 11,
+          },
+        }),
+      });
+    });
+
+    const fixturePage = await openFixturePage(context);
+    await fixturePage.bringToFront();
+
+    const optionsPage = await openExtensionPage(context, extensionId, 'options.html');
+    await saveSettings(optionsPage, {
+      locale: 'en',
+      apiKey: 'test-api-key',
+      modelId: 'gpt-4.1-mini',
+    });
+
+    const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
+    await waitForSidepanelReady(sidepanelPage);
+
+    const composer = sidepanelPage.locator('textarea').last();
+    await composer.fill('Shortcut send');
+    await composer.press('Meta+Enter');
+
+    await expect(sidepanelPage.locator('.message.user')).toContainText('Shortcut send');
+    await expect(sidepanelPage.locator('.message.assistant')).toContainText('Shortcut reply.', {
+      timeout: 10_000,
+    });
+  } finally {
+    await closeExtension(context, userDataDir);
+  }
+});
+
+test('sends a chat request with enter when the input behavior is set to enter_to_send', async () => {
+  const { context, extensionId, userDataDir } = await launchExtension();
+
+  try {
+    await context.route('**/v1/responses', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'resp_shortcut_enter_test',
+          object: 'response',
+          created_at: 1735689600,
+          model: 'gpt-4.1-mini',
+          output_text: 'Enter shortcut reply.',
+          error: null,
+          incomplete_details: null,
+          instructions: null,
+          metadata: {},
+          output: [
+            {
+              id: 'msg_shortcut_enter',
+              type: 'message',
+              role: 'assistant',
+              status: 'completed',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Enter shortcut reply.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          parallel_tool_calls: false,
+          temperature: 1,
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          max_output_tokens: null,
+          previous_response_id: null,
+          reasoning: null,
+          status: 'completed',
+          usage: {
+            input_tokens: 8,
+            output_tokens: 3,
+            total_tokens: 11,
+          },
+        }),
+      });
+    });
+
+    const fixturePage = await openFixturePage(context);
+    await fixturePage.bringToFront();
+
+    const optionsPage = await openExtensionPage(context, extensionId, 'options.html');
+    await saveSettings(optionsPage, {
+      locale: 'en',
+      apiKey: 'test-api-key',
+      modelId: 'gpt-4.1-mini',
+      composerSubmitBehavior: 'enter_to_send',
+    });
+
+    const sidepanelPage = await openExtensionPage(context, extensionId, 'sidepanel.html');
+    await waitForSidepanelReady(sidepanelPage);
+
+    const composer = sidepanelPage.locator('textarea').last();
+    await composer.fill('Enter send');
+    await composer.press('Shift+Enter');
+    await expect(composer).toHaveValue('Enter send\n');
+
+    await composer.press('Enter');
+
+    await expect(sidepanelPage.locator('.message.user')).toContainText('Enter send');
+    await expect(sidepanelPage.locator('.message.assistant')).toContainText('Enter shortcut reply.', {
+      timeout: 10_000,
+    });
   } finally {
     await closeExtension(context, userDataDir);
   }

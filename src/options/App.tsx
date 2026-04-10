@@ -307,6 +307,30 @@ export function App() {
     );
   }
 
+  function renderComposerSubmitBehaviorSettings() {
+    return (
+      <div className="flex flex-col gap-2.5">
+        <span className="inline-flex items-center gap-2 text-sm font-medium">
+          <MessageSquareText className="h-4 w-4 text-teal-600" />
+          {t.options.composerSubmitBehavior}
+        </span>
+        <select
+          className={`w-full ${inputClassName}`}
+          aria-label={t.options.composerSubmitBehavior}
+          disabled={!hydrated}
+          value={settings.composerSubmitBehavior}
+          onChange={(event) =>
+            void persistImmediate('composerSubmitBehavior', event.target.value as Settings['composerSubmitBehavior'])
+          }
+        >
+          <option value="enter_to_send">{t.options.composerSubmitBehaviorEnterToSend}</option>
+          <option value="ctrl_enter_to_send">{t.options.composerSubmitBehaviorCtrlEnterToSend}</option>
+        </select>
+        <div className="text-xs leading-5 text-slate-500">{t.options.composerSubmitBehaviorHelp}</div>
+      </div>
+    );
+  }
+
   function renderToolCard(props: {
     title: string;
     description: string;
@@ -555,6 +579,8 @@ export function App() {
                   </select>
                   <div className="text-xs leading-5 text-slate-500">{t.options.reasoningHelp}</div>
                 </div>
+
+                {renderComposerSubmitBehaviorSettings()}
 
                 <div className="mt-2 flex flex-wrap items-center justify-end gap-3">
                   <button type="button" className={subtleButtonClassName} disabled={testing || !hydrated} onClick={() => void testConnection()}>

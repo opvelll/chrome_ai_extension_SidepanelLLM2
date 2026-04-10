@@ -52,6 +52,7 @@ export async function listAvailableModels(apiKey: string): Promise<string[]> {
     includeCurrentDateTime: true,
     includeResponseLanguageInstruction: true,
     preferLatexMathOutput: false,
+    composerSubmitBehavior: 'ctrl_enter_to_send',
     autoAttachPage: false,
     autoAttachPageStructureOnAutomation: true,
     automationMaxSteps: AUTOMATION_MAX_STEPS,

@@ -49,6 +49,7 @@ export function ComposerPanel({
   const hasAttachments = attachments.length > 0;
   const modeLabel = automationMode ? t.sidepanel.automationModeShort : t.sidepanel.chatModeShort;
   const modeIcon = automationMode ? <Sparkles className="h-4 w-4" /> : <Bot className="h-4 w-4" />;
+  const composerSubmitBehavior = settings?.composerSubmitBehavior ?? 'ctrl_enter_to_send';
 
   return (
     <section className="z-10 shrink-0 rounded-[20px] border border-stone-200/70 bg-white p-2 shadow-md shadow-stone-900/6">
@@ -138,7 +139,19 @@ export function ComposerPanel({
               value={draft}
               onChange={(event) => onDraftChange(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' && event.ctrlKey && !loading && draft.trim()) {
+                const shouldSubmitWithEnter =
+                  composerSubmitBehavior === 'enter_to_send' &&
+                  event.key === 'Enter' &&
+                  !event.shiftKey &&
+                  !event.ctrlKey &&
+                  !event.altKey &&
+                  !event.metaKey;
+                const shouldSubmitWithCtrlEnter =
+                  composerSubmitBehavior === 'ctrl_enter_to_send' &&
+                  event.key === 'Enter' &&
+                  (event.ctrlKey || event.metaKey);
+
+                if ((shouldSubmitWithEnter || shouldSubmitWithCtrlEnter) && !loading && draft.trim()) {
                   event.preventDefault();
                   onSubmit();
                 }

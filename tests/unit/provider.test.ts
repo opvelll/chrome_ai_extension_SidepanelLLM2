@@ -37,6 +37,7 @@ function createSettings(overrides: Partial<Settings> = {}): Settings {
     includeCurrentDateTime: true,
     includeResponseLanguageInstruction: true,
     preferLatexMathOutput: false,
+    composerSubmitBehavior: 'ctrl_enter_to_send',
     autoAttachPage: false,
     autoAttachPageStructureOnAutomation: true,
     automationMaxSteps: 12,
