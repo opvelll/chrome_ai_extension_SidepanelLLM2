@@ -61,6 +61,37 @@ export type ChatMessageToolUsage = {
   webSearchQueries?: string[];
 };
 
+export type ProviderTraceRequest = {
+  model: string;
+  instructions?: string;
+  previousResponseId: string | null;
+  input: unknown;
+  tools?: unknown;
+  include?: string[];
+  reasoning?: unknown;
+  parallelToolCalls?: boolean;
+};
+
+export type ProviderTraceResponse = {
+  responseId: string | null;
+  previousResponseId: string | null;
+  outputText: string;
+  status?: string | null;
+  usage?: TokenUsage;
+};
+
+export type ProviderTraceStep = {
+  sequence: number;
+  request: ProviderTraceRequest;
+  response: ProviderTraceResponse;
+};
+
+export type ProviderTrace = {
+  api: 'responses';
+  mode: 'chat' | 'automation';
+  requests: ProviderTraceStep[];
+};
+
 export type ChatMessage = {
   id: string;
   role: ChatRole;
@@ -69,6 +100,7 @@ export type ChatMessage = {
   attachments?: ContextAttachment[];
   toolUsage?: ChatMessageToolUsage;
   log?: ChatLogData;
+  providerTrace?: ProviderTrace;
 };
 
 export type ChatSession = {

@@ -1,9 +1,11 @@
-import type { ChatMessage, ChatSession, Settings } from '../../shared/models';
+import type { ChatMessage, ChatSession, ProviderTraceStep, Settings } from '../../shared/models';
 
 type ThreadExportPayload = {
   exportedAt: string;
   session: ChatSession | null;
-  settings: Pick<Settings, 'modelId' | 'reasoningEffort' | 'responseTool' | 'automationMode'> | null;
+  sessionId: string | null;
+  settings: Omit<Settings, 'apiKey'> | null;
+  providerRequests: Array<ProviderTraceStep & { mode: 'chat' | 'automation' }>;
   messages: ChatMessage[];
 };
 
@@ -15,14 +17,33 @@ export function createThreadExportPayload(
   return {
     exportedAt: new Date().toISOString(),
     session,
+    sessionId: session?.id ?? null,
     settings: settings
       ? {
           modelId: settings.modelId,
-          reasoningEffort: settings.reasoningEffort,
           responseTool: settings.responseTool,
+          reasoningEffort: settings.reasoningEffort,
+          systemPrompt: settings.systemPrompt,
+          automationSystemPrompt: settings.automationSystemPrompt,
+          locale: settings.locale,
+          includeCurrentDateTime: settings.includeCurrentDateTime,
+          includeResponseLanguageInstruction: settings.includeResponseLanguageInstruction,
+          preferLatexMathOutput: settings.preferLatexMathOutput,
+          composerSubmitBehavior: settings.composerSubmitBehavior,
+          autoAttachPage: settings.autoAttachPage,
+          autoAttachPageStructureOnAutomation: settings.autoAttachPageStructureOnAutomation,
+          automationMaxSteps: settings.automationMaxSteps,
           automationMode: settings.automationMode,
         }
       : null,
+    providerRequests: messages.flatMap((message) =>
+      message.providerTrace
+        ? message.providerTrace.requests.map((request) => ({
+            ...request,
+            mode: message.providerTrace?.mode ?? 'chat',
+          }))
+        : [],
+    ),
     messages,
   };
 }

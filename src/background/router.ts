@@ -94,6 +94,7 @@ async function handleChatSend(rawRequest: unknown) {
       attachments: request.payload.attachments,
       modelId: request.payload.modelId,
     });
+    result.assistantMessage.providerTrace = result.providerTrace;
 
     await appendMessages(session.id, [...result.logMessages, result.assistantMessage]);
     return {
@@ -144,6 +145,7 @@ async function handleAutomationRun(rawRequest: unknown) {
       modelId: request.payload.modelId,
       executeToolCall: (toolCall) => executeAutomationToolCall(toolCall.name, toolCall.arguments),
     });
+    result.assistantMessage.providerTrace = result.providerTrace;
 
     await appendMessages(session.id, [...result.logMessages, result.assistantMessage]);
     return {

@@ -39,21 +39,64 @@ function createMessages(): ChatMessage[] {
       content: 'hello',
       createdAt: '2026-01-01T00:00:00.000Z',
     },
+    {
+      id: 'message-2',
+      role: 'assistant',
+      content: 'reply',
+      createdAt: '2026-01-01T00:00:05.000Z',
+      providerTrace: {
+        api: 'responses',
+        mode: 'chat',
+        requests: [
+          {
+            sequence: 1,
+            request: {
+              model: 'gpt-5.4',
+              instructions: 'system',
+              previousResponseId: null,
+              input: [{ type: 'message', role: 'user', content: 'hello' }],
+            },
+            response: {
+              responseId: 'resp_1',
+              previousResponseId: null,
+              outputText: 'reply',
+              status: 'completed',
+              usage: {
+                promptTokens: 10,
+                completionTokens: 5,
+                totalTokens: 15,
+              },
+            },
+          },
+        ],
+      },
+    },
   ];
 }
 
 describe('threadExport', () => {
-  it('keeps the current session, messages, and a minimal settings subset', () => {
+  it('keeps the current session, messages, settings, and provider request trace', () => {
     const payload = createThreadExportPayload(createSession(), createMessages(), createSettings());
 
     expect(payload.session?.id).toBe('session-1');
-    expect(payload.settings).toEqual({
-      modelId: 'gpt-5.4',
-      reasoningEffort: 'medium',
-      responseTool: 'web_search',
-      automationMode: false,
-    });
-    expect(payload.messages).toHaveLength(1);
+    expect(payload.sessionId).toBe('session-1');
+    expect(payload.settings?.modelId).toBe('gpt-5.4');
+    expect(payload.settings?.systemPrompt).toBe('system');
+    expect(payload.settings?.automationSystemPrompt).toBe('automation');
+    expect(payload.settings).not.toHaveProperty('apiKey');
+    expect(payload.providerRequests).toEqual([
+      expect.objectContaining({
+        mode: 'chat',
+        sequence: 1,
+        request: expect.objectContaining({
+          previousResponseId: null,
+        }),
+        response: expect.objectContaining({
+          responseId: 'resp_1',
+        }),
+      }),
+    ]);
+    expect(payload.messages).toHaveLength(2);
     expect(payload.exportedAt).toMatch(/T/);
   });
 
@@ -63,5 +106,7 @@ describe('threadExport', () => {
     expect(() => JSON.parse(serialized)).not.toThrow();
     expect(serialized).toContain('\n  "session"');
     expect(serialized).toContain('"message-1"');
+    expect(serialized).toContain('"sessionId": "session-1"');
+    expect(serialized).toContain('"providerRequests"');
   });
 });

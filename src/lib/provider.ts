@@ -17,12 +17,23 @@ import {
 } from './automation';
 import { buildSystemInstructions } from './defaultSystemPrompt';
 import { resolveLocale } from './i18n';
-import type { ChatLogData, ChatMessage, ChatMessageToolUsage, ContextAttachment, Settings, TokenUsage } from '../shared/models';
+import type {
+  ChatLogData,
+  ChatMessage,
+  ChatMessageToolUsage,
+  ContextAttachment,
+  ProviderTrace,
+  ProviderTraceRequest,
+  ProviderTraceStep,
+  Settings,
+  TokenUsage,
+} from '../shared/models';
 
 type ProviderResult = {
   assistantMessage: ChatMessage;
   logMessages: ChatMessage[];
   usage?: TokenUsage;
+  providerTrace: ProviderTrace;
 };
 
 function createClient(settings: Settings): OpenAI {
@@ -79,15 +90,29 @@ export async function sendChatCompletion(input: {
 
   const client = createClient(settings);
   const messages = buildInputMessages(history, userMessage, attachments);
-
-  const response = await client.responses.create({
+  const instructions = buildSystemInstructions(settings, settings.systemPrompt) || undefined;
+  const tools = getResponseTools(settings);
+  const include = getResponseIncludes(settings);
+  const reasoning = getReasoning(settings);
+  const request: {
+    model: string;
+    input: EasyInputMessage[] | ResponseInputItem[];
+    instructions?: string;
+    tools?: Tool[];
+    include?: Array<'web_search_call.action.sources'>;
+    reasoning?: Reasoning;
+    previous_response_id?: string;
+    parallel_tool_calls?: boolean;
+  } = {
     model: modelId || settings.modelId,
     input: messages,
-    instructions: buildSystemInstructions(settings, settings.systemPrompt) || undefined,
-    tools: getResponseTools(settings),
-    include: getResponseIncludes(settings),
-    reasoning: getReasoning(settings),
-  });
+    instructions,
+    tools,
+    include,
+    reasoning,
+  };
+
+  const response = await client.responses.create(request);
   const content = extractResponseText(response);
   const toolUsage = settings.responseTool === 'web_search'
     ? extractToolUsage(response)
@@ -111,6 +136,11 @@ export async function sendChatCompletion(input: {
       completionTokens: response.usage?.output_tokens,
       totalTokens: response.usage?.total_tokens,
     },
+    providerTrace: {
+      api: 'responses',
+      mode: 'chat',
+      requests: [createProviderTraceStep(1, request, response)],
+    },
   };
 }
 
@@ -130,15 +160,29 @@ export async function runAutomationCompletion(input: {
   const tools = getResponseTools(settings, { includeAutomation: true });
   const instructions = buildSystemInstructions(settings, settings.automationSystemPrompt);
   const logMessages: ChatMessage[] = [];
-  let response = await client.responses.create({
+  const include = getResponseIncludes(settings);
+  const reasoning = getReasoning(settings);
+  const traceRequests: ProviderTraceStep[] = [];
+  let request: {
+    model: string;
+    input: EasyInputMessage[] | ResponseInputItem[];
+    instructions?: string;
+    tools?: Tool[];
+    include?: Array<'web_search_call.action.sources'>;
+    reasoning?: Reasoning;
+    previous_response_id?: string;
+    parallel_tool_calls?: boolean;
+  } = {
     model: modelId || settings.modelId,
     input: buildInputMessages(history, userMessage, attachments),
     instructions,
     tools,
-    include: getResponseIncludes(settings),
-    reasoning: getReasoning(settings),
+    include,
+    reasoning,
     parallel_tool_calls: false,
-  });
+  };
+  let response = await client.responses.create(request);
+  traceRequests.push(createProviderTraceStep(1, request, response));
 
   const automationMaxSteps = Math.max(1, settings.automationMaxSteps || AUTOMATION_MAX_STEPS);
 
@@ -164,6 +208,11 @@ export async function runAutomationCompletion(input: {
           promptTokens: response.usage?.input_tokens,
           completionTokens: response.usage?.output_tokens,
           totalTokens: response.usage?.total_tokens,
+        },
+        providerTrace: {
+          api: 'responses',
+          mode: 'automation',
+          requests: traceRequests,
         },
       };
     }
@@ -222,16 +271,18 @@ export async function runAutomationCompletion(input: {
       }
     }
 
-    response = await client.responses.create({
+    request = {
       model: modelId || settings.modelId,
       previous_response_id: response.id,
       input: toolOutputs,
       instructions,
       tools,
-      include: getResponseIncludes(settings),
-      reasoning: getReasoning(settings),
+      include,
+      reasoning,
       parallel_tool_calls: false,
-    });
+    };
+    response = await client.responses.create(request);
+    traceRequests.push(createProviderTraceStep(traceRequests.length + 1, request, response));
   }
 
   throw new Error(`Automation stopped after reaching the ${automationMaxSteps}-step limit.`);
@@ -330,6 +381,68 @@ function buildAutomationToolResultMessage(result: unknown): ResponseInputItem | 
     role: 'user',
     content: buildAttachmentContentParts(result),
   };
+}
+
+function createProviderTraceStep(
+  sequence: number,
+  request: {
+    model: string;
+    input: EasyInputMessage[] | ResponseInputItem[];
+    instructions?: string;
+    tools?: Tool[];
+    include?: Array<'web_search_call.action.sources'>;
+    reasoning?: Reasoning;
+    previous_response_id?: string;
+    parallel_tool_calls?: boolean;
+  },
+  response: Response,
+): ProviderTraceStep {
+  const traceRequest: ProviderTraceRequest = {
+    model: request.model,
+    instructions: request.instructions,
+    previousResponseId: request.previous_response_id ?? null,
+    input: sanitizeProviderTraceValue(request.input),
+    tools: request.tools ? sanitizeProviderTraceValue(request.tools) : undefined,
+    include: request.include,
+    reasoning: request.reasoning ? sanitizeProviderTraceValue(request.reasoning) : undefined,
+    parallelToolCalls: request.parallel_tool_calls,
+  };
+
+  return {
+    sequence,
+    request: traceRequest,
+    response: {
+      responseId: response.id ?? null,
+      previousResponseId: 'previous_response_id' in response ? response.previous_response_id ?? null : null,
+      outputText: extractResponseText(response),
+      status: response.status ?? null,
+      usage: {
+        promptTokens: response.usage?.input_tokens,
+        completionTokens: response.usage?.output_tokens,
+        totalTokens: response.usage?.total_tokens,
+      },
+    },
+  };
+}
+
+function sanitizeProviderTraceValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeProviderTraceValue(item));
+  }
+
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  const sanitizedEntries = Object.entries(value as Record<string, unknown>).map(([key, entryValue]) => {
+    if (key === 'image_url' && typeof entryValue === 'string' && entryValue.startsWith('data:')) {
+      return [key, `[omitted data URL: ${entryValue.length} chars]`];
+    }
+
+    return [key, sanitizeProviderTraceValue(entryValue)];
+  });
+
+  return Object.fromEntries(sanitizedEntries);
 }
 
 function formatAutomationLogResult(result: unknown): unknown {

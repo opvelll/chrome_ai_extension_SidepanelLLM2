@@ -152,6 +152,51 @@ describe('sendChatCompletion', () => {
     expect(request.instructions).not.toContain('Additional instructions:');
   });
 
+  it('returns a provider trace with the sent request and response ids', async () => {
+    createMock.create.mockResolvedValueOnce({
+      id: 'resp_chat_1',
+      previous_response_id: null,
+      output_text: 'Assistant reply',
+      output: [],
+      status: 'completed',
+      usage: {
+        input_tokens: 10,
+        output_tokens: 5,
+        total_tokens: 15,
+      },
+    });
+
+    const result = await sendChatCompletion({
+      settings: createSettings(),
+      userMessage: {
+        id: 'message-1',
+        role: 'user',
+        content: 'Summarize this.',
+        createdAt: '2026-03-13T00:00:00.000Z',
+      },
+      history: [],
+      attachments: [],
+    });
+
+    expect(result.providerTrace).toEqual({
+      api: 'responses',
+      mode: 'chat',
+      requests: [
+        expect.objectContaining({
+          sequence: 1,
+          request: expect.objectContaining({
+            previousResponseId: null,
+            model: 'gpt-4.1-mini',
+          }),
+          response: expect.objectContaining({
+            responseId: 'resp_chat_1',
+            previousResponseId: null,
+          }),
+        }),
+      ],
+    });
+  });
+
   it('adds a latex math formatting instruction when enabled', async () => {
     await sendChatCompletion({
       settings: createSettings({
@@ -384,6 +429,10 @@ describe('sendChatCompletion', () => {
     ]);
 
     expect(result.assistantMessage.content).toBe('Completed the browser task.');
+    expect(result.providerTrace.requests).toHaveLength(2);
+    expect(result.providerTrace.requests[0]?.response.responseId).toBe('resp_auto_1');
+    expect(result.providerTrace.requests[1]?.request.previousResponseId).toBe('resp_auto_1');
+    expect(result.providerTrace.requests[1]?.response.responseId).toBe('resp_auto_2');
   });
 
   it('uses the configured automation step limit in the stop condition', async () => {
